@@ -1,8 +1,9 @@
 <template>
     <!-- 自定义 macOS 标题栏（仅 macOS 显示，包含 Pin 置顶按钮） -->
-    <div class="mxdict-titlebar">
+    <div id="mxdict-titlebar" class="mxdict-titlebar">
         <div class="floating-window-titlebar">
-            <div class="floating-window-search-container">
+            <div class="floating-window-search-container" @mousedown="preventDrag = true"
+                @mouseup="preventDrag = false">
                 <el-autocomplete class="floating-window-search" v-model="keyword" :fetch-suggestions="querySearchAsync"
                     placeholder="Search" @select="handleSelect" ref="autoCompleteRef" @keyup.enter="handleEnter"
                     @focus="handleFocus" clearable hide-loading style="font-size: 1rem;">
@@ -14,7 +15,8 @@
                     </template>
                 </el-autocomplete>
             </div>
-            <el-button-group class="floating-window-titlebar-button-container">
+            <el-button-group class="floating-window-titlebar-button-container" @mousedown="preventDrag = true"
+                @mouseup="preventDrag = false">
                 <el-button :icon="ArrowLeftBold" text @click="handleHistoryBack" class="floating-window-titlebar-button"
                     size="small" :disabled="historyIndex >= searchHistory.length - 1"
                     id="titlebar-history-back-button" />
@@ -40,41 +42,41 @@
                     @click="handlePinClick" class="floating-window-titlebar-button" size="small" />
             </el-button-group>
         </div>
-
-        <el-dialog v-model="noteDialogVisible" :title="'「' + lastSearchKeyword + '」' + '的笔记'" width="500" align-center>
-            <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
-                :autosize="{ minRows: 5, maxRows: 9 }" />
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-popconfirm confirm-button-text="删除" confirm-button-type="danger" cancel-button-text="取消"
-                        :icon="Delete" icon-color="#FF4949" title="确定删除笔记吗？" @confirm="handleDeleteNote">
-                        <template #reference>
-                            <el-button :icon="Delete" type="danger">Delete</el-button>
-                        </template>
-                    </el-popconfirm>
-
-                    <el-button @click="noteDialogVisible = false">Cancel</el-button>
-                    <el-button type="primary" @click="submitNote">
-                        Confirm
-                    </el-button>
-                </div>
-            </template>
-        </el-dialog>
-
-        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
-            <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-                @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="props.favoriteWords"
-                :sessionConfig="props.sessionConfig" />
-        </el-dialog>
-        <el-dialog v-model="settingDialogVisible" fullscreen>
-            <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-                :sessionConfig="props.sessionConfig"></Settings>
-        </el-dialog>
-        <el-dialog v-model="dictSSDialogVisible" fullscreen>
-            <DictSelectAndSortDialog :webSocket="props.webSocket" :dictSSDialogVisible="dictSSDialogVisible"
-                :sessionConfig="props.sessionConfig"></DictSelectAndSortDialog>
-        </el-dialog>
     </div>
+
+    <el-dialog v-model="noteDialogVisible" :title="'「' + lastSearchKeyword + '」' + '的笔记'" width="500" align-center>
+        <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
+            :autosize="{ minRows: 5, maxRows: 9 }" />
+        <template #footer>
+            <div class="dialog-footer">
+                <el-popconfirm confirm-button-text="删除" confirm-button-type="danger" cancel-button-text="取消"
+                    :icon="Delete" icon-color="#FF4949" title="确定删除笔记吗？" @confirm="handleDeleteNote">
+                    <template #reference>
+                        <el-button :icon="Delete" type="danger">Delete</el-button>
+                    </template>
+                </el-popconfirm>
+
+                <el-button @click="noteDialogVisible = false">Cancel</el-button>
+                <el-button type="primary" @click="submitNote">
+                    Confirm
+                </el-button>
+            </div>
+        </template>
+    </el-dialog>
+
+    <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
+        <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
+            @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="props.favoriteWords"
+            :sessionConfig="props.sessionConfig" />
+    </el-dialog>
+    <el-dialog v-model="settingDialogVisible" fullscreen>
+        <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
+            :sessionConfig="props.sessionConfig"></Settings>
+    </el-dialog>
+    <el-dialog v-model="dictSSDialogVisible" fullscreen>
+        <DictSelectAndSortDialog :webSocket="props.webSocket" :dictSSDialogVisible="dictSSDialogVisible"
+            :sessionConfig="props.sessionConfig"></DictSelectAndSortDialog>
+    </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -94,7 +96,7 @@ import { getDictSettingsForLookup } from '@/common/utility'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
 import { useSystemConfigStore } from '@/stores/stores'
 import type { WordInfo, WordInfoWithLastSearch } from '@/common/type-interface'
-
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const props = defineProps({
     webSocket: {
@@ -172,6 +174,8 @@ const emits = defineEmits<{
     (e: 'change:keyword', keyword: string): void
 }>()
 
+const tauriAppWindow = ref<any | null>(null)
+const preventDrag = ref(false)
 const keyword = ref('')
 const favoriteWordsDialogVisible = ref(false)
 const dictSSDialogVisible = ref(false)
@@ -408,13 +412,37 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleKeydownData(e)
 }
 
+const handleTitlebarMouseDown = (e: MouseEvent) => {
+    if (e.buttons === 1) {
+        // Primary (left) button
+        if (preventDrag.value) {
+            return
+        }
+        if (e.detail === 2) {
+            e.preventDefault()
+            tauriAppWindow.value?.toggleMaximize() // Maximize on double click
+        }
+        else {
+            e.preventDefault()
+            tauriAppWindow.value?.startDragging(); // Else start dragging
+        }
+    }
+}
+
 onMounted(() => {
     links.value = loadAll()
     window.addEventListener('keydown', handleKeydown)
+    if (props.env === '') {
+        tauriAppWindow.value = getCurrentWindow();
+        document.getElementById('mxdict-titlebar')?.addEventListener('mousedown', handleTitlebarMouseDown)
+    }
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
+    if (props.env === '') {
+        document.getElementById('mxdict-titlebar')?.removeEventListener('mousedown', handleTitlebarMouseDown)
+    }
 })
 
 </script>
