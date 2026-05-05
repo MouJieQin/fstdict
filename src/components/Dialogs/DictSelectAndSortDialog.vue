@@ -47,7 +47,7 @@ const props = defineProps({
 const listRef = ref<HTMLElement | null>(null)
 const sessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig || {})))
 // 声明数组类型，兼容 Tauri 响应式
-const list = ref<DictSettingInfo[]>(sessionConfig.value?.dictsSettingInfo || [])
+const list = ref<DictSettingInfo>(sessionConfig.value?.dictsSettingInfo || [])
 
 // 拖拽实例（方便销毁，避免内存泄漏）
 let sortableInstance: Sortable | null = null
@@ -72,13 +72,9 @@ const initSortable = () => {
       if (oldIndex === undefined || newIndex === undefined) return
       if (oldIndex === newIndex) return
 
-      // 数组操作（Tauri 兼容写法）
-      const arr = [...list.value] // 浅拷贝数组，避免响应式异常
-      const item = arr.splice(oldIndex, 1)[0]
-      arr.splice(newIndex, 0, item)
-      list.value = arr // 重新赋值，强制更新
-
-      console.log('拖拽完成：', list.value.map(i => i.name))
+      const item = list.value?.splice(oldIndex as number, 1)[0]
+      list.value?.splice(newIndex as number, 0, item as DictSettingInfo)
+      console.log('New list order:', list.value?.map(i => i.name).join(', '))
     }
   })
 }
