@@ -28,13 +28,12 @@ const router = createRouter({
     routes
 })
 
-// 👇 加上这个：默认打开 /dict/95
-router.beforeEach((to, _, next) => {
+router.beforeEach((to) => {
+    // 访问根路径 / 时，重定向到 /dict/1
     if (to.path === '/') {
-        next('/dict/1')
-    } else {
-        next()
+        return '/dict/1' // 直接返回路径，替代 next('/dict/1')
     }
+    // 其他情况直接放行（无需 return，等同于 next()）
 })
 
 export default router
