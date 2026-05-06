@@ -254,6 +254,7 @@ class MessageHandler:
         msg = {
             "type": "toggle_favor",
             "data": {
+                "folder_id": folder_id,
                 "keyword": keyword,
                 "is_word_favorited": is_word_favorited,
             },
@@ -316,7 +317,20 @@ class MessageHandler:
     async def _handle_favorite_words_request(
         websocket: WebSocket, session_id: int, connection_id: int, message: dict
     ):
-        await SessionManager.send_favorite_words_to_session(session_id, connection_id)
+        folder_id = message["data"]["folder_id"]
+        msg = {"type": "favorite_words", "data": {"folder_id": folder_id, "words": []}}
+        if folder_id and Utils.db.is_folder_exist(folder_id):
+            words = Utils.db.get_folder_words(folder_id)
+            msg = {
+                "type": "favorite_words",
+                "data": {
+                    "folder_id": folder_id,
+                    "words": words
+                    },
+            }
+        await SessionManager.send_msg_to_session_by_id(
+            session_id, connection_id, json.dumps(msg)
+        )
 
     @staticmethod
     async def _handle_search_history_request(

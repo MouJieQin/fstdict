@@ -123,10 +123,12 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
-    sendFavoriteWordsRequest() {
+    sendFavoriteWordsRequest(folderId: number) {
         this._send(
             'favorite_words_request',
-            {}
+            {
+                folder_id: folderId,
+            }
         )
     }
 

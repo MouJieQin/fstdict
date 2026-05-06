@@ -1,5 +1,6 @@
 <template>
     <div class="favorite-words-table-container">
+        <div class="favorite-folder-name-title">{{ folderName }}</div>
         Total: {{ localFavoriteWords.length }} words
         <el-table v-if="localFavoriteWords" class="favorite-words-table" :data="localFavoriteWords" stripe style="font-size: 1rem;">
             <!-- <el-table-column fixed prop="created_at" label="Favorite At" width="130" show-overflow-tooltip /> -->
@@ -12,9 +13,9 @@
                     </el-button-group>
                 </template>
             </el-table-column>
-            <el-table-column fixed prop="favorited_at" label="Favorite At" show-overflow-tooltip sortable />
             <el-table-column fixed prop="word" label="Word" show-overflow-tooltip sortable/>
             <el-table-column prop="query_count" label="Query Count" sortable/>
+            <el-table-column prop="favorited_at" label="Favorite At" show-overflow-tooltip sortable />
         </el-table>
         <!-- make it show better -->
     </div>
@@ -24,7 +25,7 @@
 import { ref, watch } from 'vue'
 import type { PropType } from 'vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { WordInfoWithFavoriteAt, SessionConfig } from '@/common/type-interface'
+import type { WordInfoWithFavoriteAt } from '@/common/type-interface'
 import { BsHeartbreak, BsSearch } from 'vue-icons-plus/bs'
 
 const props = defineProps({
@@ -36,14 +37,18 @@ const props = defineProps({
         type: [SessionWebSocketService, null],
         required: true
     },
+    folderName: {
+        type: String,
+        required: true
+    },
     favoriteWords: {
         type: Array as PropType<WordInfoWithFavoriteAt[]>,
         required: true
     },
-    sessionConfig: {
-        type: Object as () => SessionConfig,
+    folderId: {
+        type: Number,
         required: true,
-        default: () => ({})
+        default: 0
     },
 })
 
@@ -57,7 +62,7 @@ watch(() => props.favoriteWords, (newVal) => {
 })
 
 const handleUnFavorite = (_: number, row: WordInfoWithFavoriteAt) => {
-    props.webSocket?.sendToggleFavor(row.word, props.sessionConfig.default_folder.id)
+    props.webSocket?.sendToggleFavor(row.word, props.folderId)
 }
 
 const handleSearch = (_: number, row: WordInfoWithFavoriteAt) => {

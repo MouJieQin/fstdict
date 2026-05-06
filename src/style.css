@@ -367,6 +367,14 @@ el-tabs__item {
     margin-top: 20px;
 }
 
+.favorite-folder-name-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+
+}
+
 .favorite-words-table {
     max-height: 80%;
 }

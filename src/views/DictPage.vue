@@ -1,10 +1,10 @@
 <template>
     <Titlebar :webSocket="webSocket as SessionWebSocketService" :sessionId="sessionId" :env="envFromRoute"
-        :isWordFavorited="isWordFavorited" :sessionConfig="sessionConfig as SessionConfig"
-        :favoriteWords="favoriteWords" :leftHistory="leftHistory" :searchHistory="searchHistory"
-        :isPinned="isFloatingWindowPinned" :lastSearchKeyword="lastSearchKeyword"
-        :hasResultLastSearch="hasResultLastSearch" :noteContent="noteContent" :wordOptions="wordOptions"
-        :redirectWord="redirectWord" @change:keyword="handleChangeKeyword" :iframeKeydownEvent="iframeKeydownEvent" />
+        :isWordFavorited="isWordFavorited" :sessionConfig="sessionConfig as SessionConfig" :folderWords="folderWords"
+        :leftHistory="leftHistory" :searchHistory="searchHistory" :isPinned="isFloatingWindowPinned"
+        :lastSearchKeyword="lastSearchKeyword" :hasResultLastSearch="hasResultLastSearch" :noteContent="noteContent"
+        :wordOptions="wordOptions" :redirectWord="redirectWord" @change:keyword="handleChangeKeyword"
+        :iframeKeydownEvent="iframeKeydownEvent" />
     <div class="word-detail" :style="wordDetailDynamicStyle">
         <el-collapse expand-icon-position="left" v-model="activeNames">
             <el-collapse-item v-if="noteContent" title="我的笔记" name="我的笔记" :isActive="true">
@@ -49,7 +49,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import DictIframe from '@/components/DictIframe.vue';
-import type { DictsInfo, SessionConfig, WordInfoWithFavoriteAt, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { DictsInfo, SessionConfig, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
 import { useSystemConfigStore } from '@/stores/stores'
 import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt(
@@ -87,7 +87,7 @@ const isWordFavorited = ref<boolean>(false)
 const lastSearchKeyword = ref<string>('')
 const noteContent = ref<string>('')
 const hasResultLastSearch = ref<boolean>(false)
-const favoriteWords = ref<WordInfoWithFavoriteAt[]>([])
+const folderWords = ref<FolderWords>({})
 const leftHistory = ref<boolean>(false)
 const searchHistory = ref<WordInfoWithLastSearch[]>([])
 const iframeKeydownEvent = ref<any | null>(null)
@@ -210,8 +210,8 @@ const handleWebSocketMessage = (message: any) => {
             handleToggleFavor(message.data)
             break
         case 'favorite_words':
-            favoriteWords.value = message.data.words
-            console.log('favorite_words:', favoriteWords.value)
+            folderWords.value[message.data.folder_id] = message.data.words
+            console.log('favorite_words:', folderWords.value)
             break
         case 'search_history':
             searchHistory.value = message.data.words
@@ -289,9 +289,9 @@ const handleCloseFixedWindow = (message: any) => {
 const handleToggleFavor = (data: any) => {
 
     isWordFavorited.value = data.is_word_favorited
-    // add  word if it is not in favoriteWords.value or delete the word in favoriteWords.value
     if (!isWordFavorited.value) {
-        favoriteWords.value = favoriteWords.value.filter((item: WordInfoWithFavoriteAt) => item.word !== data.keyword)
+        // delete the word in folderWords.value
+        folderWords.value[data.folder_id] = folderWords.value[data.folder_id].filter((item: WordInfoWithFavoriteAt) => item.word !== data.keyword)
     }
 }
 

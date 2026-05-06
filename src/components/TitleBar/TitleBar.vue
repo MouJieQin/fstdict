@@ -64,14 +64,14 @@
         </template>
     </el-dialog>
 
-    <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
+    <el-dialog v-model="favoriteWordsDialogVisible" fullscreen :z-index="10000">
         <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-            @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="props.favoriteWords"
-            :sessionConfig="props.sessionConfig" />
+            @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
+            :folderName="sessionDefaultFolderName" :folderId="props.sessionConfig.default_folder.id" />
     </el-dialog>
-    <el-dialog v-model="settingDialogVisible" fullscreen>
+    <el-dialog v-model="settingDialogVisible" fullscreen :z-index="10000">
         <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-            :sessionConfig="props.sessionConfig"></Settings>
+            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords"></Settings>
     </el-dialog>
     <el-dialog v-model="dictSSDialogVisible" fullscreen>
         <DictSelectAndSortDialog :webSocket="props.webSocket" :dictSSDialogVisible="dictSSDialogVisible"
@@ -95,7 +95,7 @@ import { type SessionConfig } from '@/common/type-interface'
 import { getDictSettingsForLookup } from '@/common/utility'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
 import { useSystemConfigStore } from '@/stores/stores'
-import type { WordInfoWithFavoriteAt, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { WordInfoWithLastSearch, FolderWords } from '@/common/type-interface'
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const props = defineProps({
@@ -117,10 +117,10 @@ const props = defineProps({
         required: true,
         default: () => ({})
     },
-    favoriteWords: {
-        type: Array as PropType<WordInfoWithFavoriteAt[]>,
+    folderWords: {
+        type: Object as () => FolderWords,
         required: true,
-        default: () => [],
+        default: () => ({}),
     },
     leftHistory: {
         type: Boolean,
@@ -212,7 +212,7 @@ watch(() => props.noteContent, (newVal) => {
 
 watch(() => favoriteWordsDialogVisible.value, (newVal) => {
     if (newVal) {
-        props.webSocket?.sendFavoriteWordsRequest()
+        props.webSocket?.sendFavoriteWordsRequest(props.sessionConfig.default_folder.id)
     }
 })
 
@@ -229,6 +229,14 @@ let searchTimer: number | null = null
 
 const showFavorButtonTooltip = computed(() => {
     return !props.sessionConfig.default_folder.id || !systemConfigStore.systemConfig?.folders?.folder_info.some((item) => item.id === props.sessionConfig.default_folder.id)
+})
+
+const sessionDefaultFolderName = computed(() => {
+    return systemConfigStore.systemConfig?.folders?.folder_info.find((item) => item.id === props.sessionConfig.default_folder.id)?.name || ''
+})
+
+const favoriteWords = computed(() => {
+    return props.folderWords[props.sessionConfig.default_folder.id] || []
 })
 
 const handlePinClick = () => {

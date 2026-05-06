@@ -18,8 +18,6 @@
                             <el-button-group>
                                 <el-button :icon="Edit" size="small" @click="handleEdit(scope.$index, scope.row)" />
                                 <el-button :icon="Document" size="small" @click="handleView(scope.$index, scope.row)" />
-                                <!-- <el-button :icon="Delete" size="small" type="danger"
-                                    @click="handleDelete(scope.$index, scope.row)" /> -->
                                 <el-popconfirm confirm-button-text="删除" confirm-button-type="danger"
                                     cancel-button-text="取消" :icon="Delete" icon-color="#FF4949" title="确定删除收藏夹吗？"
                                     @confirm="handleDelete(scope.$index, scope.row)">
@@ -79,6 +77,12 @@
                 </div>
             </template>
         </el-dialog>
+
+        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen :z-index="10000">
+            <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
+                @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
+                :folderName="folderIdNameToShow" :folderId="folderIdToShow" />
+        </el-dialog>
     </div>
 </template>
 
@@ -92,7 +96,8 @@ import { Edit, Delete, Document, Plus } from '@element-plus/icons-vue'
 
 import AnkiIcon from '@/components/Icons/AnkiIcon.vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, SystemConfig, FolderInfo } from '@/common/type-interface'
+import type { SessionConfig, SystemConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
+import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 
 
 const props = defineProps({
@@ -107,7 +112,12 @@ const props = defineProps({
     sessionConfig: {
         type: Object as PropType<SessionConfig>,
         required: true
-    }
+    },
+    folderWords: {
+        type: Object as () => FolderWords,
+        required: true,
+        default: () => ({}),
+    },
 })
 
 const systemConfigStore = useSystemConfigStore()
@@ -116,8 +126,11 @@ const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.se
 const multipleSelection = ref<FolderInfo[]>([])
 const createOrEditDialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
+const favoriteWordsDialogVisible = ref(false)
 const isCreate = ref(true)
 const folderIdEditing = ref('')
+const folderIdToShow = ref<number>(0)
+const folderIdNameToShow = ref('')
 
 watch(() => systemConfigStore.systemConfig, (newVal) => {
     localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
@@ -127,11 +140,9 @@ watch(() => localSessionConfig.value.default_folder.id, () => {
     props.webSocket?.sendSessionConfig(localSessionConfig.value)
 })
 
-
 const dialogTitle = computed(() => {
     return isCreate.value ? 'Create New Folder' : 'Edit Folder'
 })
-
 
 const defaultFolderOptions = computed(() => {
     return localSystemConfig.value.folders.folder_info.map((item) => ({
@@ -148,6 +159,9 @@ const disableAnkiButton = computed(() => {
     return multipleSelection.value.length === 0
 })
 
+const favoriteWords = computed(() => {
+    return props.folderWords[folderIdToShow.value] || []
+})
 
 onBeforeMount(() => {
     props.webSocket?.sendSystemConfig()
@@ -223,9 +237,13 @@ const handleEdit = (_: number, row: any) => {
     folderIdEditing.value = row.id
 }
 
-const handleView = (index: number, row: any) => {
-    console.log(index, row)
+const handleView = (_: number, row: any) => {
+    folderIdToShow.value = row.id
+    folderIdNameToShow.value = row.name
+    props.webSocket?.sendFavoriteWordsRequest(row.id)
+    favoriteWordsDialogVisible.value = true
 }
+
 const handleDelete = (_: number, row: any) => {
     props.webSocket?.sendDeleteFolder(row.id)
 }
@@ -243,8 +261,6 @@ const handleUpdateToAnki = () => {
         props.webSocket?.sendUpdateToAnki(item.name, item.id)
     })
 }
-
-
 
 const handleSelectionChange = (val: FolderInfo[]) => {
     multipleSelection.value = val
