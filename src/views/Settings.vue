@@ -66,18 +66,23 @@
             </template>
         </el-dialog>
 
-        <el-dialog v-model="ankiDialogVisible" :title="`Update to Anki for ${multipleSelection.length}  folders`"
-            width="700" draggable :close-on-click-modal="false">
+        <el-dialog class="anki-dialog" v-model="ankiDialogVisible"
+            :title="`Update to Anki for ${multipleSelection.length}  folders`" width="700" :close-on-click-modal="false"
+            :close-on-press-escape="false" draggable :show-close="false">
+            {{ isAllAnkiDone }}
             <div v-for="(item, index) in multipleSelection" :key="index">
                 <div class="config-class">
                     <p class="config-class-title">{{ item.name }}</p>
-                    <AnkiPorgress :webSocket="props.webSocket" :ankiProgress="ankiProgresses[item.name]" :ankiDialogVisible="ankiDialogVisible" />
+                    <AnkiPorgress :webSocket="props.webSocket" :ankiProgress="ankiProgresses[item.name]"
+                        :ankiDialogVisible="ankiDialogVisible" />
                 </div>
             </div>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="deleteDialogVisible = false">Cancel</el-button>
-                    <el-button type="danger" @click="">
+                    <el-button v-if="!isAllAnkiDone" type="danger" @click="ankiBeforeClose">
+                        Cancel
+                    </el-button>
+                    <el-button v-else type="primary" @click="ankiBeforeClose">
                         Confirm
                     </el-button>
                 </div>
@@ -156,6 +161,38 @@ watch(() => localSessionConfig.value.default_folder.id, () => {
 watch(() => props.ankiProgress, (newVal) => {
     ankiProgresses.value = JSON.parse(JSON.stringify(newVal))
 }, { deep: true })
+
+const isAllAnkiDone = computed(() => {
+    for (const item of multipleSelection.value) {
+        if (!ankiProgresses.value[item.name]) {
+            return false
+        }
+        if (ankiProgresses.value[item.name].type !== 'done' && ankiProgresses.value[item.name].type !== 'canceled') {
+            return false
+        }
+    }
+    return true
+})
+
+const ankiBeforeClose = (done: any) => {
+    if (isAllAnkiDone.value) {
+        ankiDialogVisible.value = false
+    }
+    else {
+        ElMessageBox.confirm('There are folders that are not done. Are you sure you want to close the dialog?', 'Warning', {
+            confirmButtonText: 'OK',
+            cancelButtonText: 'Cancel',
+            type: 'warning',
+            appendTo: '.anki-dialog'
+        }).then(() => {
+            console.log("用户确认取消更新发送取消更新消息")
+            props.webSocket?.sendCancelAnkiUpdate()
+            console.log("用户确认取消更新发送取消更新消息完成")
+        }).catch(() => {
+        })
+    }
+}
+
 
 
 const dialogTitle = computed(() => {

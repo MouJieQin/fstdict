@@ -103,6 +103,7 @@ class MessageHandler:
                 "create_folder": MessageHandler._handle_create_folder,
                 "delete_folder": MessageHandler._handle_delete_folder,
                 "update_to_anki": MessageHandler._handle_update_to_anki,
+                "cancel_anki_update": MessageHandler._handle_cancel_anki_update,
                 "update_folder": MessageHandler._handle_update_folder,
                 "system_config": MessageHandler._handle_system_config,
                 "toggle_favor": MessageHandler._handle_toggle_favor,
@@ -216,6 +217,7 @@ class MessageHandler:
     async def _handle_update_to_anki(
         websocket: WebSocket, session_id: int, connection_id: int, message: dict
     ):
+        anki_manager.set_cancel_flag(False)
         deck_name = message["data"]["deck_name"]
         folder_id = message["data"]["folder_id"]
         async def send_progress(progress_msg: dict):
@@ -234,7 +236,15 @@ class MessageHandler:
         words = Utils.db.get_folder_words(folder_id)
 
         await anki_manager.update_words_to_anki(str(session_id), deck_name, words,send_progress)
+        logger.info("@@@@@@@@@@@@@@@@@@@@@@@@exit _handle_update_to_anki")
 
+
+    @staticmethod
+    async def _handle_cancel_anki_update(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        logger.info(f"收到取消 Anki 更新请求: {message}")
+        anki_manager.set_cancel_flag(True)
 
     @staticmethod
     async def _handle_update_folder(

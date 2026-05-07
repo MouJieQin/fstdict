@@ -60,7 +60,7 @@ class AnkiApi:
 
 
     @staticmethod
-    def upsert_note_to_deck(deck_name: str, noteId=None, front: str = "", back: str = ""):
+    def update_note_to_deck(deck_name: str, noteId=None, front: str = "", back: str = ""):
         """
         【新增函数】智能更新/插入卡片（笔记）
         - 有 noteId → 更新该笔记的 front/back（不改变学习记录）

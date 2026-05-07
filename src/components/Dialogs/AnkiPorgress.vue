@@ -25,7 +25,7 @@ const status = ref('success')
 const indeterminate = ref(true)
 const showInfo = ref(true)
 const errorMessage = ref('')
-const info = ref('')
+const info = ref('Waiting...')
 
 const props = defineProps({
     webSocket: {
@@ -48,6 +48,7 @@ const initValue = () => {
     indeterminate.value = true
     showInfo.value = true
     errorMessage.value = ''
+    info.value = 'Waiting...'
 }
 
 watch(() => props.ankiDialogVisible, (newVal) => {
@@ -61,7 +62,7 @@ const percentage = computed(() => {
 })
 
 watch(() => props.ankiProgress?.data?.count, (newVal) => {
-    info.value = `(${newVal}/${props.ankiProgress?.data?.total_count || 0})`
+    info.value = `${Math.floor(100 * props.ankiProgress?.data?.count / props.ankiProgress?.data?.total_count)}%`
 })
 
 
@@ -92,6 +93,13 @@ watch(() => props.ankiProgress?.type, (newVal) => {
             showInfo.value = false
             info.value = ''
             errorMessage.value = props.ankiProgress?.data?.error_message || 'Unknown error'
+        }
+        else if (newVal === "canceled") {
+            status.value = 'warning'
+            indeterminate.value = false
+            showInfo.value = false
+            info.value = ''
+            errorMessage.value = 'Operation canceled'
         }
         else {
         }

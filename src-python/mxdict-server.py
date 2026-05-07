@@ -115,6 +115,7 @@ async def dictionary_session_websocket_endpoint(websocket: WebSocket, clientID: 
         # await SessionManager.send_favorite_words_to_session(session_id, connection_id)
         while True:
             text = await websocket.receive_text()
+            logger.info(f"session {session_id} WebSocket收到消息: {text}")
             await MessageHandler.handle_session_message(
                 websocket, session_id, connection_id, text
             )

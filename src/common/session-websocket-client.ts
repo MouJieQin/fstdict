@@ -102,6 +102,13 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
+    sendCancelAnkiUpdate() {
+        this._send(
+            'cancel_anki_update',
+            {}
+        )
+    }
+
 
     sendUpdateFolder(folderId: number, folderName: string, folderDescription: string) {
         this._send(
