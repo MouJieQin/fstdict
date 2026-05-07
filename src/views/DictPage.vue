@@ -4,7 +4,7 @@
         :leftHistory="leftHistory" :searchHistory="searchHistory" :isPinned="isFloatingWindowPinned"
         :lastSearchKeyword="lastSearchKeyword" :hasResultLastSearch="hasResultLastSearch" :noteContent="noteContent"
         :wordOptions="wordOptions" :redirectWord="redirectWord" @change:keyword="handleChangeKeyword"
-        :iframeKeydownEvent="iframeKeydownEvent" />
+        :iframeKeydownEvent="iframeKeydownEvent" :ankiProgress="ankiProgress" />
     <div class="word-detail" :style="wordDetailDynamicStyle">
         <el-collapse expand-icon-position="left" v-model="activeNames">
             <el-collapse-item v-if="noteContent" title="我的笔记" name="我的笔记" :isActive="true">
@@ -91,6 +91,7 @@ const folderWords = ref<FolderWords>({})
 const leftHistory = ref<boolean>(false)
 const searchHistory = ref<WordInfoWithLastSearch[]>([])
 const iframeKeydownEvent = ref<any | null>(null)
+const ankiProgress = ref<any>({})
 
 const isFloatingWindowPinned = ref<boolean>(sessionConfig.value?.pin?.is_pinned || false)
 
@@ -223,6 +224,9 @@ const handleWebSocketMessage = (message: any) => {
             break
         case 'close_fixed_window':
             handleCloseFixedWindow(message)
+            break
+        case 'anki_progress':
+            ankiProgress.value[message.deck_name] = message.data
             break
         case 'error_session_not_exist':
             router.push('/')

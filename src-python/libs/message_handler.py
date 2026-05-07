@@ -218,8 +218,22 @@ class MessageHandler:
     ):
         deck_name = message["data"]["deck_name"]
         folder_id = message["data"]["folder_id"]
+        async def send_progress(progress_msg: dict):
+            msg = {
+                "type": "anki_progress",
+                "deck_name": deck_name,
+                "data":progress_msg,
+            }
+            try:
+                await SessionManager.send_msg_to_session_by_id(
+                    session_id, connection_id, json.dumps(msg)
+                )
+                logger.info(f"发送进度消息到会话 {session_id}: {msg}")
+            except Exception as e:
+                logger.error(f"发送进度消息到会话 {session_id} 失败: {e}", exc_info=True)
         words = Utils.db.get_folder_words(folder_id)
-        anki_manager.update_words_to_anki(str(session_id), deck_name, words)
+
+        await anki_manager.update_words_to_anki(str(session_id), deck_name, words,send_progress)
 
 
     @staticmethod

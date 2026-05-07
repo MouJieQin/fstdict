@@ -1,7 +1,7 @@
 <template>
     <!-- 自定义 macOS 标题栏（仅 macOS 显示，包含 Pin 置顶按钮） -->
     <div id="mxdict-titlebar" class="mxdict-titlebar">
-        <div class="floating-window-titlebar">
+        <div v-show="showTitleBar" class="floating-window-titlebar">
             <div class="floating-window-search-container" @mousedown="preventDrag = true"
                 @mouseup="preventDrag = false">
                 <el-autocomplete class="floating-window-search" v-model="keyword" :fetch-suggestions="querySearchAsync"
@@ -69,9 +69,10 @@
             @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
             :folderName="sessionDefaultFolderName" :folderId="props.sessionConfig.default_folder.id" />
     </el-dialog>
-    <el-dialog v-model="settingDialogVisible" fullscreen :z-index="10000">
+    <el-dialog v-model="settingDialogVisible" fullscreen>
         <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords"></Settings>
+            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress">
+        </Settings>
     </el-dialog>
     <el-dialog v-model="dictSSDialogVisible" fullscreen>
         <DictSelectAndSortDialog :webSocket="props.webSocket" :dictSSDialogVisible="dictSSDialogVisible"
@@ -168,6 +169,11 @@ const props = defineProps({
         type: Object as PropType<any | null>,
         default: () => null,
     },
+    ankiProgress: {
+        type: Object,
+        required: true,
+        default: () => ({})
+    },
 })
 
 const emits = defineEmits<{
@@ -226,6 +232,10 @@ watch(() => props.iframeKeydownEvent, (newVal) => {
 // 用来存储定时器 ID（关键）
 let searchTimer: number | null = null
 
+
+const showTitleBar = computed(() => {
+    return !settingDialogVisible.value
+})
 
 const showFavorButtonTooltip = computed(() => {
     return !props.sessionConfig.default_folder.id || !systemConfigStore.systemConfig?.folders?.folder_info.some((item) => item.id === props.sessionConfig.default_folder.id)

@@ -31,14 +31,14 @@
                 </el-table>
                 <div style="margin-top: 20px">
                     <el-button type="primary" :icon="Plus" @click="handleCreateFolder"></el-button>
-                    <el-button type="danger" :icon="Delete" @click="deleteDialogVisible = true"
+                    <el-button type="danger" :icon="Delete" @click="handleDeleteSelected"
                         :disabled="disableDeleteButton"></el-button>
                     <el-button @click="handleUpdateToAnki" :disabled="disableAnkiButton">
                         <AnkiIcon :size="24" style="margin-right: 8px;" />
                         Update to Anki
                     </el-button>
                     <el-select v-if="localSystemConfig" v-model="localSessionConfig.default_folder.id" filterable
-                        placeholder="Select Default Folder" style="margin-left: 20px;max-width: 240px">
+                        placeholder="Select Default Folder" style="margin-left: 20px;max-width: 240px;">
                         <el-option v-for="item in defaultFolderOptions" :key="item.id" :label="item.name"
                             :value="item.id" />
                     </el-select>
@@ -66,12 +66,18 @@
             </template>
         </el-dialog>
 
-        <el-dialog v-model="deleteDialogVisible" :title="`Delete ${multipleSelection.length} selected folders?!!!`"
-            width="500" align-center>
+        <el-dialog v-model="ankiDialogVisible" :title="`Update to Anki for ${multipleSelection.length}  folders`"
+            width="700" draggable :close-on-click-modal="false">
+            <div v-for="(item, index) in multipleSelection" :key="index">
+                <div class="config-class">
+                    <p class="config-class-title">{{ item.name }}</p>
+                    <AnkiPorgress :webSocket="props.webSocket" :ankiProgress="ankiProgresses[item.name]" :ankiDialogVisible="ankiDialogVisible" />
+                </div>
+            </div>
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="deleteDialogVisible = false">Cancel</el-button>
-                    <el-button type="danger" @click="handleDeleteSelected">
+                    <el-button type="danger" @click="">
                         Confirm
                     </el-button>
                 </div>
@@ -91,6 +97,7 @@
 import { reactive, ref, onBeforeMount, watch, computed } from 'vue'
 import type { PropType } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { useSystemConfigStore } from '@/stores/stores'
 import { Edit, Delete, Document, Plus } from '@element-plus/icons-vue'
 
@@ -98,7 +105,7 @@ import AnkiIcon from '@/components/Icons/AnkiIcon.vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, SystemConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
-
+import AnkiPorgress from '@/components/Dialogs/AnkiPorgress.vue'
 
 const props = defineProps({
     settingDialogVisible: {
@@ -118,6 +125,11 @@ const props = defineProps({
         required: true,
         default: () => ({}),
     },
+    ankiProgress: {
+        type: Object,
+        required: true,
+        default: () => ({})
+    },
 })
 
 const systemConfigStore = useSystemConfigStore()
@@ -125,12 +137,13 @@ const localSystemConfig = ref<SystemConfig>(JSON.parse(JSON.stringify(systemConf
 const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig)))
 const multipleSelection = ref<FolderInfo[]>([])
 const createOrEditDialogVisible = ref(false)
-const deleteDialogVisible = ref(false)
+const ankiDialogVisible = ref(false)
 const favoriteWordsDialogVisible = ref(false)
 const isCreate = ref(true)
 const folderIdEditing = ref('')
 const folderIdToShow = ref<number>(0)
 const folderIdNameToShow = ref('')
+const ankiProgresses = ref<Record<string, any>>(JSON.parse(JSON.stringify(props.ankiProgress)))
 
 watch(() => systemConfigStore.systemConfig, (newVal) => {
     localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
@@ -139,6 +152,11 @@ watch(() => systemConfigStore.systemConfig, (newVal) => {
 watch(() => localSessionConfig.value.default_folder.id, () => {
     props.webSocket?.sendSessionConfig(localSessionConfig.value)
 })
+
+watch(() => props.ankiProgress, (newVal) => {
+    ankiProgresses.value = JSON.parse(JSON.stringify(newVal))
+}, { deep: true })
+
 
 const dialogTitle = computed(() => {
     return isCreate.value ? 'Create New Folder' : 'Edit Folder'
@@ -249,14 +267,26 @@ const handleDelete = (_: number, row: any) => {
 }
 
 const handleDeleteSelected = () => {
-    multipleSelection.value.forEach((item: FolderInfo) => {
-        props.webSocket?.sendDeleteFolder(item.id)
+    ElMessageBox.confirm(`Are you sure to delete ${multipleSelection.value.length} folders?`, 'Confirm Delete', {
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+        confirmButtonType: 'danger',
+        appendTo: '.setting-container',
+    }).then(() => {
+        multipleSelection.value.forEach((item: FolderInfo) => {
+            props.webSocket?.sendDeleteFolder(item.id)
+        })
+        multipleSelection.value = []
+    }).catch(() => {
+        multipleSelection.value = []
     })
-    deleteDialogVisible.value = false
-    multipleSelection.value = []
+
 }
 
 const handleUpdateToAnki = () => {
+    ankiProgresses.value = {}
+    ankiDialogVisible.value = true
     multipleSelection.value.forEach((item: FolderInfo) => {
         props.webSocket?.sendUpdateToAnki(item.name, item.id)
     })
