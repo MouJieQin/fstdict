@@ -1,4 +1,5 @@
 <template>
+  <!-- {{ props.html}} -->
   <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"
     sandbox="allow-scripts allow-same-origin"></iframe>
 </template>
@@ -144,11 +145,10 @@ function injectClickHandler(doc: Document) {
         }, '*');
       }
       else if (href.startsWith('http://localhost:9595/#')) {
-        // 放行
-        // href = href.replace('#', '#/dict/2#')
-        const location_href = href.replace('http://localhost:9595/#', 'http://localhost:9595/#/dict/2#')
-        console.log('放行链接:', location_href);
-        // window.location.href = location_href
+        e.preventDefault();  
+        const location_id = href.replace('http://localhost:9595/#', '')
+        const el = document.getElementById(location_id);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
       }
       else {
         e.preventDefault();
