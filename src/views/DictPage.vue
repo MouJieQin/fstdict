@@ -186,7 +186,9 @@ const handleWebSocketMessage = (message: any) => {
             console.log('lookup_keyword_request:', message.data)
             break
         case 'word_note':
-            noteContent.value = message.data.note || ''
+            if (message.data.keyword === lastSearchKeyword.value) {
+                noteContent.value = message.data.note || ''
+            }
             break
         case 'lookup_keyword':
             handleLookupKeyword(message.data)

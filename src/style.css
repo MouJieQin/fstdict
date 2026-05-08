@@ -258,6 +258,7 @@ body::-webkit-scrollbar-thumb {
 
 .markdown-note-content {
     font-size: 1.1rem;
+    margin-left: 1rem;
     /* margin: 0 auto; */
     margin-right: 10px;
     max-width: clamp(300px, 100vw, 800px);

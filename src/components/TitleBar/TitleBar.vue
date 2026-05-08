@@ -44,7 +44,8 @@
         </div>
     </div>
 
-    <el-dialog v-model="noteDialogVisible" :title="'「' + lastSearchKeyword + '」' + '的笔记'" width="500" align-center>
+    <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记'" width="500" align-center
+        draggable :close-on-click-modal="false">
         <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
             :autosize="{ minRows: 5, maxRows: 9 }" />
         <template #footer>
@@ -183,6 +184,7 @@ const emits = defineEmits<{
 const tauriAppWindow = ref<any | null>(null)
 const preventDrag = ref(false)
 const keyword = ref('')
+const keywordEditingNote = ref('')
 const favoriteWordsDialogVisible = ref(false)
 const dictSSDialogVisible = ref(false)
 const settingDialogVisible = ref(false)
@@ -196,7 +198,7 @@ const isHistoryTriggered = ref(false)
 
 
 const handleDeleteNote = () => {
-    props.webSocket?.sendDeleteWordNote(props.lastSearchKeyword)
+    props.webSocket?.sendDeleteWordNote(keywordEditingNote.value)
     noteDialogVisible.value = false
 }
 
@@ -204,7 +206,7 @@ const submitNote = () => {
     if (!noteContent.value.trim()) {
         return
     }
-    props.webSocket?.sendSaveWordNote(props.lastSearchKeyword, noteContent.value)
+    props.webSocket?.sendSaveWordNote(keywordEditingNote.value, noteContent.value)
     noteDialogVisible.value = false
 }
 
@@ -212,8 +214,11 @@ watch(() => keyword.value, (newVal) => {
     emits('change:keyword', newVal)
 })
 
-watch(() => props.noteContent, (newVal) => {
-    noteContent.value = newVal
+watch(() => noteDialogVisible.value, (newVal) => {
+    if (newVal) {
+        keywordEditingNote.value = props.lastSearchKeyword
+        noteContent.value = props.noteContent
+    }
 })
 
 watch(() => favoriteWordsDialogVisible.value, (newVal) => {

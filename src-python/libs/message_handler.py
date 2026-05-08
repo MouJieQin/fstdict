@@ -14,7 +14,6 @@ from libs.mdict_searcher import MdictSearcher
 from libs.websocket_client import WsClient
 from libs.anki.anki_manager import AnkiManager
 
-
 mdict_searcher = MdictSearcher()
 anki_manager = AnkiManager()
 
@@ -220,11 +219,12 @@ class MessageHandler:
         anki_manager.set_cancel_flag(False)
         deck_name = message["data"]["deck_name"]
         folder_id = message["data"]["folder_id"]
+
         async def send_progress(progress_msg: dict):
             msg = {
                 "type": "anki_progress",
                 "deck_name": deck_name,
-                "data":progress_msg,
+                "data": progress_msg,
             }
             try:
                 await SessionManager.send_msg_to_session_by_id(
@@ -232,11 +232,15 @@ class MessageHandler:
                 )
                 logger.info(f"发送进度消息到会话 {session_id}: {msg}")
             except Exception as e:
-                logger.error(f"发送进度消息到会话 {session_id} 失败: {e}", exc_info=True)
+                logger.error(
+                    f"发送进度消息到会话 {session_id} 失败: {e}", exc_info=True
+                )
+
         words = Utils.db.get_folder_words(folder_id)
 
-        await anki_manager.update_words_to_anki(str(session_id), deck_name, words,send_progress)
-
+        await anki_manager.update_words_to_anki(
+            str(session_id), deck_name, words, send_progress
+        )
 
     @staticmethod
     async def _handle_cancel_anki_update(
@@ -346,10 +350,7 @@ class MessageHandler:
             words = Utils.db.get_folder_words(folder_id)
             msg = {
                 "type": "favorite_words",
-                "data": {
-                    "folder_id": folder_id,
-                    "words": words
-                    },
+                "data": {"folder_id": folder_id, "words": words},
             }
         await SessionManager.send_msg_to_session_by_id(
             session_id, connection_id, json.dumps(msg)
