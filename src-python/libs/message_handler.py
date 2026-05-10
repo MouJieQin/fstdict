@@ -96,6 +96,7 @@ class MessageHandler:
 
             handlers = {
                 "toggle_floating_pin": MessageHandler._handle_toggle_floating_pin,
+                "note_is_editing": MessageHandler._handle_note_is_editing,
                 "keyword_options_search": MessageHandler._handle_keyword_options_search,
                 "lookup_keyword": MessageHandler._handle_lookup,
                 "session_config": MessageHandler._handle_session_config,
@@ -133,6 +134,20 @@ class MessageHandler:
                 "session_id": session_id,
                 "connection_id": connection_id,
                 "is_pinned": message["data"]["is_pinned"],
+            },
+        }
+        await Utils.iwin_ws_client.send(msg)
+
+    @staticmethod
+    async def _handle_note_is_editing(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        msg = {
+            "type": "note_is_editing",
+            "data": {
+                "session_id": session_id,
+                "connection_id": connection_id,
+                "is_editing": message["data"]["is_editing"],
             },
         }
         await Utils.iwin_ws_client.send(msg)

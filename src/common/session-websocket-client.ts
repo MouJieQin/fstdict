@@ -156,6 +156,15 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
+    sendNoteIsEditing(isEditing: boolean) {
+        this._send(
+            'note_is_editing',
+            {
+                is_editing: isEditing,
+            }
+        )
+    }
+
     sendKeywordOptionsSearch(keyword: string, searchMethod: string = 'prefix_search', dictSettings: string[] | null = null) {
         this._send(
             'keyword_options_search',

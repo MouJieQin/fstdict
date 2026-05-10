@@ -219,6 +219,7 @@ watch(() => noteDialogVisible.value, (newVal) => {
         keywordEditingNote.value = props.lastSearchKeyword
         noteContent.value = props.noteContent
     }
+    props.webSocket?.sendNoteIsEditing(newVal)
 })
 
 watch(() => favoriteWordsDialogVisible.value, (newVal) => {
