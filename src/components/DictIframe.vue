@@ -1,5 +1,5 @@
 <template>
-  <!-- {{ props.html}} -->
+  <!-- {{ doc_content }} -->
   <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"
     sandbox="allow-scripts allow-same-origin"></iframe>
 </template>
@@ -22,6 +22,7 @@ const iframeRef = ref<HTMLIFrameElement | null>(null)
 const API_PREFIX = 'http://localhost:5959/api/download?path='
 const baseUrl = ref(`${API_PREFIX}${props.basePath}`)
 const iframeId = ref(props.dictionaryRoot)
+const doc_content = ref('')
 
 // ================ 业务逻辑 ================
 function handleEntryClick(entryPath: string) {
@@ -38,9 +39,17 @@ async function renderIframe() {
   if (!doc) return
 
   // 处理资源路径
-  let content = props.html
+  doc_content.value = props.html
     .replace(/file:\//g, '')
     .replace(/src=\"/g, `src="${baseUrl.value}/`)
+
+  // <meta charset="UTF-8" />
+  // const metaCharset = doc.querySelector('meta[charset]')
+  // if (!metaCharset) {
+  //   const meta = doc.createElement('meta')
+  //   meta.charset = 'UTF-8'
+  //   doc.head.appendChild(meta)
+  // }
 
   const style = doc.createElement('style')
   style.textContent = `
@@ -57,7 +66,6 @@ async function renderIframe() {
     `
   doc.head.appendChild(style)
 
-  // console.log('content:', content)
 
   // 只在第一次加载 CSS/JS
   doc.body.innerHTML = ''
@@ -90,7 +98,7 @@ async function renderIframe() {
   await nextTick()
 
   // 只更新内容，不重建整个 iframe
-  doc.body.innerHTML = content
+  doc.body.innerHTML = doc_content.value
   const p = doc.createElement('p')
   p.textContent = "tail"
   p.id = props.dictionaryRoot + '-dict-tail'
@@ -187,6 +195,7 @@ watch(
   async () => {
     await nextTick()
     renderIframe()
+    await nextTick()
     window.scrollTo(0, 0)
   },
   { deep: true, immediate: true }

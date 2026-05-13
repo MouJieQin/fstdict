@@ -53,6 +53,9 @@ class MdictSearcher:
             self._dict_keywords[dict_name] = self._indexBuilders[
                 dict_name
             ].get_mdx_keys()
+            logger.info(
+                f"词典 {dict_name} 的索引构建完成，共 {len(self._dict_keywords[dict_name])} 个单词"
+            )
             all_words.extend(self._dict_keywords[dict_name])
 
         self._all_words_sorted = sorted(set(all_words))
