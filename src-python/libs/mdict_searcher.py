@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Optional
 from libs.log_config import logger
 from libs.mdict_query.mdict_query import IndexBuilder
@@ -26,13 +27,16 @@ class MdictSearcher:
 
             # 构建原索引
             self._indexBuilders[dict_name] = IndexBuilder(dict_info["path"])
-            words = self._indexBuilders[dict_name].get_mdx_keys()
-
+            key_path = UtilsBase.DICT_INFO[dict_name]["root"] + "/keys.txt"
+            if not os.path.exists(key_path):
+                with open(key_path, mode="w", encoding="utf-8") as f:
+                    f.write("\n".join(self._indexBuilders[dict_name].get_mdx_keys()))
+            # words = self._indexBuilders[dict_name].get_mdx_keys()
             # ====================== 关键 ======================
             # 单词直接传给 C++，Python 不保存！
             logger.info(f"开始导入 {dict_name} 到 C++ 引擎...")
-            self._word_engine.add_dict(dict_name, words)
-            logger.info(f"{dict_name} 导入 C++ 完成：{len(words)} 个单词")
+            num_words = self._word_engine.add_dict_from_file(dict_name, key_path)
+            logger.info(f"{dict_name} 导入 C++ 完成：{num_words} 个单词")
             self._all_dict_names.append(dict_name)
 
     def mdx_lookup(

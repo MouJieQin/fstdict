@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <vector>
 #include <string>
+#include <fstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -54,7 +55,7 @@ int levenshtein(const char *a, const char *b)
 struct WordEntry
 {
     string word;
-    vector<const string *> dict_names; // 归属词典列表（指针，避免复制）
+    // vector<const string *> dict_names; // 归属词典列表（指针，避免复制）
     WordEntry(string w) : word(std::move(w)) {}
 };
 
@@ -122,10 +123,10 @@ public:
     ~WordStorage() = default;
 
     // 添加词典：自动去重单词、记录归属词典
-    void add_dict(const string &dict_name, const vector<string> &words)
+    size_t add_dict(const string &dict_name, const vector<string> &words)
     {
         if (_dict_names.count(dict_name))
-            return; // 已存在同名词典，忽略
+            return 0; // 已存在同名词典，忽略
         _dict_names[dict_name] = make_unique<string>(dict_name);
         auto &word_list = _dict_words[dict_name];
         word_list.reserve(words.size());
@@ -139,12 +140,29 @@ public:
             }
             WordEntry *entry = _word_pool[word].get();
             // 记录归属
-            entry->dict_names.push_back(_dict_names[dict_name].get());
+            // entry->dict_names.push_back(_dict_names[dict_name].get());
             word_list.push_back(entry);
         }
 
         // 添加新词典后清空视图缓存（避免脏数据）
         _view_cache.clear();
+        return words.size();
+    }
+
+    size_t add_dict_from_file(const string &dict_name, const string &file_path)
+    {
+        vector<string> words;
+        ifstream infile(file_path);
+        if (!infile.is_open())
+            return 0;
+        string line;
+        while (getline(infile, line))
+        {
+            if (!line.empty())
+                words.push_back(line);
+        }
+        infile.close();
+        return add_dict(dict_name, words);
     }
 
     // 前缀搜索
@@ -242,6 +260,7 @@ PYBIND11_MODULE(word_engine, m)
     py::class_<WordStorage>(m, "WordStorage")
         .def(py::init<>())
         .def("add_dict", &WordStorage::add_dict)
+        .def("add_dict_from_file", &WordStorage::add_dict_from_file)
         .def("prefix_search", &WordStorage::prefix_search)
         .def("contains_search", &WordStorage::contains_search)
         .def("fuzzy_search", &WordStorage::fuzzy_search)
