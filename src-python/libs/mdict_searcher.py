@@ -38,6 +38,9 @@ class MdictSearcher:
             num_words = self._word_engine.add_dict_from_file(dict_name, key_path)
             logger.info(f"{dict_name} 导入 C++ 完成：{num_words} 个单词")
             self._all_dict_names.append(dict_name)
+        logger.info(
+            f"所有词典索引构建完成，共 {self._word_engine.total_words()} 个单词"
+        )
 
     def mdx_lookup(
         self,

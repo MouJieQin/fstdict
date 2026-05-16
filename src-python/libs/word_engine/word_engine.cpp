@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
+#include <iostream>
 
 namespace py = pybind11;
 using namespace std;
@@ -121,6 +122,22 @@ private:
 public:
     WordStorage() = default;
     ~WordStorage() = default;
+
+    size_t total_words() const
+    {
+        //计算平均每个单词占用内存大小
+        size_t total_size = 0;
+        for (const auto &entry : _word_pool)
+            total_size +=entry.first.size();
+
+            // 计算平均每个单词占用内存大小
+            size_t avg_size = total_size / _word_pool.size();
+            cout << "平均每个单词占用内存大小：" << avg_size << " 字节\n";
+
+
+
+        return _word_pool.size();
+    }
 
     // 添加词典：自动去重单词、记录归属词典
     size_t add_dict(const string &dict_name, const vector<string> &words)
@@ -264,5 +281,6 @@ PYBIND11_MODULE(word_engine, m)
         .def("prefix_search", &WordStorage::prefix_search)
         .def("contains_search", &WordStorage::contains_search)
         .def("fuzzy_search", &WordStorage::fuzzy_search)
-        .def("fuzzy_contains_search", &WordStorage::fuzzy_contains_search);
+        .def("fuzzy_contains_search", &WordStorage::fuzzy_contains_search)
+        .def("total_words", &WordStorage::total_words);
 }

@@ -69,7 +69,7 @@ const webSocket = ref<SessionWebSocketService | null>(null)
 // const bodyScrollTimeoutId = ref<number | null>(null)
 const keyword = ref('')
 const sessionId = ref(-1)
-const keywordFromRoute = route.query.keyword as string || ''
+const keywordFromRoute = ref<string>(route.query.keyword as string || '')
 const envFromRoute = ref<string>(route.query.env as string || '')
 const redirectWord = ref<string>('')
 const dictsInfo = ref<DictsInfo>({})
@@ -111,6 +111,8 @@ const setupDicsSettingsInfo = () => {
             })
         }
     } else {
+        // delete the dicts in sessionConfig.value.dictsSettingInfo which are not in dictsInfo.value
+        sessionConfig.value.dictsSettingInfo = sessionConfig.value.dictsSettingInfo.filter((dictSetting: any) => dictsInfo.value[dictSetting.id])
         for (const dictName in dictsInfo.value) {
             const dict = dictsInfo.value[dictName]
             const dictSetting = sessionConfig.value?.dictsSettingInfo.find(item => item.id === dictName)

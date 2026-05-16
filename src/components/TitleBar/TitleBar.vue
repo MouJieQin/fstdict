@@ -367,13 +367,14 @@ const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
     }, 50)
 }
 
-const lookupKeyword = () => {
-    props.webSocket?.sendLookupKeyword(keyword.value.trim(), props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []))
+const lookupKeyword = (leftHistory: boolean = true) => {
+    props.webSocket?.sendLookupKeyword(keyword.value.trim(), props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []), leftHistory)
 }
 
 const handleEnter = (e: KeyboardEvent) => {
     e.preventDefault()
     if (props.lastSearchKeyword === keyword.value.trim()) {
+        lookupKeyword(false)
         return
     }
     lookupKeyword();
