@@ -14,7 +14,7 @@
             </el-collapse-item>
             <div v-for="(result, dictName) in lookupKeywordResult" :key="dictName">
                 <el-collapse-item :title="dictName" :name="dictName" :isActive="true">
-                    <div v-for="html in result" :key="html">
+                    <div class="dict-iframe-container" v-for="html in result" :key="html">
                         <el-divider style="margin:0 10px" />
                         <DictIframe :html="html" :css-urls="dictsInfo[dictName].css" :js-urls="dictsInfo[dictName].js"
                             :base-path="dictsInfo[dictName].data" :dictionary-root="dictsInfo[dictName].root"
@@ -236,6 +236,11 @@ const handleWebSocketMessage = (message: any) => {
 }
 
 const handleLookupKeyword = (data: any) => {
+    if (envFromRoute.value === 'anki') {
+        window.scrollTo(0, 0)
+    } else {
+        document.querySelector('.word-detail').scrollTo(0, 0)
+    }
     const keyword = data.keyword
     document.title = keyword || 'MxDict'
     lastSearchKeyword.value = keyword || ''
