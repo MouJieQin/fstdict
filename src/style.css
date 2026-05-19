@@ -71,7 +71,7 @@ body::-webkit-scrollbar-thumb {
 }
 
 .main-content {
-    margin-top: 40px;
+    /* margin-top: 40px; */
     /* background: linear-gradient(
         to bottom,
         #cce4fb 0%,
@@ -97,6 +97,7 @@ body::-webkit-scrollbar-thumb {
 
 .word-detail {
     height: 100vh;
+    padding-top: 40px;
     padding-bottom: 40px;
 }
 
@@ -112,6 +113,21 @@ body::-webkit-scrollbar-thumb {
 
 .word-detail.anki-mode::-webkit-scrollbar {
     display: none;
+}
+
+.locate-dict-button {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    z-index: 100;
+}
+
+.dropdown-custom-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 8px;
+    /* 图标和文字之间的间距 */
+    vertical-align: middle;
 }
 
 /* 滚动条：顶部空出 40px，刚好被标题栏盖住 */
@@ -263,11 +279,10 @@ body::-webkit-scrollbar-thumb {
     margin-right: 10px;
     max-width: clamp(300px, 100vw, 800px);
     padding: 10px;
-    border: 1px solid #909399;
+    /* border: 1px solid #909399; */
     border-radius: 10px;
     box-shadow: var(--el-box-shadow);
     text-align: left;
-    /* color: #333333; */
     /* line-height: 1.6; */
 }
 
@@ -286,7 +301,7 @@ body::-webkit-scrollbar-thumb {
     margin: 10px;
     /* margin-top:0; */
     /* padding-bottom: 5px; */
-    border: 1px solid #f56c6c;
+    border: 1px solid var(--el-color-primary);
     border-radius: var(--el-border-radius-base);
     box-shadow: var(--el-box-shadow);
 }

@@ -8,12 +8,23 @@
     <div class="word-detail"
         :class="{ 'anki-mode': envFromRoute === 'anki', 'not-anki-mode': envFromRoute !== 'anki' }">
         <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
-            <el-collapse-item v-if="noteContent" title="我的笔记" name="我的笔记" :isActive="true">
-                <el-divider style="margin:0 10px;" />
+            <el-collapse-item v-if="noteContent" title="我的笔记" name="我的笔记" :isActive="true"
+                class="dict-iframe-container">
+                <template #icon="{ isActive }">
+                    <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                        <CaretRight />
+                    </el-icon>
+                    <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                        <CaretBottom />
+                    </el-icon>
+                    <BiSolidBookBookmark size="35" />
+                </template>
+                <!-- <el-divider style="margin:0 10px;" /> -->
                 <div class="markdown-note-content" v-html="md.render(noteContent)"></div>
             </el-collapse-item>
             <div v-for="(result, dictName) in lookupKeywordResult" :key="dictName">
-                <el-collapse-item class="dict-iframe-container" :title="dictName" :name="dictName" :isActive="true">
+                <el-collapse-item :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container"
+                    :title="dictName" :name="dictName" :isActive="true">
                     <template #icon="{ isActive }">
                         <el-icon v-show="!isActive" class="el-collapse-item__arrow">
                             <CaretRight />
@@ -54,13 +65,34 @@
             </div>
         </div>
     </div>
+    <el-dropdown placement="bottom-end" @command="handleDropdownCommand">
+        <el-button text class="locate-dict-button" circle bg>
+            <el-icon class="el-icon--right">
+                <MoreFilled />
+            </el-icon>
+        </el-button>
+        <template #dropdown>
+            <el-dropdown-menu>
+                <div v-for="(result, dictName) in lookupKeywordResult" :key="dictName">
+                    <el-dropdown-item :command="dictName">
+                        <el-image :src="getDictIcon(dictName)" class="dropdown-custom-icon">
+                            <template #error>
+                                <BiSolidBookBookmark :size="25" />
+                            </template>
+                        </el-image>
+                        {{ dictName }}
+                    </el-dropdown-item>
+                </div>
+            </el-dropdown-menu>
+        </template>
+    </el-dropdown>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
-import { CaretRight, CaretBottom } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
@@ -330,6 +362,19 @@ const handleScroll = () => {
     // autoHideScrollbar()
 }
 
+const handleDropdownCommand = (dictName: string) => {
+    const element = document.getElementById(`dict-iframe-container-${dictName}`)
+    if (element) {
+        // 核心：给元素设置顶部滚动边距 = 标题高度
+        element.style.scrollMarginTop = '40px';
+        element.scrollIntoView({ behavior: 'instant', block: 'start' })
+        element.scrollBy(0, -50)
+        if (!(dictName in activeNames.value)) {
+            activeNames.value.push(dictName)
+        }
+    }
+}
+
 </script>
 
 <style scoped>
@@ -343,8 +388,8 @@ const handleScroll = () => {
 }
 
 :deep(.el-collapse-item__arrow) {
-    width: 2rem;
-    height: 2rem;
+    /* width: 2rem; */
+    /* height: 2rem; */
 }
 
 /* 必须用 :deep() 深度选择器，因为 el-collapse-item__header 是Element Plus内部元素 */
