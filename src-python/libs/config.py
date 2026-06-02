@@ -99,7 +99,7 @@ def init_config():
         # 获取所有文件
         for file in dict_path.iterdir():
             if file.is_dir():
-                mdx_path = file.resolve() / f"{file.name}.mdx"
+                mdx_path = file.resolve() / f"{file.name}.fstdx"
                 mdict_info_json = file.resolve() / "mxdict_info.json"
                 if mdx_path.is_file():
                     if mdict_info_json.is_file():
