@@ -5,7 +5,6 @@ from libs.mdict_query.mdict_query import IndexBuilder
 from libs.config import UtilsBase
 
 # 导入 C++ 引擎
-import word_engine  # 👈 这是你编译后的模块
 import fstd_engine  # 👈 这是你编译后的模块
 
 
@@ -13,36 +12,41 @@ class MdictSearcher:
     def __init__(self):
         self._all_dict_names: list[str] = []
 
-        # ====================== 核心变化 ======================
-        # 所有单词存在 C++，Python 0 存储！
-        self._word_engine = word_engine.WordStorage()
-        self._fstd_engine = fstd_engine.FstdEngine()
+        # self._fstd_engine = fstd_engine.FstdEngine()
+        self._fstd_engine = UtilsBase.fstd_engine
         self._build_mdxs_index()
 
     def _build_mdxs_index(self):
         """构建所有词典索引"""
         logger.info("开始构建所有词典索引")
+        is_fstd_engine_loaded_from_meta = False
+        if os.path.exists(UtilsBase.FSTD_SEARCHER_META_PATH):
+            logger.info("找到现有索引，直接加载")
+            try:
+                UtilsBase.fstd_engine = fstd_engine.FstdEngine(
+                    UtilsBase.FSTD_SEARCHER_META_PATH
+                )
+                self._fstd_engine = UtilsBase.fstd_engine
+
+                is_fstd_engine_loaded_from_meta = True
+            except Exception as e:
+                logger.error(f"加载现有索引失败，重新构建：{e}")
+                is_fstd_engine_loaded_from_meta = False
+
+            logger.info(
+                f"is_fstd_engine_loaded_from_meta:{is_fstd_engine_loaded_from_meta}"
+            )
+
         for dict_name, dict_info in UtilsBase.DICT_INFO.items():
             logger.info(f"构建 {dict_name} 索引...")
 
-            # 构建原索引
-            key_path = UtilsBase.DICT_INFO[dict_name]["root"] + "/keys.txt"
             fstdx_path = UtilsBase.DICT_INFO[dict_name]["path"]
-            # if not os.path.exists(key_path):
-            #     with open(key_path, mode="w", encoding="utf-8") as f:
-            #         f.write("\n".join(self._indexBuilders[dict_name].get_mdx_keys()))
-            # words = self._indexBuilders[dict_name].get_mdx_keys()
-            # ====================== 关键 ======================
-            # 单词直接传给 C++，Python 不保存！
             self._fstd_engine.add_dict_from_file(dict_name, fstdx_path)
             logger.info(f"开始导入 {dict_name} 到 C++ 引擎...")
-            num_words = self._word_engine.add_dict_from_file(dict_name, key_path)
-            logger.info(f"{dict_name} 导入 C++ 完成：{num_words} 个单词")
             self._all_dict_names.append(dict_name)
-        logger.info(
-            f"所有词典索引构建完成，共 {self._word_engine.total_words()} 个单词"
-        )
-        self._fstd_engine.build_indexes()
+        if not is_fstd_engine_loaded_from_meta:
+            self._fstd_engine.build_indexes(UtilsBase.FSTDX_INDEX_PATH)
+            self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
         logger.info("所有词典索引构建完成")
 
     def mdx_lookup(
@@ -103,16 +107,25 @@ class MdictSearcher:
 
         # 2. 直接调用 C++ 搜索
         if search_method == "prefix_search":
-            return self._fstd_engine.predictive_search(keyword, use_dicts, limit)
+            return self._fstd_engine.prefix_distance_search(keyword, use_dicts, 6)
+            # result = []
+            # prefix = keyword
+            # while prefix:
+            #     result = self._fstd_engine.predictive_search(prefix, use_dicts, limit)
+            #     if result:
+            #         return result
+            #     prefix = prefix[:-1]
+            # return result
 
         elif search_method == "contains_search":
-            return self._word_engine.contains_search(keyword, use_dicts, limit)
+            regex_result = self._fstd_engine.regex_search(keyword, use_dicts)
+            return regex_result[0]
 
         elif search_method == "fuzzy_search":
-            return self._word_engine.fuzzy_search(keyword, use_dicts, limit)
+            return self._fstd_engine.edit_distance_search(keyword, use_dicts, 2)
 
         elif search_method == "fuzzy_contains_search":
-            return self._word_engine.fuzzy_contains_search(keyword, use_dicts, limit)
+            return self._fstd_engine.suggest(keyword, use_dicts)
 
         else:
             logger.error("无效搜索方式")

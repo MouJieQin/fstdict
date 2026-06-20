@@ -8,6 +8,7 @@
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 interface Props {
+  dictionaryName: string
   html: string
   cssUrls: string[]
   jsUrls: string[]
@@ -20,7 +21,8 @@ const emits = defineEmits(['entry-click', 'keydown'])
 
 const iframeRef = ref<HTMLIFrameElement | null>(null)
 const API_PREFIX = 'http://localhost:5959/api/download?path='
-const baseUrl = ref(`${API_PREFIX}${props.basePath}`)
+// const baseUrl = ref(`${API_PREFIX}${props.basePath}`)
+const baseUrl = ref(`${API_PREFIX}${encodeURIComponent(props.dictionaryName)}/data`)
 const iframeId = ref(props.dictionaryRoot)
 const doc_content = ref('')
 
@@ -38,7 +40,6 @@ async function renderIframe() {
   const doc = iframe.contentDocument || iframe.contentWindow?.document
   if (!doc) return
 
-  // 处理资源路径
   doc_content.value = props.html
     .replace(/file:\//g, '')
     .replace(/src=\"/g, `src="${baseUrl.value}/`)
@@ -149,7 +150,7 @@ function injectClickHandler(doc: Document) {
         window.parent.postMessage({
           type: 'SOUND_CLICK',
           iframeId: '${iframeId.value}',
-          sound: href.replace('sound://', '')
+          sound: encodeURIComponent(href.replace('sound://', ''))
         }, '*');
       }
       else if (href.startsWith('http://localhost:9595/#')) {

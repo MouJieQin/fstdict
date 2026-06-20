@@ -18,7 +18,7 @@ ext_modules = [
         language="c++",
         # 编译优化（生产环境必须开，速度拉满）
         extra_compile_args=["-O3", "-std=c++20", "-fvisibility=hidden"],
-        extra_link_args=["-lfstd", "-lfmt"],
+        extra_link_args=["-lfstd"],
     ),
 ]
 

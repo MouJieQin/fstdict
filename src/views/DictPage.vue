@@ -41,9 +41,10 @@
 
                     <div v-for="html in result" :key="html">
                         <el-divider style="margin:0 10px" />
-                        <DictIframe :html="html" :css-urls="dictsInfo[dictName].css" :js-urls="dictsInfo[dictName].js"
-                            :base-path="dictsInfo[dictName].data" :dictionary-root="dictsInfo[dictName].root"
-                            @entry-click="handleEntryClick" @keydown="handleIframeKeydown" />
+                        <DictIframe :dictionary-name="dictName" :html="html" :css-urls="dictsInfo[dictName].css"
+                            :js-urls="dictsInfo[dictName].js" :base-path="dictsInfo[dictName].data"
+                            :dictionary-root="dictsInfo[dictName].root" @entry-click="handleEntryClick"
+                            @keydown="handleIframeKeydown" />
                     </div>
                 </el-collapse-item>
             </div>

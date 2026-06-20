@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 # _*_coding:utf-8_*_
 
+from libs.websocket_client import WsClient
+from libs.message_handler import MessageHandler
+from libs.session_manager import SessionManager
+from libs.common import Utils
+from libs.log_config import logger
 import signal
 import os
 import time
 import asyncio
+# import fstd_engine
 
 from fastapi import (
     FastAPI,
@@ -26,11 +32,6 @@ from urllib.parse import unquote
 
 os.chdir(os.path.dirname(__file__))
 # from libs.mdict_query.mdict_query import IndexBuilder
-from libs.log_config import logger
-from libs.common import Utils
-from libs.session_manager import SessionManager
-from libs.message_handler import MessageHandler
-from libs.websocket_client import WsClient
 
 
 # 配置应用
@@ -48,15 +49,21 @@ app.add_middleware(
 
 @app.get("/api/download")
 async def download(path: str):
+    logger.info(f"original download path: {path}")
     path = unquote(path)
     logger.info(f"download path: {path}")
-    # path = Utils.DATA_PATH + path
-    if not os.path.isfile(path):
+    file_path = "/".join([Utils.DICTIONARYS_PATH, path])
+    if not os.path.isfile(file_path):
+        dict_name, _, file_key = path.split("/", maxsplit=2)
+        data_path = "/".join([Utils.DICTIONARYS_PATH, dict_name, "data"])
+        Utils.fstd_engine.extract(dict_name, file_key, data_path)
+
+    if not os.path.isfile(file_path):
         raise HTTPException(status_code=400, detail="Is not a file or does not exist")
 
     fr = FileResponse(
-        path=path,
-        filename=Path(path).name,
+        path=file_path,
+        filename=Path(file_path).name,
     )
     return fr
 

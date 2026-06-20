@@ -6,6 +6,7 @@ import shutil
 from fastapi import WebSocket
 from typing import Dict
 from libs.log_config import logger
+import fstd_engine
 
 
 class UtilsBase:
@@ -19,9 +20,13 @@ class UtilsBase:
     ANKI_CONFIG_FILE = USER_CONFIG_DIR + "/anki_config.json"
     DEFAULT_CONFIG_FILE = SERVER_SRC_ABS_PATH + "/config.json"
     DICTIONARYS_PATH = MXDICT_STORAGE_PATH + "/dictionaries"
+    FSTD_SEARCHER_META_PATH = DICTIONARYS_PATH + "/fstd_searcher_meta.json"
+    FSTDX_INDEX_PATH = DICTIONARYS_PATH + "/fstd_indexes.fstdxidx"
     DATA_PATH = MXDICT_STORAGE_PATH + "/data"
     MXDICT_DATABASE_PATH = DATA_PATH + "/mxdict.db"
     DICT_DATABASE_PATH = DATA_PATH + "/dict.db"
+
+    fstd_engine = fstd_engine.FstdEngine()
 
     DEFAULT_CONFIG = {}
     CONFIG = {}
@@ -50,17 +55,12 @@ class UtilsBase:
             os.remove(path)
 
     @staticmethod
-    def find_files_by_postfix(root_dir: str, postfix: str) -> list[str]:
-        # 递归遍历目录
+    def find_files_by_postfix(root_dir: str, dictName: str, postfix: str) -> list[str]:
         files = []
-        for dir_path, _, filenames in os.walk(root_dir):
-            # 遍历当前目录所有文件
-            for filename in filenames:
-                # 判断是否是 css 文件
-                if filename.lower().endswith(postfix):
-                    # 返回完整路径
-                    files.append(os.path.join(dir_path, filename))
-        # 没找到返回 ""
+        p = Path(root_dir)
+        for item in p.iterdir():
+            if item.is_file() and item.name.lower().endswith(postfix):
+                files.append("/".join([dictName, item.name]))
         return files
 
     class Config:
@@ -99,8 +99,8 @@ def init_config():
         # 获取所有文件
         for file in dict_path.iterdir():
             if file.is_dir():
-                mdx_path = file.resolve() / f"{file.name}.fstdx"
-                mdict_info_json = file.resolve() / "mxdict_info.json"
+                mdx_path = file.absolute() / f"{file.name}.fstdx"
+                mdict_info_json = file.absolute() / "mxdict_info.json"
                 if mdx_path.is_file():
                     if mdict_info_json.is_file():
                         with open(mdict_info_json, mode="r", encoding="utf-8") as f:
@@ -109,18 +109,18 @@ def init_config():
                     else:
                         UtilsBase.DICT_INFO[file.name] = {}
                         UtilsBase.DICT_INFO[file.name]["name"] = file.name
-                        UtilsBase.DICT_INFO[file.name]["root"] = str(file.resolve())
-                        UtilsBase.DICT_INFO[file.name]["path"] = str(mdx_path.resolve())
+                        UtilsBase.DICT_INFO[file.name]["root"] = str(file.absolute())
+                        UtilsBase.DICT_INFO[file.name]["path"] = str(mdx_path.absolute())
                         UtilsBase.DICT_INFO[file.name]["css"] = (
-                            UtilsBase.find_files_by_postfix(str(file.resolve()), ".css")
+                            UtilsBase.find_files_by_postfix(str(file.absolute()), file.name, ".css")
                         )
                         UtilsBase.DICT_INFO[file.name]["js"] = (
-                            UtilsBase.find_files_by_postfix(str(file.resolve()), ".js")
+                            UtilsBase.find_files_by_postfix(str(file.absolute()), file.name, ".js")
                         )
-                        data_path = file.resolve() / "data"
+                        data_path = file.absolute() / "data"
                         if data_path.is_dir():
                             UtilsBase.DICT_INFO[file.name]["data"] = str(
-                                data_path.resolve()
+                                data_path.absolute()
                             )
                         else:
                             UtilsBase.DICT_INFO[file.name]["data"] = ""
@@ -133,9 +133,7 @@ def init_config():
                                 ".png",
                                 ".gif",
                             ]:
-                                UtilsBase.DICT_INFO[file.name]["cover"] = str(
-                                    img_file.resolve()
-                                )
+                                UtilsBase.DICT_INFO[file.name]["cover"] = "/".join([file.name, img_file.name])
                                 break
                         # save dict info into mxdict_info.json
                         with open(mdict_info_json, mode="w", encoding="utf-8") as f:
