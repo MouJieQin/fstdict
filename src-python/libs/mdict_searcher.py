@@ -41,12 +41,10 @@ class MdictSearcher:
             logger.info(f"构建 {dict_name} 索引...")
 
             fstdx_path = UtilsBase.DICT_INFO[dict_name]["path"]
+            logger.info(f"开始导入 {dict_name} 到 fstd 引擎...")
             self._fstd_engine.add_dict_from_file(dict_name, fstdx_path)
-            logger.info(f"开始导入 {dict_name} 到 C++ 引擎...")
             self._all_dict_names.append(dict_name)
-        if not is_fstd_engine_loaded_from_meta:
-            self._fstd_engine.build_indexes(UtilsBase.FSTDX_INDEX_PATH)
-            self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
+        self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
         logger.info("所有词典索引构建完成")
 
     def mdx_lookup(
@@ -107,6 +105,7 @@ class MdictSearcher:
 
         # 2. 直接调用 C++ 搜索
         if search_method == "prefix_search":
+            # return self._fstd_engine.predictive_search(keyword, use_dicts, limit)
             return self._fstd_engine.prefix_distance_search(keyword, use_dicts, 6)
             # result = []
             # prefix = keyword

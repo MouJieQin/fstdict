@@ -52,11 +52,16 @@ async def download(path: str):
     logger.info(f"original download path: {path}")
     path = unquote(path)
     logger.info(f"download path: {path}")
+    path = path.replace("//", "/")
     file_path = "/".join([Utils.DICTIONARYS_PATH, path])
     if not os.path.isfile(file_path):
-        dict_name, _, file_key = path.split("/", maxsplit=2)
-        data_path = "/".join([Utils.DICTIONARYS_PATH, dict_name, "data"])
-        Utils.fstd_engine.extract(dict_name, file_key, data_path)
+        try:
+            dict_name, _, file_key = path.split("/", maxsplit=2)
+            data_path = "/".join([Utils.DICTIONARYS_PATH, dict_name, "data"])
+            Utils.fstd_engine.extract(dict_name, file_key, data_path)
+        except Exception as e:
+            logger.error(f"Failed to parse download path: {e}", exc_info=False)
+            raise HTTPException(status_code=400, detail="Is not a file or does not exist")
 
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=400, detail="Is not a file or does not exist")

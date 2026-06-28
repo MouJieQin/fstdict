@@ -41,11 +41,6 @@ public:
         fstdx_searcher.insert_if_not_exists(dict_name, fstdx_path);
     }
 
-    bool build_indexes(const std::string &fst_index_path = "")
-    {
-        return fstdx_searcher.build_fst_index(fst_index_path);
-    }
-
     std::vector<std::string> look_up(const std::string &keyword, const std::string &dict_name)
     {
         return fstdx_searcher.search(keyword, dict_name);
@@ -73,11 +68,11 @@ public:
     }
 
     std::vector<std::string>
-    prefix_distance_search(std::string_view word,
+    prefix_distance_search(const std::string &keyword,
                            const std::vector<std::string> &names,
                            size_t max_distance) const
     {
-        return fstdx_searcher.prefix_distance_search(word, names, max_distance);
+        return fstdx_searcher.prefix_distance_search(keyword, names, max_distance);
     }
 
     std::vector<std::string> suggest(const std::string &keyword, const std::vector<std::string> &names)
@@ -86,7 +81,7 @@ public:
     }
 
     std::pair<std::vector<std::string>, std::string>
-    regex_search(std::string_view pattern,
+    regex_search(const std::string &pattern,
                  const std::vector<std::string> &names) const
     {
         return fstdx_searcher.regex_search(pattern, names);
@@ -106,7 +101,6 @@ PYBIND11_MODULE(fstd_engine, m)
         .def("extract", &FstdEngine::extract)
         .def("default_extract", &FstdEngine::default_extract)
         .def("add_dict_from_file", &FstdEngine::add_dict_from_file)
-        .def("build_indexes", &FstdEngine::build_indexes)
         .def("look_up", &FstdEngine::look_up)
         .def("common_prefix_search", &FstdEngine::common_prefix_search)
         .def("longest_common_prefix_search", &FstdEngine::longest_common_prefix_search)
