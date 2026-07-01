@@ -4,15 +4,14 @@ from libs.log_config import logger
 from libs.mdict_query.mdict_query import IndexBuilder
 from libs.config import UtilsBase
 
-# 导入 C++ 引擎
-import fstd_engine  # 👈 这是你编译后的模块
+import fstd
 
 
 class MdictSearcher:
     def __init__(self):
         self._all_dict_names: list[str] = []
 
-        # self._fstd_engine = fstd_engine.FstdEngine()
+        # self._fstd_engine = fstd.FstdxSearcher()
         self._fstd_engine = UtilsBase.fstd_engine
         self._build_mdxs_index()
 
@@ -23,7 +22,7 @@ class MdictSearcher:
         if os.path.exists(UtilsBase.FSTD_SEARCHER_META_PATH):
             logger.info("找到现有索引，直接加载")
             try:
-                UtilsBase.fstd_engine = fstd_engine.FstdEngine(
+                UtilsBase.fstd_engine = fstd.FstdxSearcher(
                     UtilsBase.FSTD_SEARCHER_META_PATH
                 )
                 self._fstd_engine = UtilsBase.fstd_engine
@@ -42,7 +41,7 @@ class MdictSearcher:
 
             fstdx_path = UtilsBase.DICT_INFO[dict_name]["path"]
             logger.info(f"开始导入 {dict_name} 到 fstd 引擎...")
-            self._fstd_engine.add_dict_from_file(dict_name, fstdx_path)
+            self._fstd_engine.insert_if_not_exists(dict_name, fstdx_path)
             self._all_dict_names.append(dict_name)
         self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
         logger.info("所有词典索引构建完成")
@@ -58,7 +57,7 @@ class MdictSearcher:
         if dict_names is None:
             dict_names = self._all_dict_names
         for dict_name in dict_names:
-            res = self._fstd_engine.look_up(keyword, dict_name)
+            res = self._fstd_engine.single_exact_match_search(keyword, dict_name)
             if res:
                 result = []
                 self._hand_link_word(result, res, dict_name, [keyword], ignorecase)
@@ -82,7 +81,7 @@ class MdictSearcher:
                 redirect_word = item.split("@@@LINK=")[1].strip()
                 if redirect_word not in words_show:
                     words_show.append(redirect_word)
-                    res_redirect = self._fstd_engine.look_up(redirect_word, dict_name)
+                    res_redirect = self._fstd_engine.single_exact_match_search(redirect_word, dict_name)
                     if res_redirect:
                         self._hand_link_word(
                             result, res_redirect, dict_name, words_show, ignorecase
@@ -106,7 +105,7 @@ class MdictSearcher:
         # 2. 直接调用 C++ 搜索
         if search_method == "prefix_search":
             # return self._fstd_engine.predictive_search(keyword, use_dicts, limit)
-            return self._fstd_engine.prefix_distance_search(keyword, use_dicts, 6)
+            return self._fstd_engine.prefix_distance_search(keyword, use_dicts, 3)
             # result = []
             # prefix = keyword
             # while prefix:

@@ -6,7 +6,7 @@ import shutil
 from fastapi import WebSocket
 from typing import Dict
 from libs.log_config import logger
-import fstd_engine
+import fstd
 
 
 class UtilsBase:
@@ -26,7 +26,7 @@ class UtilsBase:
     MXDICT_DATABASE_PATH = DATA_PATH + "/mxdict.db"
     DICT_DATABASE_PATH = DATA_PATH + "/dict.db"
 
-    fstd_engine = fstd_engine.FstdEngine()
+    fstd_engine = fstd.FstdxSearcher()
 
     DEFAULT_CONFIG = {}
     CONFIG = {}
