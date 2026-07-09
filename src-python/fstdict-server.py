@@ -30,7 +30,6 @@ from pathlib import Path
 from urllib.parse import unquote
 
 os.chdir(os.path.dirname(__file__))
-# from libs.mdict_query.mdict_query import IndexBuilder
 
 
 # 配置应用

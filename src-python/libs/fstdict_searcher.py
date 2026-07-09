@@ -7,7 +7,7 @@ from libs.config import UtilsBase
 import fstd
 
 
-class MdictSearcher:
+class FstDictSearcher:
     def __init__(self):
         self._all_dict_names: list[str] = []
 
@@ -45,6 +45,11 @@ class MdictSearcher:
             self._all_dict_names.append(dict_name)
         self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
         logger.info("所有词典索引构建完成")
+        if "prior_suffix" in UtilsBase.CONFIG:
+            self._prior_suffix = UtilsBase.CONFIG["prior_suffix"]
+            logger.info(f"prior_suffix: {self._prior_suffix}")
+            for _, value in self._prior_suffix.items():
+                self._fstd_engine.insert_prior_suffix(value)
 
     def mdx_lookup(
         self,

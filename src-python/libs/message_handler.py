@@ -10,11 +10,11 @@ from fastapi import WebSocket
 from libs.log_config import logger
 from libs.common import Utils
 from libs.session_manager import SessionManager
-from libs.mdict_searcher import MdictSearcher
+from libs.fstdict_searcher import FstDictSearcher
 from libs.websocket_client import WsClient
 from libs.anki.anki_manager import AnkiManager
 
-mdict_searcher = MdictSearcher()
+fstdict_searcher = FstDictSearcher()
 anki_manager = AnkiManager()
 
 
@@ -158,7 +158,7 @@ class MessageHandler:
     ):
         keyword = message["data"]["keyword"]
         search_method = message["data"]["search_method"]
-        options = mdict_searcher.keyword_options_search(
+        options = fstdict_searcher.keyword_options_search(
             keyword, search_method, dict_names=message["data"]["dict_settings"]
         )
         msg = {
@@ -179,12 +179,12 @@ class MessageHandler:
         keyword = message["data"]["keyword"]
         folder_id = message["data"]["folder_id"]
         left_history = message["data"]["left_history"]
-        results = mdict_searcher.mdx_lookup(
+        results = fstdict_searcher.mdx_lookup(
             keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
         )
         if not results and keyword.isalpha() and keyword.lower() != keyword:
             # 尝试大小写无关的搜索
-            results = mdict_searcher.mdx_lookup(
+            results = fstdict_searcher.mdx_lookup(
                 keyword, dict_names=message["data"]["dict_settings"], ignorecase=True
             )
         is_word_favorited = False
