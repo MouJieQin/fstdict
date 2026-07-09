@@ -104,18 +104,14 @@ def init_config():
         # 获取所有文件
         for file in dict_path.iterdir():
             if file.is_dir():
-                mdx_path = file.absolute() / f"{file.name}.fstdx"
+                fstdx_path = file.absolute() / f"{file.name}.fstdx"
                 fstdict_info_json = file.absolute() / "fstdict_info.json"
-                if mdx_path.is_file():
+                if fstdx_path.is_file():
                     if fstdict_info_json.is_file():
-                        with open(fstdict_info_json, mode="r", encoding="utf-8") as f:
-                            fstdict_info = json.load(f)
-                            UtilsBase.DICT_INFO[file.name] = fstdict_info
-                    else:
                         UtilsBase.DICT_INFO[file.name] = {}
                         UtilsBase.DICT_INFO[file.name]["name"] = file.name
                         UtilsBase.DICT_INFO[file.name]["root"] = str(file.absolute())
-                        UtilsBase.DICT_INFO[file.name]["path"] = str(mdx_path.absolute())
+                        UtilsBase.DICT_INFO[file.name]["path"] = str(fstdx_path.absolute())
                         UtilsBase.DICT_INFO[file.name]["css"] = (
                             UtilsBase.find_files_by_postfix(str(file.absolute()), file.name, ".css")
                         )
@@ -140,14 +136,6 @@ def init_config():
                             ]:
                                 UtilsBase.DICT_INFO[file.name]["cover"] = "/".join([file.name, img_file.name])
                                 break
-                        # save dict info into fstdict_info.json
-                        with open(fstdict_info_json, mode="w", encoding="utf-8") as f:
-                            json.dump(
-                                UtilsBase.DICT_INFO[file.name],
-                                f,
-                                ensure_ascii=False,
-                                indent=4,
-                            )
 
     checkDickInfo()
 

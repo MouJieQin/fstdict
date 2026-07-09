@@ -12,24 +12,24 @@
                 </template>
             </el-option>
 
-            <el-option label="包含搜索" value="contains_search">
+            <el-option label="正则搜索" value="regex_search">
                 <template #default>
                     <BsFilterLeft class="option-icon" />
-                    <span>包含搜索</span>
+                    <span>正则搜索</span>
                 </template>
             </el-option>
 
-            <el-option label="模糊搜索" value="fuzzy_search">
+            <el-option label="前缀距离搜索" value="prefix_distance_search">
                 <template #default>
                     <BsBinoculars class="option-icon" />
-                    <span>模糊搜索</span>
+                    <span>前缀距离搜索</span>
                 </template>
             </el-option>
 
-            <el-option label="模糊包含搜索" value="fuzzy_contains_search">
+            <el-option label="建议搜索" value="suggest_search">
                 <template #default>
                     <BsSearchHeart class="option-icon" />
-                    <span>模糊包含搜索</span>
+                    <span>建议搜索</span>
                 </template>
             </el-option>
         </el-select>
@@ -80,9 +80,9 @@ watch(() => props.searchMethod, (newMethod) => {
 const currentIcon = computed(() => {
     const iconMap = {
         prefix_search: BsSearch,                // 前缀搜索
-        contains_search: BsFilterLeft,          // 包含搜索
-        fuzzy_search: BsBinoculars,             // 模糊搜索
-        fuzzy_contains_search: BsSearchHeart,   // 模糊包含
+        regex_search: BsFilterLeft,             // 正则搜索
+        suggest_search: BsBinoculars,             // 前缀距离搜索
+        prefix_distance_search: BsSearchHeart,   // 建议搜索
     }
     // Type assertion to fix TS error
     return iconMap[props.searchMethod as keyof typeof iconMap] || BsSearch

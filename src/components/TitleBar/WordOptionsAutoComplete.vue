@@ -118,6 +118,7 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
 
   // If a valid plain string character is struck, move context focus to input
   if (e.key.length === 1 && inputRef.value) {
+    keyword.value = ''
     inputRef.value.focus()
   }
 }

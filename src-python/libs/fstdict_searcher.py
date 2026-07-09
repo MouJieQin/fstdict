@@ -11,47 +11,27 @@ class FstDictSearcher:
     def __init__(self):
         self._all_dict_names: list[str] = []
 
-        # self._fstd_engine = fstd.FstdxSearcher()
         self._fstd_engine = UtilsBase.fstd_engine
-        self._build_mdxs_index()
+        self._load_fstdx()
 
-    def _build_mdxs_index(self):
+    def _load_fstdx(self):
         """构建所有词典索引"""
         logger.info("开始构建所有词典索引")
-        is_fstd_engine_loaded_from_meta = False
-        if os.path.exists(UtilsBase.FSTD_SEARCHER_META_PATH):
-            logger.info("找到现有索引，直接加载")
-            try:
-                UtilsBase.fstd_engine = fstd.FstdxSearcher(
-                    UtilsBase.FSTD_SEARCHER_META_PATH
-                )
-                self._fstd_engine = UtilsBase.fstd_engine
-
-                is_fstd_engine_loaded_from_meta = True
-            except Exception as e:
-                logger.error(f"加载现有索引失败，重新构建：{e}")
-                is_fstd_engine_loaded_from_meta = False
-
-            logger.info(
-                f"is_fstd_engine_loaded_from_meta:{is_fstd_engine_loaded_from_meta}"
-            )
-
         for dict_name, dict_info in UtilsBase.DICT_INFO.items():
-            logger.info(f"构建 {dict_name} 索引...")
-
+            logger.info(f"加载 {dict_name} ...")
             fstdx_path = UtilsBase.DICT_INFO[dict_name]["path"]
             logger.info(f"开始导入 {dict_name} 到 fstd 引擎...")
             self._fstd_engine.insert_if_not_exists(dict_name, fstdx_path)
             self._all_dict_names.append(dict_name)
         self._fstd_engine.save_to_disk(UtilsBase.FSTD_SEARCHER_META_PATH)
-        logger.info("所有词典索引构建完成")
+        logger.info("所有词典加载完成")
         if "prior_suffix" in UtilsBase.CONFIG:
             self._prior_suffix = UtilsBase.CONFIG["prior_suffix"]
             logger.info(f"prior_suffix: {self._prior_suffix}")
             for _, value in self._prior_suffix.items():
                 self._fstd_engine.insert_prior_suffix(value)
 
-    def mdx_lookup(
+    def lookup(
         self,
         keyword: str,
         dict_names: Optional[list[str]],
@@ -115,16 +95,16 @@ class FstDictSearcher:
             logger.info(f"predictive_search time cost: {end_time - start_time}")
             return result
 
-        elif search_method == "contains_search":
+        elif search_method == "regex_search":
             regex_result = self._fstd_engine.regex_search(keyword, use_dicts)
             return regex_result[0]
 
-        elif search_method == "fuzzy_search":
+        elif search_method == "prefix_distance_search":
             return self._fstd_engine.prefix_distance_search(keyword, use_dicts, 3)
 
             # return self._fstd_engine.edit_distance_search(keyword, use_dicts, 2)
 
-        elif search_method == "fuzzy_contains_search":
+        elif search_method == "suggest_search":
             return self._fstd_engine.suggest(keyword, use_dicts)
 
         else:

@@ -179,12 +179,12 @@ class MessageHandler:
         keyword = message["data"]["keyword"]
         folder_id = message["data"]["folder_id"]
         left_history = message["data"]["left_history"]
-        results = fstdict_searcher.mdx_lookup(
+        results = fstdict_searcher.lookup(
             keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
         )
         if not results and keyword.isalpha() and keyword.lower() != keyword:
             # 尝试大小写无关的搜索
-            results = fstdict_searcher.mdx_lookup(
+            results = fstdict_searcher.lookup(
                 keyword, dict_names=message["data"]["dict_settings"], ignorecase=True
             )
         is_word_favorited = False
