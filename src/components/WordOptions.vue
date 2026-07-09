@@ -18,16 +18,23 @@
 import { ref, watch } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
+import { getDictSettingsForLookup } from '@/common/utility'
 
-const props = withDefaults(
-    defineProps<{
-        webSocket: SessionWebSocketService | null
-        wordOptions?: string[]
-    }>(),
-    {
-        wordOptions: () => []
-    }
-)
+const props = defineProps({
+    webSocket: {
+        type: [SessionWebSocketService, null],
+        required: true
+    },
+    sessionConfig: {
+        type: Object as () => SessionConfig,
+        required: true,
+        default: () => ({})
+    },
+        wordOptions: {
+        type: Array,
+        default: () => [],
+    },
+})
 
 const virtualListRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
 const selectedWord = ref<string | null>(null)
@@ -44,7 +51,7 @@ watch(
 
 const handleWordClick = (word: string) => {
     selectedWord.value = word
-    props.webSocket?.sendLookupKeywordRequest(word)
+    props.webSocket?.sendLookupKeyword(word, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []), true)
 }
 </script>
 

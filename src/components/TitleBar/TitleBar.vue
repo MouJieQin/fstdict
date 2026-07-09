@@ -4,16 +4,10 @@
         <div v-show="showTitleBar" class="floating-window-titlebar">
             <div class="floating-window-search-container" @mousedown="preventDrag = true"
                 @mouseup="preventDrag = false">
-                <el-autocomplete class="floating-window-search" v-model="keyword" :fetch-suggestions="querySearchAsync"
-                    placeholder="Search" @select="handleSelect" ref="autoCompleteRef" @keyup.enter="handleEnter"
-                    @focus="handleFocus" clearable hide-loading style="font-size: 1rem;">
-                    <!-- 前缀插槽：动态图标 + 点击弹出下拉 -->
-                    <template #prefix>
-                        <SearchMethodSelect
-                            :searchMethod="props.sessionConfig.default_search_method?.method || 'prefix_search'"
-                            @update-search-method="handleSearchMethodChange" />
-                    </template>
-                </el-autocomplete>
+                <WordOptionsAutoComplete class="floating-window-search" :webSocket="props.webSocket"
+                    :redirectWord="props.redirectWord" :redirectHisotryWord="redirectHisotryWord"
+                    :wordOptions="props.wordOptions" :sessionConfig="props.sessionConfig" :searchHistory="searchHistory"
+                    @change:keyword="keywordChange" />
             </div>
             <el-button-group class="floating-window-titlebar-button-container" @mousedown="preventDrag = true"
                 @mouseup="preventDrag = false">
@@ -89,7 +83,7 @@ import {
     BsPin, BsPinAngleFill, BsHeartFill, BsHeart,
 } from 'vue-icons-plus/bs'
 import { ImBooks } from 'vue-icons-plus/im'
-import SearchMethodSelect from '@/components/TitleBar/SearchMethodSelect.vue'
+import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
 import DictSelectAndSortDialog from '@/components/Dialogs/DictSelectAndSortDialog.vue'
 import Settings from '@/views/Settings.vue'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
@@ -183,13 +177,12 @@ const emits = defineEmits<{
 
 const tauriAppWindow = ref<any | null>(null)
 const preventDrag = ref(false)
-const keyword = ref('')
+const redirectHisotryWord = ref('')
 const keywordEditingNote = ref('')
 const favoriteWordsDialogVisible = ref(false)
 const dictSSDialogVisible = ref(false)
 const settingDialogVisible = ref(false)
 import type { ElAutocomplete } from 'element-plus'
-const autoCompleteRef = ref<InstanceType<typeof ElAutocomplete> | null>(null)
 const systemConfigStore = useSystemConfigStore()
 const noteDialogVisible = ref(false)
 const noteContent = ref(props.noteContent)
@@ -210,9 +203,9 @@ const submitNote = () => {
     noteDialogVisible.value = false
 }
 
-watch(() => keyword.value, (newVal) => {
+const keywordChange = (newVal) =>{
     emits('change:keyword', newVal)
-})
+}
 
 watch(() => noteDialogVisible.value, (newVal) => {
     if (newVal) {
@@ -233,10 +226,6 @@ watch(() => props.iframeKeydownEvent, (newVal) => {
         handleKeydown(newVal)
     }
 })
-
-
-// 用来存储定时器 ID（关键）
-let searchTimer: number | null = null
 
 
 const showTitleBar = computed(() => {
@@ -263,24 +252,6 @@ const handleFavorClick = () => {
     props.webSocket?.sendToggleFavor(props.lastSearchKeyword, props.sessionConfig.default_folder.id)
 }
 
-const handleSearchMethodChange = (newMethod: string) => {
-    if (props.sessionConfig.default_search_method) {
-        props.sessionConfig.default_search_method.method = newMethod
-    } else {
-        props.sessionConfig.default_search_method = { method: newMethod }
-    }
-    props.webSocket?.sendSessionConfig(props.sessionConfig)
-    // 重新触发搜索以应用新的搜索方法
-    if (keyword.value.trim()) {
-        querySearchAsync(keyword.value, () => { })
-    }
-}
-
-watch(() => props.wordOptions, () => {
-    links.value = loadAll()
-    isOptionsLoading.value = false
-})
-
 watch(() => props.leftHistory, (newVal) => {
     if (newVal) {
         isHistoryTriggered.value = false
@@ -291,104 +262,12 @@ watch(() => props.leftHistory, (newVal) => {
 })
 
 watch(() => props.searchHistory, () => {
-    links.value = loadAll()
-    isOptionsLoading.value = false
     if (isHistoryTriggered.value) {
         isHistoryTriggered.value = false
-        keyword.value = props.searchHistory[historyIndex.value].word
-        props.webSocket?.sendLookupKeyword(keyword.value, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []), false)
+        redirectHisotryWord.value = props.searchHistory[historyIndex.value].word
+        props.webSocket?.sendLookupKeyword(redirectHisotryWord.value, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []), false)
     }
 })
-
-watch(() => props.redirectWord, (newVal) => {
-    keyword.value = newVal
-    lookupKeyword()
-})
-
-
-
-interface LinkItem {
-    value: string
-    link: string
-}
-
-const links = ref<LinkItem[]>([])
-
-const loadAll = (): LinkItem[] => {
-    // if (!keyword.value.trim()) {
-    //     return props.searchHistory.map(item => ({
-    //         value: String(item.word),
-    //         link: String(item.word),
-    //     }))
-    // }
-    return [].map(item => ({
-        value: String(item),
-        link: String(item),
-    }))
-    // return props.wordOptions.map(item => ({
-    //     value: String(item),
-    //     link: String(item),
-    // }))
-}
-
-let isOptionsLoading = ref(false)
-
-const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
-    console.log("queryString", queryString)
-    if (!keyword.value.trim()) {
-        isOptionsLoading.value = true
-        props.webSocket?.sendSearchHistoryRequest()
-    } else {
-        isOptionsLoading.value = true
-        props.webSocket?.sendKeywordOptionsSearch(keyword.value, props.sessionConfig.default_search_method.method, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []))
-    }
-    // 1. 先清除上一次的定时器（核心！）
-    if (searchTimer) {
-        clearTimeout(searchTimer)
-    }
-
-    let timeCounter = 0
-    searchTimer = setInterval(() => {
-        timeCounter += 1
-        if (timeCounter > 100) {
-            isOptionsLoading.value = false
-            cb(links.value)
-            if (searchTimer) {
-                clearTimeout(searchTimer)
-            }
-            return
-        }
-        console.log("waiting....")
-        if (isOptionsLoading.value) {
-            return
-        }
-        isOptionsLoading.value = false
-        cb(links.value)
-        console.log("links.value", links.value)
-        if (searchTimer) {
-            clearTimeout(searchTimer)
-        }
-    }, 50)
-}
-
-const lookupKeyword = (leftHistory: boolean = true) => {
-    props.webSocket?.sendLookupKeyword(keyword.value.trim(), props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dictsSettingInfo || []), leftHistory)
-}
-
-const handleEnter = (e: KeyboardEvent) => {
-    e.preventDefault()
-    if (props.lastSearchKeyword === keyword.value.trim()) {
-        lookupKeyword(false)
-        return
-    }
-    lookupKeyword();
-    (autoCompleteRef.value as InstanceType<typeof ElAutocomplete> | null)?.close()
-}
-
-const handleSelect = (item: Record<string, any>) => {
-    lookupKeyword()
-    console.log("handleSelect:", item.value)
-}
 
 const handleHistoryBack = () => {
     if (historyIndex.value < props.searchHistory.length - 1) {
@@ -406,15 +285,6 @@ const handleHistoryForward = () => {
         props.webSocket?.sendSearchHistoryRequest()
     }
 }
-
-
-
-const handleFocus = (_: FocusEvent) => {
-    // 拿到原生 input 元素并全选
-    // (e.target as HTMLInputElement).select()
-}
-
-// const handleKeydown = ref((_: KeyboardEvent) => {})
 
 const handleKeydownData = (keyboardEventData: any) => {
     if (keyboardEventData.key === '/' && keyboardEventData.metaKey) {
@@ -459,7 +329,6 @@ const handleTitlebarMouseDown = (e: MouseEvent) => {
 }
 
 onMounted(() => {
-    links.value = loadAll()
     window.addEventListener('keydown', handleKeydown)
     if (props.env === '') {
         tauriAppWindow.value = getCurrentWindow();
