@@ -1,9 +1,10 @@
 <template>
-    <div class="floating-window-search-container" @mousedown="preventDrag = true" @mouseup="preventDrag = false">
-        <el-input v-if="!showPopoverSuggestions" ref="inputRef" v-model="keyword" placeholder="Search" clearable
-            style="font-size: 1rem;" @input="handleInputChange" @focus="handleFocus" @blur="handleBlur"
-            @keydown.down.prevent="handleKeyDown" @keydown.up.prevent="handleKeyUp"
-            @keydown.enter.prevent="handleKeyEnter" @keydown.escape="isDropdownVisible = false">
+    <div class="floating-window-search-container">
+        <el-input v-if="!showPopoverSuggestions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
+            autocapitalize="off" spellcheck="false" placeholder="Search" clearable style="font-size: 1rem;"
+            @input="handleInputChange" @focus="handleFocus" @blur="handleBlur" @keydown.down.prevent="handleKeyDown"
+            @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="handleKeyEnter"
+            @keydown.escape="isDropdownVisible = false">
             <template #prefix>
                 <SearchMethodSelect :searchMethod="props.sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
@@ -13,7 +14,8 @@
         <el-popover v-else ref="popoverRef" trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
             :width="popoverWidth" :show-arrow="false" popper-class="virtual-autocomplete-popper" :teleported="true">
             <template #reference>
-                <el-input ref="inputRef" v-model="keyword" placeholder="Search" clearable style="font-size: 1rem;"
+                <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
+                    spellcheck="false" placeholder="Search" clearable style="font-size: 1rem;"
                     @input="handleInputChange" @focus="handleFocus" @blur="handleBlur"
                     @keydown.down.prevent="handleKeyDown" @keydown.up.prevent="handleKeyUp"
                     @keydown.enter.prevent="handleKeyEnter" @keydown.escape="isDropdownVisible = false">
@@ -85,7 +87,6 @@ const popoverRef = ref<any>(null)
 const virtualListRef = ref<any>(null)
 
 let searchDebounceTimer: any = null
-const preventDrag = ref(false)
 let resizeObserver: ResizeObserver | null = null
 
 const showPopoverSuggestions = computed(() => {

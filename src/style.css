@@ -39,6 +39,7 @@ body::-webkit-scrollbar-thumb {
 }
 
 :root {
+    --header-height: 60px;
     /* scrollbar */
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 1);
@@ -63,22 +64,17 @@ body::-webkit-scrollbar-thumb {
     -moz-osx-font-smoothing: grayscale;
     /* text-align: center; */
     margin-top: 0px;
-    height: 100vh;
+    height: 100%;
+    /* height: 100vh; */
 }
 
 .app-container {
-    height: 100vh;
+    /* height: 100vh; */
 }
 
 .main-content {
-    /* margin-top: 40px; */
-    /* background: linear-gradient(
-        to bottom,
-        #cce4fb 0%,
-        #eef5fc 25%,
-        #fafbfc 55%
-    ); */
-    min-height: 100vh;
+    /* min-height: 100vh; */
+    /* padding-bottom: 40px; */
 }
 
 .dict-iframe {
@@ -97,14 +93,12 @@ body::-webkit-scrollbar-thumb {
 
 .word-options {
     height: 100vh;
-    padding-top: 40px;
-    padding-bottom: 40px;
+    padding-bottom: var(--header-height);
 }
 
 .word-detail {
     height: 100vh;
-    padding-top: 40px;
-    padding-bottom: 40px;
+    padding-bottom: calc(var(--header-height) + 5px);
 }
 
 .word-detail.not-anki-mode {
@@ -142,11 +136,6 @@ body::-webkit-scrollbar-thumb {
     width: 7px;
 }
 
-#app::-webkit-scrollbar-track,
-.word-detail::-webkit-scrollbar-track {
-    /* margin-top: 40px; */
-}
-
 #app::-webkit-scrollbar-thumb,
 .word-detail::-webkit-scrollbar-thumb {
     background: var(--scrollbar-background);
@@ -158,9 +147,8 @@ body::-webkit-scrollbar-thumb {
     top: 0;
     left: 0;
     width: 100%;
-    height: 40px;
-    z-index: 9999;
-    -webkit-app-region: drag; /* 允许拖动窗口 */
+    /* z-index: 9999; */
+    /* -webkit-app-region: drag; */
     /* 鼠标显示为可拖拽 */
     /* cursor: move; */
     /* 核心布局：横向弹性布局 */
@@ -169,7 +157,6 @@ body::-webkit-scrollbar-thumb {
     /* 左右间距固定 */
     padding: 0 15px;
     padding-left: 60px;
-    /* padding-bottom: 40px; */
     background: var(--el-bg-color);
     box-sizing: border-box; /* 关键：内边距不撑开宽度 */
 
@@ -180,20 +167,23 @@ body::-webkit-scrollbar-thumb {
 .floating-window-search-container {
     /* 关键：自动占满剩余空间，实现伸缩 */
     flex: 1;
+    margin-top: 5px;
     margin-left: 20px;
-    margin-right: 20px;
+    /* margin-right: 20px; */
     display: flex;
     align-items: center;
     flex-shrink: 0; /* 关键：不被挤压变形 */
+    /* -webkit-app-region: no-drag; */
 }
 
 .floating-window-search {
     /* width: 100%; */
     /* max-width: 80%; */
     height: 30px;
+    /* padding-top: 10px; */
     /* padding: 0 10px; */
     border-radius: 4px;
-    -webkit-app-region: no-drag;
+    /* -webkit-app-region: no-drag; */
 }
 
 /* 右侧按钮容器：固定靠右，不伸缩 */
@@ -201,18 +191,13 @@ body::-webkit-scrollbar-thumb {
     /* display: flex; */
     /* gap: 1px; */
     align-items: center;
-    -webkit-app-region: no-drag; /* 按钮可点击 */
+    /* -webkit-app-region: no-drag; */
     /* 固定宽度，防止挤压变形 */
     flex-shrink: 0;
 }
 
 .floating-window-titlebar-button {
     font-size: 15px !important;
-}
-
-/*   */
-.dict-select-sort-dialog {
-    margin-top: 40px;
 }
 
 /* 卡片列表容器：上下间距 */
@@ -307,6 +292,7 @@ body::-webkit-scrollbar-thumb {
     margin: 10px;
     /* margin-top:0; */
     /* padding-bottom: 5px; */
+    scroll-margin-top: calc(var(--header-height) + 8px); 
     border: 1px solid var(--el-color-primary);
     border-radius: var(--el-border-radius-base);
     box-shadow: var(--el-box-shadow);

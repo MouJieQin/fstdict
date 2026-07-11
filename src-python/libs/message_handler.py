@@ -285,7 +285,7 @@ class MessageHandler:
     async def _handle_system_config(
         websocket: WebSocket, session_id: int, connection_id: int, message: dict
     ):
-        folder_info = Utils.db.get_all_folder_info()
+        # folder_info = Utils.db.get_all_folder_info()
         await SessionManager.send_system_config_to_session(session_id, connection_id)
 
     @staticmethod

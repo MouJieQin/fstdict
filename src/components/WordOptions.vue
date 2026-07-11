@@ -1,6 +1,6 @@
 <template>
     <UseVirtualList ref="virtualListRef" :list="wordOptions" :options="{ itemHeight: 30, overscan: 20 }"
-        height="calc(100% + 40px)" class="list-container">
+        height="calc(100%)" class="list-container">
         <template #default="{ data, index }">
             <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
                 :style="{ height: '30px' }" @click="handleWordClick(data)">
