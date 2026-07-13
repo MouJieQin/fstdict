@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
 # _*_coding:utf-8_*_
 
+import socket
 from libs.websocket_client import WsClient
 from libs.message_handler import MessageHandler
 from libs.session_manager import SessionManager
 from libs.common import Utils
 from libs.log_config import logger
 import signal
+import sys
 import os
 import time
 import asyncio
+import threading
 
 from fastapi import (
     FastAPI,
-    UploadFile,
-    Form,
-    File,
-    Path,
     HTTPException,
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from starlette.responses import FileResponse
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -140,6 +139,23 @@ async def dictionary_session_websocket_endpoint(websocket: WebSocket, clientID: 
         if connection_id in Utils.session_websockets[session_id]:
             del Utils.session_websockets[session_id][connection_id]
 
+# ========== 前端静态文件应用（9595端口）==========
+frontend_app = FastAPI(title="FST Dict Frontend")
+
+# 静态资源目录（Vue build 产物）
+STATIC_DIR = Utils.BASE_DIR / "static"
+
+frontend_app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+
+@frontend_app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """SPA 路由 fallback 到 index.html"""
+    file_path = STATIC_DIR / full_path
+    if file_path.is_file():
+        return FileResponse(file_path)
+    return FileResponse(STATIC_DIR / "index.html")
+
 
 # ================= 正确的信号处理 =================
 def signal_handler(sig, frame):
@@ -153,17 +169,52 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-# ==============================================
-# 启动应用
-# ==============================================
-if __name__ == "__main__":
 
-    # 启动服务器
-    uvicorn.run(
-        app,
-        host="127.0.0.1",
-        port=5959,
-        reload=False,
-        access_log=False,
-        # log_level="critical",
-    )
+# ========== 双端口启动 ==========
+def is_port_available(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            return False
+
+
+def run_api_server():
+    uvicorn.run(app, host="127.0.0.1", port=5959, reload=False,
+                access_log=False, log_level="info")
+
+
+def run_frontend_server():
+    uvicorn.run(frontend_app, host="127.0.0.1", port=9595, reload=False,
+                access_log=False, log_level="info")
+
+
+def main():
+    if getattr(sys, "frozen", False):
+        # 启动前检查
+        if not is_port_available(5959):
+            logger.error("❌ 端口 5959 已被占用，词典后端可能已经在运行")
+            sys.exit(1)
+        if not is_port_available(9595):
+            logger.error("❌ 端口 9595 已被占用，词典前端可能已经在运行")
+            sys.exit(1)
+        # 前端静态服务放子线程（daemon=True，主线程退出它自动结束）
+        fe_thread = threading.Thread(target=run_frontend_server, daemon=True)
+        fe_thread.start()
+
+        logger.info("✅ Frontend:     http://127.0.0.1:9595")
+        logger.info("✅ API server:   http://127.0.0.1:5959")
+
+        # API 服务放主线程（阻塞运行，程序主循环在这里）
+        run_api_server()
+    else:
+        if not is_port_available(5959):
+            logger.error("❌ 端口 5959 已被占用，词典后端可能已经在运行")
+            sys.exit(1)
+
+        run_api_server()
+
+
+if __name__ == "__main__":
+    main()

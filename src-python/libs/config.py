@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 import platformdirs
 import shutil
@@ -13,7 +14,7 @@ class UtilsBase:
     # 路径配置
     APP_NAME = "FstDict"
     APP_AUTHOR = "qinmoujie"
-    SERVER_SRC_ABS_PATH = os.path.abspath(os.getcwd())
+    BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent.parent
     APP_SUPPORT_PATH = platformdirs.user_data_dir(APP_NAME, APP_AUTHOR)
     APP_LOG_PATH = platformdirs.user_log_dir(APP_NAME, APP_AUTHOR)
     APP_CACHE_PATH = platformdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
@@ -22,7 +23,7 @@ class UtilsBase:
     USER_CONFIG_DIR = FSTDICT_STORAGE_PATH + "/config"
     CONFIG_FILE = USER_CONFIG_DIR + "/config.json"
     ANKI_CONFIG_FILE = USER_CONFIG_DIR + "/anki_config.json"
-    DEFAULT_CONFIG_FILE = SERVER_SRC_ABS_PATH + "/config.json"
+    DEFAULT_CONFIG_FILE = str(BASE_DIR / "config.json")
     DICTIONARYS_PATH = FSTDICT_STORAGE_PATH + "/dictionaries"
     FSTD_SEARCHER_META_PATH = DICTIONARYS_PATH + "/fstd_searcher_meta.json"
     FSTDX_INDEX_PATH = DICTIONARYS_PATH + "/fstd_indexes.fstdxidx"
