@@ -15,9 +15,8 @@ use tauri::{App, Manager, RunEvent};
 use std::os::unix::process::CommandExt;
 
 /// Initialize logging: colored console + daily rotated file output.
-/// Logs are written to the system-standard log directory
-/// (macOS: ~/Library/Logs/FstDict/, Linux: ~/.local/share/FstDict/logs/)
-pub fn init_logging() {
+/// Must be called after the Tauri app is created so we can use app_log_dir().
+pub fn init_logging(log_dir: &std::path::Path) {
     let env = Env::default().filter_or("RUST_LOG", "info");
     let mut builder = Builder::from_env(env);
 
@@ -28,23 +27,20 @@ pub fn init_logging() {
         .filter_module("hyper_util", LevelFilter::Warn)
         .filter_module("tauri_plugin_updater", LevelFilter::Warn);
 
-    // Resolve system-standard log directory
-    let log_dir = get_app_log_dir();
-    let _ = fs::create_dir_all(&log_dir);
+    let _ = fs::create_dir_all(log_dir);
     println!("Log directory: {:?}", log_dir);
 
     // Custom formatter matching Python server style
+    let log_dir = log_dir.to_path_buf();
     builder.format(move |buf, record| {
         let now = Local::now();
         let time_str = now.format("%Y-%m-%d %H:%M:%S").to_string();
         let level = record.level();
         let level_str = format!("{:>8}", level.as_str());
 
-        // Thread ID (abbreviated, Rust thread ids are not numeric like Python's)
         let thread_id = format!("{:?}", std::thread::current().id());
         let thread_short = thread_id.replace("ThreadId(", "").replace(')', "");
 
-        // File location: filename:line
         let file_loc = match (record.file(), record.line()) {
             (Some(file), Some(line)) => {
                 let filename = file.rsplit('/').next().unwrap_or(file);
@@ -90,26 +86,6 @@ pub fn init_logging() {
     });
 
     let _ = builder.try_init();
-}
-
-/// Get the system-standard log directory for the app.
-fn get_app_log_dir() -> PathBuf {
-    dirs::home_dir()
-        .map(|home| {
-            #[cfg(target_os = "macos")]
-            {
-                home.join("Library/Logs/FstDict")
-            }
-            #[cfg(target_os = "windows")]
-            {
-                home.join("AppData/Roaming/FstDict/logs")
-            }
-            #[cfg(target_os = "linux")]
-            {
-                home.join(".local/share/FstDict/logs")
-            }
-        })
-        .unwrap_or_else(|| PathBuf::from("./logs"))
 }
 
 /// Get or create the daily log file handle
@@ -245,13 +221,18 @@ fn stop_python_sidecar(process: &mut Option<Child>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    init_logging();
-
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
         .manage(PythonServer(Mutex::new(None)))
         .setup(|app: &mut App| {
+            // Initialize logging using Tauri's standard app_log_dir
+            let log_dir = app
+                .path()
+                .app_log_dir()
+                .unwrap_or_else(|_| PathBuf::from("./logs"));
+            init_logging(&log_dir);
+
             // Ensure app data directory exists
             let app_data_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_data_dir)?;
