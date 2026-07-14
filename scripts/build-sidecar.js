@@ -30,7 +30,7 @@ const addDataStatic = `static${sep}static`;
 const addDataConfig = `config.json${sep}.`;
 
 execSync(
-    `pyinstaller --clean --onedir --noconsole --name fstdict-server ` +
+    `pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
         `--add-data "${addDataStatic}" --add-data "${addDataConfig}" ` +
         `fstdict-server.py`,
     { cwd: pythonDir, stdio: "inherit" },
