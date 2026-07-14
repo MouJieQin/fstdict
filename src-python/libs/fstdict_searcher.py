@@ -170,6 +170,20 @@ class FstDictSearcher:
         ignorecase: Optional[bool] = None,
     ) -> Dict[str, Dict[str, list[str]]]:
         """查询所有词典"""
+        results = self._lookup_imple(keyword, dict_names)
+        if results:
+            return results
+        use_dicts = dict_names or self._all_dict_names
+        regex_result = self._fstd_engine.regex_search(f'(?i){keyword}$', use_dicts)
+        if regex_result[1] or not regex_result[0]:
+            return results
+        return self._lookup_imple(regex_result[0][0], dict_names)
+
+    def _lookup_imple(
+        self,
+        keyword: str,
+        dict_names: Optional[list[str]],
+    ) -> Dict[str, Dict[str, list[str]]]:
         results = {}
         if dict_names is None:
             dict_names = self._all_dict_names
@@ -177,7 +191,7 @@ class FstDictSearcher:
             res = self._fstd_engine.exact_match_search(keyword, dict_name)
             if res:
                 result = []
-                self._hand_link_word(result, res, dict_name, [keyword], ignorecase)
+                self._hand_link_word(result, res, dict_name, [keyword])
                 results[dict_name] = result
         return results
 
@@ -186,8 +200,7 @@ class FstDictSearcher:
         result: list[str],
         cur_result: list[str],
         dict_name: str,
-        words_show: list[str],
-        ignorecase: Optional[bool] = None,
+        words_show: list[str]
     ):
         """处理重定向单词"""
         for i in range(len(cur_result)):
@@ -200,9 +213,7 @@ class FstDictSearcher:
                     words_show.append(redirect_word)
                     res_redirect = self._fstd_engine.exact_match_search(redirect_word, dict_name)
                     if res_redirect:
-                        self._hand_link_word(
-                            result, res_redirect, dict_name, words_show, ignorecase
-                        )
+                        self._hand_link_word(result, res_redirect, dict_name, words_show)
 
     def keyword_options_search(
         self,

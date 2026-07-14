@@ -185,11 +185,17 @@ class MessageHandler:
         results = fstdict_searcher.lookup(
             keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
         )
-        if not results and keyword.isalpha() and keyword.lower() != keyword:
-            # 尝试大小写无关的搜索
-            results = fstdict_searcher.lookup(
-                keyword, dict_names=message["data"]["dict_settings"], ignorecase=True
-            )
+        if not results:
+            # if '#' in keyword:
+            #     keyword = keyword.split("#")[0]
+            #     results = fstdict_searcher.lookup(
+            #         keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
+            #     )
+            if keyword.isalpha():
+                # 尝试大小写无关的搜索
+                results = fstdict_searcher.lookup(
+                    keyword, dict_names=message["data"]["dict_settings"], ignorecase=True
+                )
         is_word_favorited = False
         if folder_id:
             is_word_favorited = Utils.db.is_word_favorited(keyword, folder_id)
