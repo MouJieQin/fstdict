@@ -186,11 +186,18 @@ class MessageHandler:
             keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
         )
         if not results:
-            # if '#' in keyword:
-            #     keyword = keyword.split("#")[0]
-            #     results = fstdict_searcher.lookup(
-            #         keyword, dict_names=message["data"]["dict_settings"], ignorecase=None
-            #     )
+            if '#' in keyword:
+                keyword = keyword.split("#")[0]
+                msg = {
+                    "type": "lookup_keyword_request",
+                    "data": {
+                        "keyword": keyword,
+                    },
+                }
+                await SessionManager.send_msg_to_session_by_id(
+                    session_id, connection_id, json.dumps(msg)
+                )
+                return
             if keyword.isalpha():
                 # 尝试大小写无关的搜索
                 results = fstdict_searcher.lookup(
