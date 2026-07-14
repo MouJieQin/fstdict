@@ -1130,7 +1130,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict"
-version = "0.0.1-alpha"
+version = "0.0.1"
 dependencies = [
  "chrono",
  "colored",
