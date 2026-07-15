@@ -19,6 +19,7 @@ class WebSocketService {
     private socket: WebSocket | null = null;
     private status = ref<typeof WebSocketStatus[keyof typeof WebSocketStatus]>(WebSocketStatus.CLOSED);
     private reconnectInterval: number | null = null; // 重连定时器
+    private reconnectCount: number = 0;
     private url: string; // WebSocket 服务器地址
     private isClosedByUser: boolean = false;
 
@@ -80,10 +81,12 @@ class WebSocketService {
         if (this.reconnectInterval) return;
         this.reconnectInterval = window.setInterval(() => {
             this.init();
-        }, 5000); // 5 秒重连一次，可配置
+            this.reconnectCount += 1;
+        }, this.reconnectCount > 10 ? 5000 : 500); // 5 秒重连一次，可配置
     }
 
     private clearReconnect() {
+        this.reconnectCount = 0;
         if (this.reconnectInterval) {
             window.clearInterval(this.reconnectInterval);
             this.reconnectInterval = null;
