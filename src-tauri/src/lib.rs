@@ -12,7 +12,6 @@ use std::sync::Mutex;
 use tauri::{App, Manager, RunEvent};
 
 #[cfg(unix)]
-use std::os::unix::process::CommandExt;
 
 /// Initialize logging: colored console + daily rotated file output.
 /// Must be called after the Tauri app is created so we can use app_log_dir().
@@ -143,9 +142,9 @@ fn find_sidecar_path(app: &App, base_name: &str) -> Option<std::path::PathBuf> {
 }
 
 /// Start the Python sidecar server (release build only).
-/// Creates a new process group so we can terminate all children cleanly.
+/// Optimized to minimize OS process-spawning overhead.
 #[cfg(not(dev))]
-fn start_python_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+fn start_python_sidecar(app: &tauri::App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
     let binary = match find_sidecar_path(app, "fstdict-server") {
         Some(path) => path,
         None => {
@@ -156,12 +155,34 @@ fn start_python_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error::
 
     info!("Starting Python server from: {:?}", binary);
 
-    let mut cmd = std::process::Command::new(&binary);
+    use std::process::Command;
+    let mut cmd = Command::new(&binary);
 
-    // Spawn in a new process group to kill the whole tree at once.
-    // Handles PyInstaller's bootloader + Python child process model.
+    // ─────────────────────────────────────────────────────────────────
+    // WINDOWS OPTIMIZATIONS
+    // ─────────────────────────────────────────────────────────────────
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // 0x08000000 = CREATE_NO_WINDOW. Disables console subsystem allocation.
+        // Prevents execution speed drops caused by implicit console management.
+        cmd.creation_flags(0x08000000);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // UNIX OPTIMIZATIONS (macOS / Linux)
+    // ─────────────────────────────────────────────────────────────────
     #[cfg(unix)]
-    cmd.process_group(0);
+    {
+        use std::os::unix::process::CommandExt;
+        // 1. Spawn in a new process group to kill the whole tree at once.
+        cmd.process_group(0);
+
+        // 2. Performance Fix: Decouple child standard streams from the Tauri GUI parent.
+        // If Rust hangs waiting on PyInstaller's initial standard outputs, it delays startup.
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
+    }
 
     let child = cmd
         .spawn()
@@ -205,12 +226,12 @@ fn stop_python_sidecar(process: &mut Option<Child>) {
 
         #[cfg(windows)]
         {
-            // taskkill /T kills the entire process tree
-            // /F forces termination
+            use std::os::windows::process::CommandExt; // Required for creation_flags
             let _ = std::process::Command::new("taskkill")
                 .args(["/F", "/T", "/PID", &pid.to_string()])
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
+                .creation_flags(0x08000000) // 0x08000000 = CREATE_NO_WINDOW
                 .status();
         }
 
