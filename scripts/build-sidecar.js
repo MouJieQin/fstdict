@@ -29,9 +29,31 @@ console.log("  Running PyInstaller...");
 const addDataStatic = `static${sep}static`;
 const addDataConfig = `config.json${sep}.`;
 
+// Default command configuration
+let commandPrefix = "";
+let targetArchFlag = "";
+
+// Detect if we are building a macOS x86_64 target on GitHub Actions or locally
+const isMac = platform === "darwin";
+// Check GitHub Actions matrix target or custom env vars
+const rustTarget = process.env.TAURI_TARGET || "";
+
+if (isMac) {
+    // If explicitly building for x86_64 (Intel)
+    if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
+        commandPrefix = "arch -x86_64 ";
+        targetArchFlag = " --target-arch x86_64";
+    } else if (
+        rustTarget.includes("aarch64") ||
+        process.argv.includes("aarch64")
+    ) {
+        targetArchFlag = " --target-arch arm64";
+    }
+}
+
 execSync(
-    `pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
-        `--add-data "${addDataStatic}" --add-data "${addDataConfig}" ` +
+    `${commandPrefix}pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
+        `--add-data "${addDataStatic}" --add-data "${addDataConfig}"${targetArchFlag} ` +
         `fstdict-server.py`,
     { cwd: pythonDir, stdio: "inherit" },
 );

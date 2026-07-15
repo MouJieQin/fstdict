@@ -50,22 +50,19 @@ jobs:
               uses: actions/checkout@v4
 
             # ─────────────────────────────────────────
-            # 1. Node.js + Frontend Build
+            # 1. Node.js
             # ─────────────────────────────────────────
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: "20"
+                  node-version: "24"
                   cache: "npm"
 
             - name: Install frontend dependencies
               run: npm ci
 
-            - name: Build Vue frontend
-              run: npm run build
-
             # ─────────────────────────────────────────
-            # 2. Python + PyInstaller Sidecar Build
+            # 2. Python + PyInstaller
             # ─────────────────────────────────────────
             - name: Setup Python
               if: matrix.platform != 'macos' || matrix.arch != 'x86_64'
@@ -81,73 +78,16 @@ jobs:
                   architecture: "x64"
 
             - name: Install Python dependencies
-              if: matrix.platform != 'macos' || matrix.arch != 'x86_64'
-              working-directory: src-python
-              run: |
-                  python -m pip install --upgrade pip
-                  pip install -r requirements.txt
-                  pip install pyinstaller
-
-            - name: Install Python dependencies (macos x86_64)
-              if: matrix.platform == 'macos' && matrix.arch == 'x86_64'
-              working-directory: src-python
-              run: |
-                  # Force pip to run inside the Intel layer to grab x86_64 binary wheels
-                  arch -x86_64 python -m pip install --upgrade pip
-                  arch -x86_64 pip install -r requirements.txt
-                  arch -x86_64 pip install pyinstaller
-
-            - name: Copy Vue dist to Python static (Unix)
-              if: matrix.platform != 'windows'
-              run: |
-                  rm -rf src-python/static
-                  cp -r dist src-python/static
-
-            - name: Copy Vue dist to Python static (Windows)
-              if: matrix.platform == 'windows'
-              run: |
-                  if (Test-Path src-python\static) { Remove-Item -Recurse -Force src-python\static }
-                  Copy-Item -Recurse dist src-python\static
-
-            - name: Build Python sidecar (Unix)
-              if: matrix.platform != 'windows'
               working-directory: src-python
               run: |
                   PREFIX=""
                   if [[ "${{ matrix.platform }}" == "macos" && "${{ matrix.arch }}" == "x86_64" ]]; then
                     PREFIX="arch -x86_64"
                   fi
-
-                  $PREFIX pyinstaller \
-                    --clean \
-                    -y \
-                    --onedir \
-                    --noconsole \
-                    --name fstdict-server \
-                    --add-data "static:static" \
-                    --add-data "config.json:." \
-                    --target-arch ${{ matrix.pyinstaller_arch }} \
-                    fstdict-server.py
-
-            - name: Build Python sidecar (Windows)
-              if: matrix.platform == 'windows'
-              working-directory: src-python
-              run: |
-                  pyinstaller --clean --onedir --noconsole --name fstdict-server --add-data "static;static" --add-data "config.json;." fstdict-server.py
-
-            - name: Verify Architecture
-              if: matrix.platform == 'macos'
-              run: |
-                  file src-python/dist/fstdict-server/fstdict-server
-
-            - name: Place sidecar in Tauri sidecars directory
-              shell: bash
-              run: |
-                  mkdir -p src-tauri/sidecars
-                  rm -rf src-tauri/sidecars/fstdict-server
-                  cp -r src-python/dist/fstdict-server src-tauri/sidecars/fstdict-server
-                  echo "Sidecar placed at src-tauri/sidecars/fstdict-server/"
-                  ls -la src-tauri/sidecars/fstdict-server/
+                  # Force pip to run inside the Intel layer to grab x86_64 binary wheels
+                  $PREFIX python -m pip install --upgrade pip
+                  $PREFIX pip install -r requirements.txt
+                  $PREFIX pip install pyinstaller
 
             # ─────────────────────────────────────────
             # 3. Rust + Tauri Build
@@ -178,6 +118,7 @@ jobs:
                   args: --target ${{ matrix.rust_target }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAURI_TARGET: ${{ matrix.rust_target }} # <--- Pass this to your JS build script
 
             # ─────────────────────────────────────────
             # 4. Upload Artifacts
