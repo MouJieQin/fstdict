@@ -11,8 +11,6 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use tauri::{App, Manager, RunEvent};
 
-#[cfg(unix)]
-
 /// Initialize logging: colored console + daily rotated file output.
 /// Must be called after the Tauri app is created so we can use app_log_dir().
 pub fn init_logging(log_dir: &std::path::Path) {
