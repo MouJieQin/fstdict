@@ -103,7 +103,14 @@ jobs:
               if: matrix.platform != 'windows'
               working-directory: src-python
               run: |
-                  pyinstaller \
+                  # Define the command wrapper: default to empty, but force x86_64 on Intel mac builds
+                  PREFIX=""
+                  if [[ "${{ matrix.platform }}" == "macos" && "${{ matrix.arch }}" == "x86_64" ]]; then
+                    PREFIX="arch -x86_64"
+                  fi
+
+                  # Run PyInstaller with the prefix
+                  $PREFIX pyinstaller \
                     --clean \
                     -y \
                     --onedir \
@@ -111,6 +118,7 @@ jobs:
                     --name fstdict-server \
                     --add-data "static:static" \
                     --add-data "config.json:." \
+                    --target-arch ${{ matrix.pyinstaller_arch }} \
                     fstdict-server.py
 
             - name: Build Python sidecar (Windows)
@@ -118,6 +126,11 @@ jobs:
               working-directory: src-python
               run: |
                   pyinstaller --clean --onedir --noconsole --name fstdict-server --add-data "static;static" --add-data "config.json;." fstdict-server.py
+
+            - name: Verify Architecture
+              if: matrix.platform == 'macos'
+              run: |
+                  file src-python/dist/fstdict-server/fstdict-server
 
             - name: Place sidecar in Tauri sidecars directory
               shell: bash
