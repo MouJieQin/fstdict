@@ -7,7 +7,7 @@ use log::{debug, error, info, warn, Level, LevelFilter};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Child;
+use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use tauri::{App, Manager, RunEvent};
 
@@ -141,54 +141,54 @@ fn find_sidecar_path(app: &App, base_name: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-/// Start the Python sidecar server (release build only).
-/// Optimized to minimize OS process-spawning overhead.
 #[cfg(not(dev))]
-fn start_python_sidecar(app: &tauri::App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+fn start_python_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
     let binary = match find_sidecar_path(app, "fstdict-server") {
         Some(path) => path,
         None => {
-            warn!("Python sidecar 'fstdict-server' not found — skipping");
+            log::warn!("Python sidecar 'fstdict-server' not found — skipping");
             return Ok(None);
         }
     };
 
-    info!("Starting Python server from: {:?}", binary);
-
-    use std::process::Command;
+    log::info!("Starting Python server from: {:?}", binary);
     let mut cmd = Command::new(&binary);
 
     // ─────────────────────────────────────────────────────────────────
-    // WINDOWS OPTIMIZATIONS
+    // OPTIMIZATION 1: Fix Launch Lag (macOS & Windows)
+    // ─────────────────────────────────────────────────────────────────
+    // PyInstaller's bootloader tries to detect a parent console. If connected
+    // to a GUI app, it hangs for seconds trying to initialize stdout/stderr.
+    // Piping to null bypasses this check instantly.
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+
+    // ─────────────────────────────────────────────────────────────────
+    // OPTIMIZATION 2: Windows Invisible Launch
     // ─────────────────────────────────────────────────────────────────
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        // 0x08000000 = CREATE_NO_WINDOW. Disables console subsystem allocation.
-        // Prevents execution speed drops caused by implicit console management.
+        // CREATE_NO_WINDOW (0x08000000): Prevents a transient console window
+        // from appearing even for a split second.
         cmd.creation_flags(0x08000000);
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // UNIX OPTIMIZATIONS (macOS / Linux)
+    // SAFETY: Unix Process Groups
     // ─────────────────────────────────────────────────────────────────
     #[cfg(unix)]
     {
+        // Create a new process group so we can kill the whole tree (bootloader + python)
         use std::os::unix::process::CommandExt;
-        // 1. Spawn in a new process group to kill the whole tree at once.
         cmd.process_group(0);
-
-        // 2. Performance Fix: Decouple child standard streams from the Tauri GUI parent.
-        // If Rust hangs waiting on PyInstaller's initial standard outputs, it delays startup.
-        cmd.stdout(std::process::Stdio::null());
-        cmd.stderr(std::process::Stdio::null());
     }
 
     let child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn Python server: {}", e))?;
 
-    info!("Python server started (PID: {})", child.id());
+    log::info!("Python server started (PID: {})", child.id());
     Ok(Some(child))
 }
 
@@ -199,12 +199,10 @@ fn start_python_sidecar(_app: &App) -> Result<Option<Child>, Box<dyn std::error:
     Ok(None)
 }
 
-/// Gracefully terminate the entire Python sidecar process group.
-/// Kills both the PyInstaller bootloader and the actual Python child process.
 fn stop_python_sidecar(process: &mut Option<Child>) {
     if let Some(mut proc) = process.take() {
         let pid = proc.id();
-        info!("Shutting down Python server (process group PID: {})", pid);
+        log::info!("Shutting down Python server (process group PID: {})", pid);
 
         #[cfg(unix)]
         {
@@ -212,31 +210,32 @@ fn stop_python_sidecar(process: &mut Option<Child>) {
             unsafe {
                 libc::kill(-(pid as i32), libc::SIGTERM);
             }
-            // Give it a moment to exit gracefully, then force kill if needed
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            unsafe {
-                libc::kill(-(pid as i32), libc::SIGKILL);
+            // Give it 200ms to exit gracefully, then force kill
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            // Check if it's still alive before kill (optional but cleaner)
+            match proc.try_wait() {
+                Ok(Some(_)) => {} // Already dead
+                _ => unsafe {
+                    libc::kill(-(pid as i32), libc::SIGKILL);
+                },
             }
         }
 
-        // #[cfg(not(unix))]
-        // {
-        //     let _ = proc.kill();
-        // }
-
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt; // Required for creation_flags
+            use std::os::windows::process::CommandExt;
+            // FIX: Add creation_flags(0x08000000) to hide the "Black Terminal Window"
             let _ = std::process::Command::new("taskkill")
                 .args(["/F", "/T", "/PID", &pid.to_string()])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .creation_flags(0x08000000) // 0x08000000 = CREATE_NO_WINDOW
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .creation_flags(0x08000000)
                 .status();
         }
 
+        // Avoid blocking the UI thread for too long
         let _ = proc.wait();
-        info!("Python server stopped");
+        log::info!("Python server stopped");
     }
 }
 
@@ -272,17 +271,23 @@ pub fn run() {
                     return Err(e);
                 }
             }
-
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("Failed to build Tauri application");
 
-    app.run(|app_handle, event: RunEvent| {
-        if let RunEvent::ExitRequested { .. } = event {
-            let state = app_handle.state::<PythonServer>();
-            let mut proc_guard = state.0.lock().unwrap();
-            stop_python_sidecar(&mut proc_guard);
+    app.run(|app_handle, event| {
+        match event {
+            // FIX: Handle BOTH ExitRequested and Exit.
+            // ExitRequested catches standard closes.
+            // Exit catches Cmd+Q on macOS and other forced terminations.
+            RunEvent::ExitRequested { .. } | RunEvent::Exit => {
+                // Fix lifetime by locking directly on the state extraction in one clean step
+                if let Ok(mut proc_guard) = app_handle.state::<PythonServer>().0.lock() {
+                    stop_python_sidecar(&mut proc_guard);
+                }
+            }
+            _ => {}
         }
     });
 }
