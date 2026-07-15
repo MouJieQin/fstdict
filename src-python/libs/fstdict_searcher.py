@@ -37,7 +37,7 @@ class FstDictSearcher:
 
     def remove_dictionary(self, dict_name: str):
         """删除词典"""
-        # self._fstd_engine.remove(dict_name)
+        self._fstd_engine.erase(dict_name)
         self._all_dict_names.remove(dict_name)
 
     def _add_dictionary_from_dir(self, dict_path_str: str):

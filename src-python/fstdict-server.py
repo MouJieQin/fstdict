@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-# _*_coding:utf-8_*_
+# -*- coding: utf-8 -*-
 
+import sys
+import os
 import socket
 from libs.websocket_client import WsClient
 from libs.message_handler import MessageHandler
@@ -8,8 +10,6 @@ from libs.session_manager import SessionManager
 from libs.common import Utils
 from libs.log_config import logger
 import signal
-import sys
-import os
 import time
 import asyncio
 import threading
@@ -57,7 +57,7 @@ async def download(path: str):
             data_path = "/".join([Utils.DICTIONARYS_PATH, dict_name, "data"])
             Utils.fstd_engine.extract(dict_name, file_key, data_path)
             if not os.path.isfile(file_path):
-                Utils.fstd_engine.extract(dict_name, "/" + file_key, data_path)
+                Utils.fstd_engine.extract_if_exists(dict_name, "/" + file_key, data_path)
         except Exception as e:
             logger.error(f"Failed to parse download path: {e}", exc_info=False)
             raise HTTPException(status_code=400, detail="Is not a file or does not exist")
