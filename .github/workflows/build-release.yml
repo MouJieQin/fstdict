@@ -78,16 +78,21 @@ jobs:
                   architecture: "x64"
 
             - name: Install Python dependencies
+              if: matrix.platform != 'macos' || matrix.arch != 'x86_64'
               working-directory: src-python
               run: |
-                  PREFIX=""
-                  if [[ "${{ matrix.platform }}" == "macos" && "${{ matrix.arch }}" == "x86_64" ]]; then
-                    PREFIX="arch -x86_64"
-                  fi
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+                  pip install pyinstaller
+
+            - name: Install Python dependencies (macos x86_64)
+              if: matrix.platform == 'macos' && matrix.arch == 'x86_64'
+              working-directory: src-python
+              run: |
                   # Force pip to run inside the Intel layer to grab x86_64 binary wheels
-                  $PREFIX python -m pip install --upgrade pip
-                  $PREFIX pip install -r requirements.txt
-                  $PREFIX pip install pyinstaller
+                  arch -x86_64 python -m pip install --upgrade pip
+                  arch -x86_64 pip install -r requirements.txt
+                  arch -x86_64 pip install pyinstaller
 
             # ─────────────────────────────────────────
             # 3. Rust + Tauri Build
