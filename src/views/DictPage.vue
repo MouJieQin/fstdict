@@ -15,7 +15,8 @@
                 <el-splitter-panel :size="wordOptionsSize" @update:size="handlePanelResize">
                     <div class="word-options">
                         <WordOptions :webSocket="webSocket as SessionWebSocketService"
-                            :sessionConfig="sessionConfig as SessionConfig" :wordOptions="wordOptions" />
+                            :sessionConfig="sessionConfig as SessionConfig" :wordOptions="wordOptions"
+                            :searchHistory="searchHistory" :keyword="keyword" />
                     </div>
                 </el-splitter-panel>
                 <el-splitter-panel :min="400">

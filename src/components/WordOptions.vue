@@ -1,6 +1,22 @@
 <template>
-    <UseVirtualList ref="virtualListRef" :list="wordOptions" :options="{ itemHeight: 30, overscan: 20 }"
-        height="calc(100%)" class="list-container">
+    <div v-show="showErrorSuggestion" class="error-suggestions">
+        {{ props.wordOptions[0].replace('FSTD_ERROR', '') || 'No error message' }}
+    </div>
+    <UseVirtualList v-show="!showErrorSuggestion && !showHistory" ref="virtualListRef" :list="props.wordOptions"
+        :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)" class="list-container">
+        <template #default="{ data, index }">
+            <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
+                :style="{ height: '30px' }" @click="handleWordClick(data)">
+                <!-- Added a wrapping class 'truncated-text' to ensure uniform string styling -->
+                <el-text class="truncated-text" :title="data">
+                    {{ data }}
+                    <!-- row {{ index }} - {{ data }} -->
+                </el-text>
+            </div>
+        </template>
+    </UseVirtualList>
+    <UseVirtualList v-show="showHistory" ref="historyVirtualListRef" :list="props.searchHistory.map(item => item.word)"
+        :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)" class="list-container">
         <template #default="{ data, index }">
             <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
                 :style="{ height: '30px' }" @click="handleWordClick(data)">
@@ -15,10 +31,13 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import type { PropType } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getDictSettingsForLookup } from '@/common/utility'
+import type { WordInfoWithLastSearch } from '@/common/type-interface'
+
 
 const props = defineProps({
     webSocket: {
@@ -30,14 +49,32 @@ const props = defineProps({
         required: true,
         default: () => ({})
     },
-        wordOptions: {
+    keyword: {
+        type: String,
+        required: true,
+        default: '',
+    },
+    wordOptions: {
         type: Array,
+        default: () => [],
+    },
+    searchHistory: {
+        type: Array as PropType<WordInfoWithLastSearch[]>,
+        required: true,
         default: () => [],
     },
 })
 
 const virtualListRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
+const historyVirtualListRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
 const selectedWord = ref<string | null>(null)
+const showHistory = computed(() => {
+    return !props.keyword.trim()
+})
+
+const showErrorSuggestion = computed(() => {
+    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_ERROR'))
+})
 
 watch(
     () => props.wordOptions,

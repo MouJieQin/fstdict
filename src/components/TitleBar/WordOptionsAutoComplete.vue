@@ -330,10 +330,4 @@ const handleSearchMethodChange = (newMethod: string) => {
     font-size: 13px;
 }
 
-.error-suggestions {
-    padding: 16px;
-    text-align: center;
-    color: var(--el-text-color-danger, #f56c6c);
-    font-size: 13px;
-}
 </style>

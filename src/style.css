@@ -480,6 +480,13 @@ el-tabs__item {
     padding-top: 12px;
 }
 
+.error-suggestions {
+    padding: 16px;
+    text-align: center;
+    color: var(--el-text-color-danger, #f56c6c);
+    font-size: 13px;
+}
+
 /* 隐藏原生下拉框，只保留弹出功能 */
 /* defined in vue */
 
