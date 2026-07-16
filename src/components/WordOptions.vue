@@ -1,5 +1,5 @@
 <template>
-    <div v-show="showErrorSuggestion" class="error-suggestions">
+    <div v-if="showErrorSuggestion" class="error-suggestions">
         {{ props.wordOptions[0].replace('FSTD_ERROR', '') || 'No error message' }}
     </div>
     <UseVirtualList v-show="!showErrorSuggestion && !showHistory" ref="virtualListRef" :list="props.wordOptions"

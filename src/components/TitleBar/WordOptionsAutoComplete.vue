@@ -329,5 +329,4 @@ const handleSearchMethodChange = (newMethod: string) => {
     color: var(--el-text-color-secondary, #909399);
     font-size: 13px;
 }
-
 </style>
