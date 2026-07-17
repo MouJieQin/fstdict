@@ -153,11 +153,16 @@ function injectClickHandler(doc: Document) {
           sound: encodeURIComponent(href.replace('sound://', ''))
         }, '*');
       }
-      else if (href.startsWith('http://localhost:9595/#')) {
-        e.preventDefault();  
-        const location_id = href.replace('http://localhost:9595/#', '')
-        const el = document.getElementById(location_id);
-        if (el) el.scrollIntoView({ behavior: "smooth" });
+      else if (href.includes('#') && href.includes('localhost')) {
+          e.preventDefault();
+          const hash = href.split('#')[1];
+          const el = document.getElementById(hash);
+          if (!el) return;
+          window.parent.postMessage({
+              type: 'LOCATION_CLICK',
+              iframeId: '${iframeId.value}',
+              elementOffsetTop: el.offsetTop
+          }, '*');
       }
       else {
         e.preventDefault();
@@ -267,6 +272,18 @@ const messageListener = (e: MessageEvent) => {
     audio.currentTime = 0
     audio.play().catch(err => console.warn('播放失败', err))
   }
+else if (e.data?.type === 'LOCATION_CLICK') {
+    const scrollContainer = document.querySelector('.word-detail') as HTMLElement
+    if (!scrollContainer) return
+    const iframeEl = document.getElementById(`dict-iframe-container-${props.dictionaryName}`) as HTMLElement
+    if (!iframeEl) return
+    const iframeTop = iframeEl.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
+    const targetScrollTop = scrollContainer.scrollTop + iframeTop + e.data.elementOffsetTop
+    scrollContainer.scrollTo({
+        top: targetScrollTop,
+        behavior: 'instant'
+    })
+}
   else if (e.data?.type === 'KEYDOWN') {
     emits('keydown', e.data)
   }
