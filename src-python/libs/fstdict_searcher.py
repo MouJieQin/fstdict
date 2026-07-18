@@ -49,7 +49,7 @@ class FstDictSearcher:
         self._fstd_engine.insert_if_not_exists(dict_name, fstdx_path)
 
     def _copy_file(self, file: str, msgs: list, reload_dict_names: list[str]) -> None:
-        dict_name = Path(file).stem
+        dict_name = Path(file).stem.split('.')[0]
         dict_dir = UtilsBase.getDictDir(dict_name)
         if os.path.exists(dict_dir):
             target_path = os.path.join(dict_dir, Path(file).name)

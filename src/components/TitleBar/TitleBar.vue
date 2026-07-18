@@ -67,7 +67,8 @@
     </el-dialog>
     <el-dialog v-model="settingDialogVisible" fullscreen>
         <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress">
+            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress" 
+            @update-visible="(visible) => settingDialogVisible = visible">
         </Settings>
     </el-dialog>
     <el-dialog v-model="dictSSDialogVisible" fullscreen>

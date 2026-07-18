@@ -90,10 +90,10 @@
         </el-dialog>
 
         <!-- :z-index="10000" -->
-        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen >
+        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
             <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-                @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
-                :folderName="folderIdNameToShow" :folderId="folderIdToShow" />
+                @update-visible="handle_update_visible(visible)" :favoriteWords="favoriteWords" :folderName="folderIdNameToShow"
+                :folderId="folderIdToShow" />
         </el-dialog>
     </div>
 </template>
@@ -138,6 +138,10 @@ const props = defineProps({
     },
 })
 
+const emits = defineEmits<{
+    (e: 'update-visible', visible: boolean): void
+}>()
+
 const systemConfigStore = useSystemConfigStore()
 const localSystemConfig = ref<SystemConfig>(JSON.parse(JSON.stringify(systemConfigStore.systemConfig)))
 const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig)))
@@ -162,6 +166,11 @@ watch(() => localSessionConfig.value.default_folder.id, () => {
 watch(() => props.ankiProgress, (newVal) => {
     ankiProgresses.value = JSON.parse(JSON.stringify(newVal))
 }, { deep: true })
+
+const handle_update_visible = (visible) => {
+    favoriteWordsDialogVisible.value = visible
+    emits('update-visible', false)
+}
 
 const isAllAnkiDone = computed(() => {
     for (const item of multipleSelection.value) {
