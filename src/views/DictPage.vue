@@ -119,7 +119,7 @@ import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import WordOptions from '@/components/WordOptions.vue'
 import DictIframe from '@/components/DictIframe.vue';
 import type { DictsInfo, SessionConfig, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
-import { useSystemConfigStore } from '@/stores/stores'
+import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
 import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt(
     {
@@ -128,12 +128,12 @@ const md = new MarkdownIt(
     }
 )
 
-
 // 路由与状态
 const route = useRoute()
 const router = useRouter()
 
-const systemConfigStore = useSystemConfigStore()
+const systemConfigStore = useSystemConfigStore();
+const folderConfigStore = useFolderConfigStore()
 const webSocket = ref<SessionWebSocketService | null>(null)
 // const bodyScrollTimeoutId = ref<number | null>(null)
 const keyword = ref('')
@@ -321,10 +321,14 @@ const handleWebSocketMessage = (message: any) => {
             searchHistory.value = message.data.words
             console.log('search_history:', searchHistory.value)
             break
-        case 'system_config':
-            systemConfigStore.setSystemConfig(message.data)
-            console.log('system_config:', message.data)
+        case 'folder_config':
+            folderConfigStore.setFolderConfig(message.data)
+            console.log('folder_config:', message.data)
             break
+        case 'system_config':
+            systemConfigStore.setSystemConfig(message.data.system_config)
+            console.log('system_config:', message.data.system_config)
+            break;
         case 'close_fixed_window':
             handleCloseFixedWindow(message)
             break

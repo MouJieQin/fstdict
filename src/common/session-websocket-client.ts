@@ -47,9 +47,9 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
-    sendSystemConfig() {
+    sendFolderConfig() {
         this._send(
-            'system_config',
+            'folder_config',
             {}
         )
     }

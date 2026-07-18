@@ -105,7 +105,7 @@ class MessageHandler:
                 "update_to_anki": MessageHandler._handle_update_to_anki,
                 "cancel_anki_update": MessageHandler._handle_cancel_anki_update,
                 "update_folder": MessageHandler._handle_update_folder,
-                "system_config": MessageHandler._handle_system_config,
+                "folder_config": MessageHandler._handle_folder_config,
                 "toggle_favor": MessageHandler._handle_toggle_favor,
                 "save_word_note": MessageHandler._handle_save_word_note,
                 "delete_word_note": MessageHandler._handle_delete_word_note,
@@ -238,7 +238,7 @@ class MessageHandler:
         folder_name = message["data"]["folder_name"]
         folder_description = message["data"]["folder_description"]
         Utils.db.create_folder(folder_name, folder_description)
-        await SessionManager.send_system_config_to_session(session_id, connection_id)
+        await SessionManager.send_folder_config_to_session(session_id, connection_id)
 
     @staticmethod
     async def _handle_delete_folder(
@@ -246,7 +246,7 @@ class MessageHandler:
     ):
         folder_id = message["data"]["folder_id"]
         Utils.db.delete_folder(folder_id)
-        await SessionManager.send_system_config_to_session(session_id, connection_id)
+        await SessionManager.send_folder_config_to_session(session_id, connection_id)
 
     @staticmethod
     async def _handle_update_to_anki(
@@ -294,14 +294,13 @@ class MessageHandler:
         folder_description = message["data"]["folder_description"]
         Utils.db.rename_folder(folder_id, folder_name)
         Utils.db.update_folder_description(folder_id, folder_description)
-        await SessionManager.send_system_config_to_session(session_id, connection_id)
+        await SessionManager.send_folder_config_to_session(session_id, connection_id)
 
     @staticmethod
-    async def _handle_system_config(
+    async def _handle_folder_config(
         websocket: WebSocket, session_id: int, connection_id: int, message: dict
     ):
-        # folder_info = Utils.db.get_all_folder_info()
-        await SessionManager.send_system_config_to_session(session_id, connection_id)
+        await SessionManager.send_folder_config_to_session(session_id, connection_id)
 
     @staticmethod
     async def _handle_toggle_favor(

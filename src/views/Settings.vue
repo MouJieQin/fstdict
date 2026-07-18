@@ -6,7 +6,7 @@
         <div>
             <div class="config-class">
                 <p class="config-class-title">收藏夹列表</p>
-                <el-table v-if="localSystemConfig" :data="localSystemConfig.folders.folder_info" height="350"
+                <el-table v-if="localFolderConfig" :data="localFolderConfig.folders.folder_info" height="350"
                     style="width: 100%" @selection-change="handleSelectionChange" stripe>
                     <el-table-column type="selection" width="55" />
                     <el-table-column fixed prop="name" label="Name" width="130" show-overflow-tooltip sortable />
@@ -37,7 +37,7 @@
                         <AnkiIcon :size="24" style="margin-right: 8px;" />
                         Update to Anki
                     </el-button>
-                    <el-select v-if="localSystemConfig" v-model="localSessionConfig.default_folder.id" filterable
+                    <el-select v-if="localFolderConfig" v-model="localSessionConfig.default_folder.id" filterable
                         placeholder="Select Default Folder" style="margin-left: 20px;max-width: 240px;">
                         <el-option v-for="item in defaultFolderOptions" :key="item.id" :label="item.name"
                             :value="item.id" />
@@ -104,12 +104,12 @@ import { reactive, ref, onBeforeMount, watch, computed } from 'vue'
 import type { PropType } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
-import { useSystemConfigStore } from '@/stores/stores'
+import { useFolderConfigStore } from '@/stores/stores'
 import { Edit, Delete, Document, Plus } from '@element-plus/icons-vue'
 
 import AnkiIcon from '@/components/Icons/AnkiIcon.vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, SystemConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
+import type { SessionConfig, FolderConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import AnkiPorgress from '@/components/Dialogs/AnkiPorgress.vue'
 
@@ -142,8 +142,8 @@ const emits = defineEmits<{
     (e: 'update-visible', visible: boolean): void
 }>()
 
-const systemConfigStore = useSystemConfigStore()
-const localSystemConfig = ref<SystemConfig>(JSON.parse(JSON.stringify(systemConfigStore.systemConfig)))
+const folderConfigStore = useFolderConfigStore()
+const localFolderConfig = ref<FolderConfig>(JSON.parse(JSON.stringify(folderConfigStore.folderConfig)))
 const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig)))
 const multipleSelection = ref<FolderInfo[]>([])
 const createOrEditDialogVisible = ref(false)
@@ -155,8 +155,8 @@ const folderIdToShow = ref<number>(0)
 const folderIdNameToShow = ref('')
 const ankiProgresses = ref<Record<string, any>>(JSON.parse(JSON.stringify(props.ankiProgress)))
 
-watch(() => systemConfigStore.systemConfig, (newVal) => {
-    localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
+watch(() => folderConfigStore.folderConfig, (newVal) => {
+    localFolderConfig.value = JSON.parse(JSON.stringify(newVal))
 })
 
 watch(() => localSessionConfig.value.default_folder.id, () => {
@@ -169,7 +169,7 @@ watch(() => props.ankiProgress, (newVal) => {
 
 const handle_update_visible = (visible) => {
     favoriteWordsDialogVisible.value = visible
-    emits('update-visible', false)
+    emits('update-visible', visible)
 }
 
 const isAllAnkiDone = computed(() => {
@@ -208,7 +208,7 @@ const dialogTitle = computed(() => {
 })
 
 const defaultFolderOptions = computed(() => {
-    return localSystemConfig.value.folders.folder_info.map((item) => ({
+    return localFolderConfig.value.folders.folder_info.map((item) => ({
         id: item.id,
         name: item.name,
     }))
@@ -227,7 +227,7 @@ const favoriteWords = computed(() => {
 })
 
 onBeforeMount(() => {
-    props.webSocket?.sendSystemConfig()
+    props.webSocket?.sendFolderConfig()
 })
 
 const ruleFormRef = ref<FormInstance>()
@@ -237,7 +237,7 @@ const validateName = (_: any, value: any, callback: any) => {
         callback(new Error('Please input the name'))
     } else if (value.length > 20) {
         callback(new Error('Name must be less than 20 characters'))
-    } else if (localSystemConfig.value.folders.folder_info.some((item) => item.name === value)) {
+    } else if (localFolderConfig.value.folders.folder_info.some((item) => item.name === value)) {
         if (isCreate.value) {
             callback(new Error('Name already exist'))
         }

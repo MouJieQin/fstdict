@@ -94,7 +94,7 @@ import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import { type SessionConfig } from '@/common/type-interface'
 import { getDictSettingsForLookup } from '@/common/utility'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
-import { useSystemConfigStore } from '@/stores/stores'
+import { useFolderConfigStore } from '@/stores/stores'
 import type { WordInfoWithLastSearch, FolderWords } from '@/common/type-interface'
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -195,7 +195,7 @@ const favoriteWordsDialogVisible = ref(false)
 const dictSSDialogVisible = ref(false)
 const settingDialogVisible = ref(false)
 import type { ElAutocomplete } from 'element-plus'
-const systemConfigStore = useSystemConfigStore()
+const folderConfigStore = useFolderConfigStore()
 const noteDialogVisible = ref(false)
 const noteContent = ref(props.noteContent)
 const historyIndex = ref(-1)
@@ -267,17 +267,12 @@ watch(() => props.iframeKeydownEvent, (newVal) => {
     }
 })
 
-
-const showTitleBar = computed(() => {
-    return !settingDialogVisible.value
-})
-
 const showFavorButtonTooltip = computed(() => {
-    return !props.sessionConfig.default_folder.id || !systemConfigStore.systemConfig?.folders?.folder_info.some((item) => item.id === props.sessionConfig.default_folder.id)
+    return !props.sessionConfig.default_folder.id || !folderConfigStore.folderConfig?.folders?.folder_info.some((item) => item.id === props.sessionConfig.default_folder.id)
 })
 
 const sessionDefaultFolderName = computed(() => {
-    return systemConfigStore.systemConfig?.folders?.folder_info.find((item) => item.id === props.sessionConfig.default_folder.id)?.name || ''
+    return folderConfigStore.folderConfig?.folders?.folder_info.find((item) => item.id === props.sessionConfig.default_folder.id)?.name || ''
 })
 
 const favoriteWords = computed(() => {

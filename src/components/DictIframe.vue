@@ -54,6 +54,24 @@ async function renderIframe() {
 
   const style = doc.createElement('style')
   style.textContent = `
+    // html {
+        // background: #1a1a2e !important;
+        // color: #e5e7eb !important;
+      // filter: invert(1) hue-rotate(180deg);
+    // }
+    // a { color: #818cf8 !important; }
+    // h1, h2, h3, h4, h5, h6 { color: #f3f4f6 !important; }
+    // table { border-color: #374151 !important; }
+    // th, td { border-color: #374151 !important; }
+    // /* 图片完全不动，保持原色 */
+    // img { filter: none !important; }
+      // body {
+      //     filter: invert(1) hue-rotate(180deg);
+      // }
+
+      // img {
+      //     filter: invert(1) hue-rotate(180deg) contrast(1.05);
+      // }
       // body {
       //  padding-left: 1rem !important;
       //  padding-right: 1rem !important;
@@ -272,7 +290,7 @@ const messageListener = (e: MessageEvent) => {
     audio.currentTime = 0
     audio.play().catch(err => console.warn('播放失败', err))
   }
-else if (e.data?.type === 'LOCATION_CLICK') {
+  else if (e.data?.type === 'LOCATION_CLICK') {
     const scrollContainer = document.querySelector('.word-detail') as HTMLElement
     if (!scrollContainer) return
     const iframeEl = document.getElementById(`dict-iframe-container-${props.dictionaryName}`) as HTMLElement
@@ -280,10 +298,10 @@ else if (e.data?.type === 'LOCATION_CLICK') {
     const iframeTop = iframeEl.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
     const targetScrollTop = scrollContainer.scrollTop + iframeTop + e.data.elementOffsetTop
     scrollContainer.scrollTo({
-        top: targetScrollTop,
-        behavior: 'instant'
+      top: targetScrollTop,
+      behavior: 'instant'
     })
-}
+  }
   else if (e.data?.type === 'KEYDOWN') {
     emits('keydown', e.data)
   }

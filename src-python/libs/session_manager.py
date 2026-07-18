@@ -64,16 +64,28 @@ class SessionManager:
         )
 
     @staticmethod
-    async def send_system_config_to_session(session_id: int, connection_id: int):
+    async def send_folder_config_to_session(session_id: int, connection_id: int):
         folder_info = Utils.db.get_all_folder_info()
         """向特定会话的WebSocket连接发送文件夹信息"""
         msg = {
-            "type": "system_config",
+            "type": "folder_config",
             "data": {"folders": {"folder_info": folder_info}},
         }
         await SessionManager.send_msg_to_session_by_id(
             session_id, connection_id, json.dumps(msg)
         )
+
+    @staticmethod
+    async def send_system_config():
+        """发送系统配置到SPA"""
+        msg = {
+            "type": "system_config",
+            "data": {
+                "system_config": Utils.CONFIG,
+            },
+        }
+        print(msg)
+        await SessionManager.broadcast_all(json.dumps(msg))
 
     @staticmethod
     async def send_favorite_words_to_session(session_id: int, connection_id: int):

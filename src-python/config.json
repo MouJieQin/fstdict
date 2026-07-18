@@ -1,4 +1,7 @@
 {
+    "appearance": {
+        "theme": "auto"
+    },
     "prior_suffix": {
         "japanese": [
             "する",

@@ -5,6 +5,13 @@
 </template>
 
 <script lang="ts" setup>
-// 导入并初始化主题
+import { onMounted } from 'vue'
+import { useTheme } from '@/common/use-theme';
 
+const { initTheme, watchSystemTheme } = useTheme();
+
+onMounted(() => {
+  initTheme();
+  watchSystemTheme();
+});
 </script>

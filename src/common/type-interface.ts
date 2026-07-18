@@ -51,7 +51,7 @@ export interface FolderInfo {
     created_at: string;
 }
 
-export interface SystemConfig {
+export interface FolderConfig {
     folders: {
         folder_info: FolderInfo[];
     }
