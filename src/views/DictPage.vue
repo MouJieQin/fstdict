@@ -1,6 +1,6 @@
 <template>
     <el-container>
-        <el-header height="var(--header-height)" id="fstdict-titlebar" class="fstdict-titlebar">
+        <el-header height="var(--header-height)" id="fstdict-header" class="fstdict-header">
             <Titlebar :webSocket="webSocket as SessionWebSocketService" :sessionId="sessionId" :env="envFromRoute"
                 :isWordFavorited="isWordFavorited" :sessionConfig="sessionConfig as SessionConfig"
                 :folderWords="folderWords" :leftHistory="leftHistory" :searchHistory="searchHistory"

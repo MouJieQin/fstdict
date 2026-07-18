@@ -41,12 +41,13 @@ body::-webkit-scrollbar-thumb {
 
 :root {
     --header-height: 60px;
-    /* scrollbar */
+    --app-header-bg: rgba(243, 243, 242, 1);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 1);
 }
 
 .dark {
+    --app-header-bg: rgba(42, 42, 40, 1);
     --scrollbar-background: rgba(107, 107, 107, 1);
 }
 
@@ -145,12 +146,15 @@ body::-webkit-scrollbar-thumb {
     border-radius: 5px;
 }
 
+.fstdict-header {
+    background: var(--app-header-bg);
+}
+
 .floating-window-titlebar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    /* z-index: 9999; */
     /* -webkit-app-region: drag; */
     /* 鼠标显示为可拖拽 */
     /* cursor: move; */
@@ -160,7 +164,6 @@ body::-webkit-scrollbar-thumb {
     /* 左右间距固定 */
     padding: 0 15px;
     padding-left: 60px;
-    background: var(--el-bg-color);
     box-sizing: border-box; /* 关键：内边距不撑开宽度 */
 
     /* 布局核心：左右分开，永不挤压 */
@@ -278,9 +281,7 @@ body::-webkit-scrollbar-thumb {
 
 /* 禁用样式 */
 .dict-settings-drag-card.is-disabled {
-    background-color: #f5f5f5 !important;
     opacity: 0.6;
-    /* cursor: not-allowed; */
 }
 
 .markdown-note-content {
@@ -312,7 +313,6 @@ body::-webkit-scrollbar-thumb {
     margin: 10px;
     /* margin-top:0; */
     /* padding-bottom: 5px; */
-    /* border: 1px solid var(--el-color-primary); */
     /* border-radius: var(--el-border-radius-base); */
     box-shadow: var(--el-box-shadow);
 }
@@ -478,12 +478,10 @@ el-tabs__item {
 /* 图标样式 */
 .prefix-icon {
     width: 16px;
-    color: #666;
 }
 
 .option-icon {
     width: 16px;
-    color: #666;
     text-align: center;
     margin-right: 8px;
     padding-top: 12px;

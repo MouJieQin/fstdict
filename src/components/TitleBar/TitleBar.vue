@@ -367,14 +367,14 @@ onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
     if (props.env === '') {
         tauriAppWindow.value = getCurrentWindow();
-        document.getElementById('fstdict-titlebar')?.addEventListener('mousedown', handleTitlebarMouseDown)
+        document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     if (props.env === '') {
-        document.getElementById('fstdict-titlebar')?.removeEventListener('mousedown', handleTitlebarMouseDown)
+        document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
 
