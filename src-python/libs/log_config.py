@@ -71,7 +71,7 @@ def setup_logger():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     file_handler = TimedRotatingFileHandler(
-        filename=get_log_path(), when="D", interval=1, backupCount=30, encoding="utf-8"
+        filename=get_log_path(), when="D", interval=1, backupCount=3, encoding="utf-8"
     )
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)

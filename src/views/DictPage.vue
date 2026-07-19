@@ -58,9 +58,8 @@
                                         <DictIframe :dictionary-name="dictName" :html="html"
                                             :css-urls="dictsInfo[dictName].css" :js-urls="dictsInfo[dictName].js"
                                             :base-path="dictsInfo[dictName].data"
-                                            :dictionary-root="dictsInfo[dictName].root" 
-                                            :isDark="systemConfigStore.isDark"
-                                            @entry-click="handleEntryClick"
+                                            :dictionary-root="dictsInfo[dictName].root"
+                                            :isDark="systemConfigStore.isDark" @entry-click="handleEntryClick"
                                             @keydown="handleIframeKeydown" />
                                     </div>
                                 </el-collapse-item>
@@ -69,7 +68,7 @@
                         <div v-show="!keyword && !hasResultLastSearch">
                             <p class="dict-homepage-type-p">Type a word to look up in…</p>
                             <br />
-                            <div v-for="dictSetting in sessionConfig.dictsSettingInfo" :key="dictSetting.id">
+                            <div v-for="dictSetting in sessionDictsSettingInfo" :key="dictSetting.name">
                                 <p class="dict-homepage-dict-p" v-show="dictSetting.is_enabled">{{
                                     dictSetting.name }}</p>
                             </div>
@@ -77,7 +76,7 @@
                         <div v-show="keyword && lastSearchKeyword && !hasResultLastSearch">
                             <p class="dict-homepage-type-p">No results found for 「{{ lastSearchKeyword }}」 in…</p>
                             <br />
-                            <div v-for="dictSetting in sessionConfig.dictsSettingInfo" :key="dictSetting.id">
+                            <div v-for="dictSetting in sessionDictsSettingInfo" :key="dictSetting.name">
                                 <p class="dict-homepage-dict-p" v-show="dictSetting.is_enabled">{{
                                     dictSetting.name }}</p>
                             </div>
@@ -120,7 +119,7 @@ import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-w
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import WordOptions from '@/components/WordOptions.vue'
 import DictIframe from '@/components/DictIframe.vue';
-import type { DictsInfo, SessionConfig, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { DictsInfo, SessionConfig, DictsSettingInfo, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
 import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
 import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt(
@@ -134,7 +133,7 @@ const md = new MarkdownIt(
 const route = useRoute()
 const router = useRouter()
 
-const systemConfigStore = useSystemConfigStore();
+const systemConfigStore = useSystemConfigStore()
 const folderConfigStore = useFolderConfigStore()
 const webSocket = ref<SessionWebSocketService | null>(null)
 // const bodyScrollTimeoutId = ref<number | null>(null)
@@ -144,9 +143,10 @@ const keywordFromRoute = ref<string>(route.query.keyword as string || '')
 const envFromRoute = ref<string>(route.query.env as string || '')
 const redirectWord = ref<string>('')
 const dictsInfo = ref<DictsInfo>({})
+const sessionDictsSettingInfo = ref<DictsSettingInfo>([])
 const sessionConfig = ref<SessionConfig>({
     default_folder: { "id": null },
-    dictsSettingInfo: [],
+    dictsSettingInfoName: "default",
     default_search_method: { "method": "prefix_search" },
     pin: { "is_pinned": true }
 })
@@ -201,32 +201,10 @@ const resize_wordoptions = async () => {
 }
 
 const setupDicsSettingsInfo = () => {
-    if (!sessionConfig.value?.dictsSettingInfo) {
-        for (const dictName in dictsInfo.value) {
-            const dict = dictsInfo.value[dictName]
-            sessionConfig.value?.dictsSettingInfo.push({
-                id: dictName,
-                name: dict.name,
-                cover_url: `http://localhost:5959/api/download?path=${encodeURIComponent(dict.cover)}`,
-                is_enabled: true
-            })
-        }
-    } else {
-        // delete the dicts in sessionConfig.value.dictsSettingInfo which are not in dictsInfo.value
-        sessionConfig.value.dictsSettingInfo = sessionConfig.value.dictsSettingInfo.filter((dictSetting: any) => dictsInfo.value[dictSetting.id])
-        for (const dictName in dictsInfo.value) {
-            const dict = dictsInfo.value[dictName]
-            const dictSetting = sessionConfig.value?.dictsSettingInfo.find(item => item.id === dictName)
-            if (!dictSetting) {
-                sessionConfig.value?.dictsSettingInfo.push({
-                    id: dictName,
-                    name: dict.name,
-                    cover_url: `http://localhost:5959/api/download?path=${encodeURIComponent(dict.cover)}`,
-                    is_enabled: true
-                })
-            }
-        }
+    if (!sessionConfig.value?.dictsSettingInfoName) {
+        sessionConfig.value.dictsSettingInfoName = 'default'
     }
+    sessionDictsSettingInfo.value = systemConfigStore.systemConfig.dict_set_options[sessionConfig.value.dictsSettingInfoName]
     refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
 }
 

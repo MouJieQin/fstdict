@@ -117,13 +117,13 @@ async def dictionary_session_websocket_endpoint(websocket: WebSocket, clientID: 
     Utils.session_websockets[session_id][connection_id] = websocket
 
     try:
+        await SessionManager.send_system_config()
         await SessionManager.send_session_config_to_session(
             session_id, connection_id, is_right_after_connection=True
         )
         await SessionManager.send_dict_info_to_session(session_id, connection_id)
         await SessionManager.send_folder_config_to_session(session_id, connection_id)
         await SessionManager.send_search_history_to_session(session_id, connection_id)
-        await SessionManager.send_system_config()
         # await SessionManager.send_favorite_words_to_session(session_id, connection_id)
         while True:
             text = await websocket.receive_text()

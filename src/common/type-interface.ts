@@ -14,7 +14,6 @@ export interface DictsInfo {
 }
 
 export interface DictSettingInfo {
-    id: string;
     name: string;
     cover_url: string;
     is_enabled: boolean;
@@ -37,7 +36,7 @@ export interface SessionPin {
 
 
 export interface SessionConfig {
-    dictsSettingInfo: DictsSettingInfo;
+    dictsSettingInfoName: string;
     default_folder: SessiondefaultFolder;
     default_search_method: SessionDefaultSearchMethod;
     pin?: SessionPin;

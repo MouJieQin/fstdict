@@ -101,6 +101,7 @@ class MessageHandler:
                 "lookup_keyword": MessageHandler._handle_lookup,
                 "session_config": MessageHandler._handle_session_config,
                 "create_folder": MessageHandler._handle_create_folder,
+                "create_dict_set_option": MessageHandler._handle_create_dict_set_option,
                 "delete_folder": MessageHandler._handle_delete_folder,
                 "update_to_anki": MessageHandler._handle_update_to_anki,
                 "cancel_anki_update": MessageHandler._handle_cancel_anki_update,
@@ -240,6 +241,14 @@ class MessageHandler:
         folder_description = message["data"]["folder_description"]
         Utils.db.create_folder(folder_name, folder_description)
         await SessionManager.send_folder_config_to_session(session_id, connection_id)
+
+    @staticmethod
+    async def _handle_create_dict_set_option(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        option_name = message["data"]["option_name"]
+        Utils.Config.create_dict_set_option(option_name)
+        await SessionManager.send_system_config()
 
     @staticmethod
     async def _handle_delete_folder(

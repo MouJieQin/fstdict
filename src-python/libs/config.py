@@ -7,6 +7,8 @@ import shutil
 from fastapi import WebSocket
 from typing import Dict
 from libs.log_config import logger
+from urllib.parse import quote
+
 import fstd
 
 
@@ -94,6 +96,45 @@ class UtilsBase:
             UtilsBase.Config.syncConfig()
 
         @staticmethod
+        def create_dict_set_option(option_name: str) -> bool:
+            dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            if option_name not in dict_set_options:
+                dict_set_options[option_name] = json.loads(json.dumps(dict_set_options["default"], ensure_ascii=False))
+                UtilsBase.Config.syncConfig()
+                return True
+            return False
+
+        @staticmethod
+        def _renew_dict_set_option(old_dict_set_option: list) -> list:
+            old_dict_names = []
+            default_dict_set_options = []
+            for item in old_dict_set_option:
+                name = item["name"]
+                if name in UtilsBase.DICT_INFO:
+                    old_dict_names.append(name)
+            new_dict_names = []
+            for dict_name in UtilsBase.DICT_INFO:
+                if dict_name not in old_dict_names:
+                    new_dict_names.append(dict_name)
+            for name in new_dict_names:
+                default_dict_set_options.append({"name": name,
+                                                 "cover_url": f"http://localhost:5959/api/download?path={quote(UtilsBase.DICT_INFO[name]['cover'])}",
+                                                 "is_enabled": True})
+            for item in old_dict_set_option:
+                name = item["name"]
+                if name in UtilsBase.DICT_INFO:
+                    default_dict_set_options.append(item)
+            return default_dict_set_options
+
+        @staticmethod
+        def renew_dict_set_options():
+            old_dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            new_dict_set_options = {}
+            for key, option in old_dict_set_options.items():
+                new_dict_set_options[key] = UtilsBase.Config._renew_dict_set_option(option)
+            UtilsBase.CONFIG["dict_set_options"] = new_dict_set_options
+
+        @staticmethod
         def checkDictInfo(file: Path):
             dict_name = file.name
             fstdx_path = file.absolute() / f"{dict_name}.fstdx"
@@ -173,9 +214,9 @@ def init_config():
         logger.info("配置文件缺失部分项，已使用默认值填充")
         logger.info(f"配置文件: {UtilsBase.CONFIG_FILE}")
         logger.info(f"默认配置: {UtilsBase.DEFAULT_CONFIG_FILE}")
-
         UtilsBase.Config.syncConfig()
 
+    UtilsBase.Config.renew_dict_set_options()
     UtilsBase.Config.init_config(UtilsBase.CONFIG)
 
 

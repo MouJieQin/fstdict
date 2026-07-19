@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记'" width="500" align-center
+    <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记（markdown）'" width="500" align-center
         draggable :close-on-click-modal="false">
         <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
             :autosize="{ minRows: 5, maxRows: 9 }" />

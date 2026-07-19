@@ -3,6 +3,16 @@
     <BsUpload size="35" />
     拖拽(.fstdx .fstdd)或(.mdx .mdd)文件到此
   </div>
+  <div class="dict-set-options-control">
+    <div style="text-align: center;">
+      <el-button type="primary" :icon="Plus" @click="handleCreateDictSetOption"></el-button>
+      <el-button type="danger" :icon="Delete" @click="handleDeleteSelected" :disabled="disableDeleteButton"></el-button>
+      <el-select v-model="localSessionConfig.dictsSettingInfoName" filterable placeholder="Select dict settings option"
+        style="margin-left: 20px;max-width: 240px;">
+        <el-option v-for="(_, name) in localSystemConfig.dict_set_options" :key="name" :label="name" :value="name" />
+      </el-select>
+    </div>
+  </div>
   <div ref="listRef" class="dict-select-sort-dialog">
     <div class="dict-settings-drag-cards" v-for="item in list" :key="item.id">
       <el-card class="dict-settings-drag-card" shadow="always" :class="{ 'is-disabled': !item.is_enabled }">
@@ -44,8 +54,9 @@
 import { ref, onMounted, computed, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
-import { MoreFilled, Delete } from '@element-plus/icons-vue'
+import { MoreFilled, Delete, Edit, Plus } from '@element-plus/icons-vue'
 import type { DictSettingInfo, DictsSettingInfo, SessionConfig } from '@/common/type-interface'
+import { useSystemConfigStore } from '@/stores/stores'
 import type { PropType } from 'vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
@@ -89,9 +100,16 @@ const props = defineProps({
 })
 
 const listRef = ref<HTMLElement | null>(null)
-const sessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig || {})))
+const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig || {})))
+const systemConfigStore = useSystemConfigStore();
+const localSystemConfig = ref<any>(JSON.parse(JSON.stringify(systemConfigStore.systemConfig)))
+
+watch(() => systemConfigStore.systemConfig, (newVal) => {
+  localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
+}, { deep: true })
+
 // 声明数组类型，兼容 Tauri 响应式
-const list = ref<DictSettingInfo>(sessionConfig.value?.dictsSettingInfo || [])
+const list = ref<DictSettingInfo>(localSystemConfig.value?.dict_set_options[localSessionConfig.value?.dictsSettingInfoName] || [])
 
 // 拖拽实例（方便销毁，避免内存泄漏）
 let sortableInstance: Sortable | null = null
@@ -152,8 +170,6 @@ const handleDeleteDict = (name: string) => {
     })
 }
 
-
-
 const handleDropdownCommand = (command: { cmd: string, name: string }) => {
   if (command.cmd === 'showInFolder') {
     props.webSocket?.sendShowDictInFolder(command.name)
@@ -162,10 +178,29 @@ const handleDropdownCommand = (command: { cmd: string, name: string }) => {
   }
 }
 
+const handleCreateDictSetOption = () => {
+  ElMessageBox.prompt('请输入新的词典设置可选项的名字', 'Tip', {
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Cancel',
+    inputValidator: (value: string) => {
+      const dict_set_options: {} = localSystemConfig.value?.dict_set_options;
+      if (value in dict_set_options) {
+        return "该名字已存在"
+      }
+    }
+  })
+    .then(({ value }) => {
+      props.webSocket?.sendCreateDictSetOption(value)
+      localSessionConfig.value.dictsSettingInfoName = value
+    })
+    .catch(() => {
+    })
+}
+
 const refresh_dict_info = async () => {
   // 深拷贝数据
-  sessionConfig.value = JSON.parse(JSON.stringify(props.sessionConfig || {}))
-  list.value = sessionConfig.value?.dictsSettingInfo || []
+  localSessionConfig.value = JSON.parse(JSON.stringify(props.sessionConfig || {}))
+  list.value = localSystemConfig.value?.dict_set_options[localSessionConfig.value?.dictsSettingInfoName] || []
 
   // 等待 DOM 渲染完成后初始化拖拽
   await nextTick()
@@ -196,8 +231,8 @@ watch(() => props.dictSSDialogVisible, async (newVal) => {
     await refresh_dict_info()
   } else {
     // 关闭弹窗时保存数据
-    if (JSON.stringify(sessionConfig.value) !== JSON.stringify(props.sessionConfig)) {
-      props.webSocket?.sendSessionConfig(sessionConfig.value)
+    if (JSON.stringify(localSessionConfig.value) !== JSON.stringify(props.sessionConfig)) {
+      props.webSocket?.sendSessionConfig(localSessionConfig.value)
     }
   }
 }, { deep: true })

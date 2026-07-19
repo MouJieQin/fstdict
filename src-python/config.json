@@ -20,5 +20,8 @@
             "하다",
             "다"
         ]
+    },
+    "dict_set_options": {
+        "default": []
     }
 }

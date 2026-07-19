@@ -206,6 +206,11 @@ body::-webkit-scrollbar-thumb {
     font-size: 15px !important;
 }
 
+.dict-set-options-control {
+    margin: 20px auto;
+    max-width: 960px;
+}
+
 /* 卡片列表容器：上下间距 */
 .dict-settings-drag-cards {
     margin-bottom: 12px;
