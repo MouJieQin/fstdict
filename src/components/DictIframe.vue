@@ -9,6 +9,7 @@ import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 interface Props {
   dictionaryName: string
+  index: number
   html: string
   cssUrls: string[]
   jsUrls: string[]
@@ -24,7 +25,7 @@ const iframeRef = ref<HTMLIFrameElement | null>(null)
 const API_PREFIX = 'http://localhost:5959/api/download?path='
 // const baseUrl = ref(`${API_PREFIX}${props.basePath}`)
 const baseUrl = ref(`${API_PREFIX}${encodeURIComponent(props.dictionaryName)}/data`)
-const iframeId = ref(props.dictionaryRoot)
+const iframeId = ref(`${props.dictionaryName}-${props.index}`)
 const doc_content = ref('')
 
 // ================ 业务逻辑 ================

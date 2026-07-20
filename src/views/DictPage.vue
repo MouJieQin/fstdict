@@ -53,9 +53,9 @@
                                         </el-image>
                                     </template>
 
-                                    <div v-for="html in result" :key="html">
+                                    <div v-for="(html, index) in result" :key="html">
                                         <div class="simple-divider"></div>
-                                        <DictIframe :dictionary-name="dictName" :html="html"
+                                        <DictIframe :dictionary-name="dictName" :index="index" :html="html"
                                             :css-urls="dictsInfo[dictName].css" :js-urls="dictsInfo[dictName].js"
                                             :base-path="dictsInfo[dictName].data"
                                             :dictionary-root="dictsInfo[dictName].root"
