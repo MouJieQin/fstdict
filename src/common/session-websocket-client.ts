@@ -1,5 +1,5 @@
 import { WebSocketService } from '@/common/websocket-client'
-import type { SessionConfig, SessiondefaultFolder } from '@/common/type-interface'
+import type { SessionConfig } from '@/common/type-interface'
 
 class SessionWebSocketService extends WebSocketService {
     constructor(url: string) {
@@ -163,6 +163,32 @@ class SessionWebSocketService extends WebSocketService {
             'session_config',
             {
                 config: config,
+            }
+        )
+    }
+
+    sendCreateSession(config: SessionConfig) {
+        this._send(
+            'create_session',
+            {
+                config: config,
+            }
+        )
+    }
+
+    sendRemoveSessionConfig() {
+        this._send(
+            'remove_session',
+            {
+            }
+        )
+    }
+
+    sendRenameSession(name: string) {
+        this._send(
+            'rename_session',
+            {
+                name: name
             }
         )
     }

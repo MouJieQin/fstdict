@@ -279,6 +279,9 @@ const handleWebSocketMessage = (message: any) => {
             handleLookupKeyword(message.data)
             console.log('lookup_keyword:', message.data)
             break
+        case 'create_session':
+            handleCreateSession(message.data)
+            break
         case 'session_config':
             handleSessionConfig(message)
             console.log('session_config:', sessionConfig.value)
@@ -360,6 +363,10 @@ const handleIframeKeydown = (e: any) => {
     iframeKeydownEvent.value = e
 }
 
+const handleCreateSession = (data: any) => {
+    window.location.href = `http://localhost:9595/#/dict/${data.session_id}?env=${envFromRoute.value}`
+    window.location.reload()
+}
 
 const handleSessionConfig = (message: any) => {
     sessionConfig.value = message.data.config

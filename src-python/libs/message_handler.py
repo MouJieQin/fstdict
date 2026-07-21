@@ -100,6 +100,9 @@ class MessageHandler:
                 "keyword_options_search": MessageHandler._handle_keyword_options_search,
                 "lookup_keyword": MessageHandler._handle_lookup,
                 "session_config": MessageHandler._handle_session_config,
+                "create_session": MessageHandler._handle_create_session,
+                "rename_session": MessageHandler._handle_rename_session,
+                "remove_session": MessageHandler._handle_remove_session,
                 "create_folder": MessageHandler._handle_create_folder,
                 "create_dict_set_option": MessageHandler._handle_create_dict_set_option,
                 "remove_dict_set_option": MessageHandler._handle_remove_dict_set_option,
@@ -234,6 +237,51 @@ class MessageHandler:
         logger.info(f"收到会话配置: {message['data']['config']}")
         Utils.db.update_session_config(session_id, message["data"]["config"])
         await SessionManager.broadcast_session(session_id, json.dumps(message))
+
+    @staticmethod
+    async def _handle_create_session(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        all_id = Utils.db.get_all_session_id()
+        for id in range(1, 10):
+            if id not in all_id:
+                Utils.db.update_session_config(id, message["data"]["config"])
+                msg = {
+                    "type": "create_session",
+                    "data": {
+                        "session_id": id
+                    }
+                }
+                await SessionManager.send_msg_to_session_by_id(
+                    session_id, connection_id, json.dumps(msg)
+                )
+                await SessionManager.broadcast_all_sessions_id_name()
+                return
+
+    @staticmethod
+    async def _handle_rename_session(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        name = message["data"]["name"]
+        config = Utils.db.get_session_config(session_id)
+        if config:
+            config["name"] = name
+            Utils.db.update_session_config(session_id, config)
+            msg = {
+                "type": "session_cofig",
+                "data": {
+                    "config": config
+                }
+            }
+            await SessionManager.broadcast_session(session_id, json.dumps(msg))
+            await SessionManager.broadcast_all_sessions_id_name()
+
+    @staticmethod
+    async def _handle_remove_session(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        Utils.db.delete_session(session_id)
+        await SessionManager.broadcast_all_sessions_id_name()
 
     @staticmethod
     async def _handle_create_folder(

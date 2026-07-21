@@ -144,6 +144,7 @@ import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import { getDictSettingsForLookup, getDefaultSessionConfig } from '@/common/utility'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
 import { useFolderConfigStore } from '@/stores/stores'
+import { ElMessageBox } from 'element-plus'
 import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig } from '@/common/type-interface'
 import { useRouter } from 'vue-router'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -264,7 +265,20 @@ const handleSessionCommand = (command: { cmd: string, id: number }) => {
         window.location.href = `http://localhost:9595/#/dict/${command.id}?env=${props.env}`
         window.location.reload()
     } else if (command.cmd === 'create') {
-
+        ElMessageBox.prompt('请输入新的Session名字', 'Tip', {
+            confirmButtonText: 'OK',
+            cancelButtonText: 'Cancel',
+            inputValidator: (value: string) => {
+                if (value.length > 30) {
+                    return "不能超过30个字符"
+                }
+            }
+        })
+            .then(({ value }) => {
+                props.webSocket?.sendCreateSession(getDefaultSessionConfig(value))
+            })
+            .catch(() => {
+            })
     }
     else if (command.cmd === 'edit') {
     }

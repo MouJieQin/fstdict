@@ -133,6 +133,11 @@ class FstDictDatabase:
                 (session_id, json.dumps(config_config, ensure_ascii=False)),
             )
 
+    def delete_session(self, session_id: int):
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+
     def get_session_config(self, session_id: int) -> Optional[Dict[str, Any]]:
         with self.conn:
             cursor = self.conn.cursor()
@@ -158,6 +163,10 @@ class FstDictDatabase:
                 "UPDATE sessions SET config = ? WHERE id = ?",
                 (json.dumps(config_config, ensure_ascii=False), session_id),
             )
+
+    def get_all_session_id(self) -> List[int]:
+        cursor = self.conn.execute("SELECT id FROM sessions ORDER BY id")
+        return [row["id"] for row in cursor.fetchall()]
 
     def get_all_sessions(self) -> List[Dict]:
         cursor = self.conn.execute("SELECT * FROM sessions ORDER BY id")
