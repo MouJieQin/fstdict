@@ -227,8 +227,7 @@ const setupWebSocket = () => {
     }
 }
 
-// 初始化
-onMounted(() => {
+function initDictPage() {
     if (envFromRoute.value === 'anki') {
         document.body.classList.add('anki-mode')
     } else {
@@ -239,6 +238,19 @@ onMounted(() => {
     setupWebSocket()
     // window.addEventListener('keydown', handleKeydown)
     // window.addEventListener('scroll', handleScroll)
+}
+
+watch(
+    () => route.params.id,
+    () => {
+        initDictPage()
+    },
+    { immediate: false }
+)
+
+// 初始化
+onMounted(() => {
+    initDictPage()
 })
 
 onUnmounted(() => {
@@ -375,8 +387,10 @@ const handleIframeKeydown = (e: any) => {
 }
 
 const handleCreateSession = (data: any) => {
-    window.location.href = `http://localhost:9595/#/dict/${data.session_id}?env=${envFromRoute.value}`
-    window.location.reload()
+    router.push({
+        path: `/dict/${data.session_id}`,
+        query: { env: envFromRoute.value }
+    })
 }
 
 const handleSessionConfig = (message: any) => {

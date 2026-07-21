@@ -314,8 +314,10 @@ const handRemoveSession = () => {
 }
 
 const redirectSession = (sessionId: number) => {
-    window.location.href = `http://localhost:9595/#/dict/${sessionId}?env=${props.env}`
-    window.location.reload()
+    router.push({
+        path: `/dict/${sessionId}`,
+        query: { env: props.env }
+    })
 }
 
 

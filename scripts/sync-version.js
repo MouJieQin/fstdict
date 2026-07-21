@@ -11,6 +11,13 @@ pkg.version = version;
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 console.log(`  ✓ package.json → ${version}`);
 
+// ── Update package-lock.json ──
+const pkgLockPath = join(root, "package-lock.json");
+const pkgLock = JSON.parse(readFileSync(pkgLockPath, "utf8"));
+pkgLock.version = version;
+writeFileSync(pkgLockPath, JSON.stringify(pkgLock, null, 2) + "\n");
+console.log(`  ✓ package-lock.json → ${version}`);
+
 // ── Update tauri.conf.json ──
 const tauriPath = join(root, "src-tauri", "tauri.conf.json");
 const tauriConf = JSON.parse(readFileSync(tauriPath, "utf8"));
