@@ -2,6 +2,11 @@
     "appearance": {
         "theme": "auto"
     },
+    "app": {
+        "session": {
+            "id": 1
+        }
+    },
     "prior_suffix": {
         "japanese": [
             "する",

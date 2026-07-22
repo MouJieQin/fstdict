@@ -176,6 +176,10 @@ watch(() => sessionConfig.value?.pin?.is_pinned, (newVal) => {
     isFloatingWindowPinned.value = newVal
 })
 
+const isTauriEnv = computed(() => {
+    return envFromRoute.value === ''
+})
+
 const setShowAddDictInfo = () => {
     const item = sessionDictsSettingInfo.value?.find((item: any) => item.is_enabled === true)
     showAddDictInfo.value = item ? false : true;
@@ -216,6 +220,21 @@ const setupDicsSettingsInfo = () => {
     refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
 }
 
+const handleSystemConfig = (data: any) => {
+    systemConfigStore.setSystemConfig(data.system_config)
+    setupDicsSettingsInfo()
+}
+
+const handleSessionsNameId = (data: any) => {
+    sessionsNameId.value = data.sessions_name_id
+    if (isTauriEnv && sessionId.value === 1) {
+        const sessionId = systemConfigStore.systemConfig.app.session.id
+        if (sessionId != 1) {
+            redirectSession(sessionId)
+        }
+    }
+}
+
 // 初始化WebSocket
 const setupWebSocket = () => {
     sessionId.value = Number(route.params.id)
@@ -227,7 +246,7 @@ const setupWebSocket = () => {
     }
 }
 
-function initDictPage() {
+const initDictPage = () => {
     if (envFromRoute.value === 'anki') {
         document.body.classList.add('anki-mode')
     } else {
@@ -236,8 +255,6 @@ function initDictPage() {
     console.log("Current env:", envFromRoute.value)
 
     setupWebSocket()
-    // window.addEventListener('keydown', handleKeydown)
-    // window.addEventListener('scroll', handleScroll)
 }
 
 watch(
@@ -254,8 +271,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-    // 移除滚动事件监听器，防止内存泄漏
-    // window.removeEventListener('scroll', handleScroll)
 })
 
 router.beforeEach(async (to, from) => {
@@ -310,7 +325,7 @@ const handleWebSocketMessage = (message: any) => {
             console.log('session_config:', sessionConfig.value)
             break
         case 'sessions_name_id':
-            sessionsNameId.value = message.data.sessions_name_id
+            handleSessionsNameId(message.data)
             console.log('sessions_name_id:', sessionsNameId.value)
             break
         case 'toggle_floating_pin':
@@ -333,8 +348,7 @@ const handleWebSocketMessage = (message: any) => {
             console.log('folder_config:', message.data)
             break
         case 'system_config':
-            systemConfigStore.setSystemConfig(message.data.system_config)
-            setupDicsSettingsInfo()
+            handleSystemConfig(message.data)
             break;
         case 'close_fixed_window':
             handleCloseFixedWindow(message)
@@ -386,7 +400,15 @@ const handleIframeKeydown = (e: any) => {
     iframeKeydownEvent.value = e
 }
 
+const redirectSession = (sessionId: number) => {
+    router.push({
+        path: `/dict/${sessionId}`,
+        query: { env: envFromRoute.value }
+    })
+}
+
 const handleCreateSession = (data: any) => {
+    redirectSession(data.session_id)
     router.push({
         path: `/dict/${data.session_id}`,
         query: { env: envFromRoute.value }

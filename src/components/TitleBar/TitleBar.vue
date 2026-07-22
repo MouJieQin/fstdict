@@ -143,7 +143,7 @@ import Settings from '@/views/Settings.vue'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import { getDictSettingsForLookup, getDefaultSessionConfig } from '@/common/utility'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
-import { useFolderConfigStore } from '@/stores/stores'
+import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
 import { ElMessageBox } from 'element-plus'
 import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig } from '@/common/type-interface'
 import { useRouter } from 'vue-router'
@@ -259,6 +259,9 @@ const noteContent = ref(props.noteContent)
 const historyIndex = ref(-1)
 const isHistoryTriggered = ref(false)
 
+const isTauriEnv = computed(() => {
+    return props.env === ''
+})
 
 const handCreateSession = () => {
     ElMessageBox.prompt('请输入新的Session名字', 'Tip', {
@@ -314,6 +317,12 @@ const handRemoveSession = () => {
 }
 
 const redirectSession = (sessionId: number) => {
+    if (isTauriEnv && sessionId != 1) {
+        const systemConfigStore = useSystemConfigStore();
+        let localSystemConfig = JSON.parse(JSON.stringify(systemConfigStore.systemConfig))
+        localSystemConfig.app.session.id = sessionId
+        props.webSocket.sendUpdateSystemConfig(localSystemConfig)
+    }
     router.push({
         path: `/dict/${sessionId}`,
         query: { env: props.env }
@@ -498,7 +507,7 @@ const handleTitlebarMouseDown = (e: MouseEvent) => {
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
-    if (props.env === '') {
+    if (isTauriEnv) {
         tauriAppWindow.value = getCurrentWindow();
         document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
     }
@@ -506,14 +515,9 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
-    if (props.env === '') {
+    if (isTauriEnv) {
         document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
 
 </script>
-<!-- <style scoped>
-:deep(.el-dropdown-item) {
-    background-color: aqua;
-}
-</style> -->
