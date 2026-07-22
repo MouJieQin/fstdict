@@ -34,6 +34,13 @@
                     class="error-suggestions">
                     {{ links[0].value.replace('FSTD_ERROR', '') || 'No error message' }}
                 </div>
+                <div v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_WARN'))"
+                    class="warn-suggestions">
+                    {{ links[0].value.replace('FSTD_WARN', '') || 'No warn message' }}
+                </div>
+                <ThreeDotsLoader v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_SEARCHING'))"
+                    style="margin-left:1rem;" />
+
                 <UseVirtualList v-show="(links.length >= 1 && (!links[0].value.startsWith('FSTD_ERROR')))"
                     ref="virtualListRef" :list="links" :options="{ itemHeight: 35, overscan: 10 }" height="250px">
                     <template #default="{ data, index }">
@@ -52,8 +59,9 @@
 import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
 import { ElInput } from 'element-plus'
-import { getDictSettingsForLookup } from '@/common/utility'
+import { getDictSettingsForLookup, willScanAllFstNodes } from '@/common/utility'
 import SearchMethodSelect from '@/components/TitleBar/SearchMethodSelect.vue'
+import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 
 interface LinkItem {
     value: string
@@ -178,6 +186,12 @@ const handleKeyUp = () => {
 }
 
 const handleKeyEnter = () => {
+    if (props.sessionConfig.default_search_method.method == "regex_search") {
+        if (keyword.value.trim() && willScanAllFstNodes(keyword.value)) {
+            props.webSocket?.sendKeywordOptionsNote(keyword.value, `FSTD_SEARCHING`)
+            sendKeywordOptionsSearch(true)
+        }
+    }
     if (!showPopoverSuggestions) {
         sendLookupKeyword()
     } else {
@@ -209,7 +223,12 @@ const syncSuggestions = () => {
     })
 }
 
-watch(() => props.wordOptions, () => { optionsReceivedFlag.value = true; syncSuggestions(); }, { deep: true })
+watch(() => props.wordOptions, () => {
+    if (!(props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_SEARCHING'))) {
+        optionsReceivedFlag.value = true;
+    }
+    syncSuggestions();
+}, { deep: true })
 watch(() => props.searchHistory, syncSuggestions, { deep: true })
 watch(() => props.redirectWord, (newVal) => {
     keyword.value = newVal
@@ -220,21 +239,30 @@ watch(() => props.redirectHistoryWord, (newVal) => {
 })
 watch(() => optionsReceivedFlag.value, (newVal) => {
     if (newVal) {
-        lastKeywordForOptionSearch.value != keyword.value
-        sendKeywordOptionsSearch()
+        if (lastKeywordForOptionSearch.value != keyword.value) {
+            sendKeywordOptionsSearch()
+        }
     }
 })
 
-const sendKeywordOptionsSearch = () => {
+const sendKeywordOptionsSearch = (forced: boolean = false) => {
     lastKeywordForOptionSearch.value = keyword.value
+    if (props.sessionConfig.default_search_method.method == "regex_search") {
+        if (willScanAllFstNodes(keyword.value)) {
+            if (!forced) {
+                props.webSocket?.sendKeywordOptionsNote(keyword.value, `FSTD_WARN该正则表达式「${keyword.value}」可能存在性能风险，按 enter 键继续检索。`)
+                return
+            }
+        }
+    }
+    props.webSocket?.sendKeywordOptionsNote(keyword.value, `FSTD_SEARCHING`)
     props.webSocket?.sendKeywordOptionsSearch(keyword.value, props.sessionConfig.default_search_method.method, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name))
 }
 
 const triggerAsyncSearch = () => {
     if (searchDebounceTimer) { clearTimeout(searchDebounceTimer) }
     searchDebounceTimer = setTimeout(() => {
-        const trimKeyword = keyword.value.trim()
-        if (!trimKeyword) {
+        if (!keyword.value.trim()) {
             props.webSocket?.sendSearchHistoryRequest()
         } else {
             sendLookupKeyword(false)
@@ -247,6 +275,11 @@ const triggerAsyncSearch = () => {
 }
 
 const sendLookupKeyword = (leftHistory: boolean = true) => {
+    if (props.sessionConfig.default_search_method.method == "regex_search") {
+        if (willScanAllFstNodes(keyword.value)) {
+            return
+        }
+    }
     props.webSocket?.sendLookupKeyword(keyword.value, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name), leftHistory)
 }
 

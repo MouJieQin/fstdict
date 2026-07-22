@@ -98,6 +98,7 @@ class MessageHandler:
                 "toggle_floating_pin": MessageHandler._handle_toggle_floating_pin,
                 "note_is_editing": MessageHandler._handle_note_is_editing,
                 "keyword_options_search": MessageHandler._handle_keyword_options_search,
+                "word_option_note": MessageHandler._handle_word_option_note,
                 "lookup_keyword": MessageHandler._handle_lookup,
                 "session_config": MessageHandler._handle_session_config,
                 "create_session": MessageHandler._handle_create_session,
@@ -176,6 +177,21 @@ class MessageHandler:
             "data": {
                 "keyword": keyword,
                 "options": options,
+            },
+        }
+        await SessionManager.send_msg_to_session_by_id(
+            session_id, connection_id, json.dumps(msg)
+        )
+
+    @staticmethod
+    async def _handle_word_option_note(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        msg = {
+            "type": "keyword_options_search",
+            "data": {
+                "keyword": message["data"]["keyword"],
+                "options": message["data"]["options"],
             },
         }
         await SessionManager.send_msg_to_session_by_id(

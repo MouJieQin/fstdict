@@ -507,7 +507,7 @@ const handleTitlebarMouseDown = (e: MouseEvent) => {
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
-    if (isTauriEnv) {
+    if (props.env === '') {
         tauriAppWindow.value = getCurrentWindow();
         document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
     }
@@ -515,7 +515,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
-    if (isTauriEnv) {
+    if (props.env === '') {
         document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
     }
 })

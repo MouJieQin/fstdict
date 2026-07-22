@@ -44,11 +44,15 @@ body::-webkit-scrollbar-thumb {
     --app-header-bg: rgba(243, 243, 242, 1);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 1);
+
+    --puff-loader-color: rgba(51, 51, 51, 0.5);
 }
 
 .dark {
     --app-header-bg: rgba(42, 42, 40, 1);
     --scrollbar-background: rgba(107, 107, 107, 1);
+
+    --puff-loader-color: rgba(255, 255, 255, 0.7);
 }
 
 /* ::-webkit-scrollbar {
@@ -503,7 +507,14 @@ el-tabs__item {
 .error-suggestions {
     padding: 16px;
     text-align: center;
-    color: var(--el-text-color-danger, #f56c6c);
+    color: var(--el-color-danger);
+    font-size: 13px;
+}
+
+.warn-suggestions {
+    padding: 16px;
+    text-align: center;
+    color: var(--el-color-warning);
     font-size: 13px;
 }
 

@@ -268,6 +268,16 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
+    sendKeywordOptionsNote(keyword: string, note: string) {
+        this._send(
+            'word_option_note',
+            {
+                keyword: keyword,
+                options: [note]
+            }
+        )
+    }
+
 
     sendToggleFloatingWindowPin(fullPath: string) {
         this._send('toggle_float_pin', {

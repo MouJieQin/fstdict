@@ -2,8 +2,14 @@
     <div v-if="showErrorSuggestion" class="error-suggestions">
         {{ props.wordOptions[0].replace('FSTD_ERROR', '') || 'No error message' }}
     </div>
-    <UseVirtualList v-show="!showErrorSuggestion && !showHistory" ref="virtualListRef" :list="props.wordOptions"
-        :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)" class="list-container">
+    <div v-if="showWarnSuggestion" class="warn-suggestions">
+        {{ props.wordOptions[0].replace('FSTD_WARN', '') || 'No warn message' }}
+    </div>
+    <ThreeDotsLoader v-if="showSearchIcon" style="margin-left:1rem;" />
+    <!-- showWarnSuggestion -->
+    <UseVirtualList v-show="!showErrorSuggestion && !showWarnSuggestion && !showSearchIcon && !showHistory"
+        ref="virtualListRef" :list="props.wordOptions" :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)"
+        class="list-container">
         <template #default="{ data, index }">
             <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
                 :style="{ height: '30px' }" @click="handleWordClick(data)">
@@ -37,6 +43,7 @@ import { UseVirtualList } from '@vueuse/components'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getDictSettingsForLookup } from '@/common/utility'
 import type { WordInfoWithLastSearch } from '@/common/type-interface'
+import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 
 
 const props = defineProps({
@@ -75,6 +82,15 @@ const showHistory = computed(() => {
 const showErrorSuggestion = computed(() => {
     return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_ERROR'))
 })
+
+const showWarnSuggestion = computed(() => {
+    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_WARN'))
+})
+
+const showSearchIcon = computed(() => {
+    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_SEARCHING'))
+})
+
 
 watch(() => props.keyword, (newVal) => {
     selectedWord.value = newVal
