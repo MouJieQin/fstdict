@@ -80,12 +80,12 @@
                     </div>
                 </div>
 
-                <div class="config-class">
+                <!-- <div class="config-class">
                     <p class="config-class-title">优先后缀</p>
                     <p class="config-class-desc">
                         前缀距离搜索时的优先后缀
                     </p>
-                </div>
+                </div> -->
             </el-form>
         </div>
 

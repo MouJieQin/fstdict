@@ -1,6 +1,6 @@
 [package]
 name = "fstdict"
-version = "0.0.10"
+version = "0.0.11"
 description = "A dictionary app using fstdx/fstdd"
 authors = ["Moujie Qin"]
 edition = "2021"
