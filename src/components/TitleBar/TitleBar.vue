@@ -37,7 +37,7 @@
                     class="floating-window-titlebar-button" @command="handleSessionCommand">
                     <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px;" />
                     <template #dropdown>
-                        <el-dropdown-menu>
+                        <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
                             <div v-for="item in props.sessionsNameId" :key="item.id">
                                 <el-dropdown-item v-if="item.id === sessionId"
                                     style="background-color: var(--el-color-primary-light-8) !important">
