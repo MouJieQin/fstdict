@@ -133,7 +133,7 @@ async function renderIframe() {
   // 只更新内容，不重建整个 iframe
   doc.body.innerHTML = doc_content.value
   const p = doc.createElement('p')
-  p.textContent = "tail"
+  // p.textContent = "tail"
   p.id = props.dictionaryRoot + '-dict-tail'
   doc.body.appendChild(p)
   setTimeout(() => {
