@@ -1,7 +1,6 @@
 import sys
 import subprocess
 import os
-from typing import Dict, Optional
 from libs.config import UtilsBase
 from libs.websocket_client import WsClient
 from libs.fstdict_database import FstDictDatabase

@@ -1,8 +1,6 @@
 import sqlite3
 import json
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
-from libs.log_config import logger
+from typing import Optional, List, Dict, Any
 
 
 class DictDatabase:

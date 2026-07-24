@@ -1,8 +1,5 @@
 import json
-import time
-import threading
-import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Dict
 from websockets.asyncio.client import ClientConnection
 from fastapi import WebSocket
 
@@ -11,7 +8,6 @@ from libs.log_config import logger
 from libs.common import Utils
 from libs.session_manager import SessionManager
 from libs.fstdict_searcher import FstDictSearcher
-from libs.websocket_client import WsClient
 from libs.anki.anki_manager import AnkiManager
 
 fstdict_searcher = FstDictSearcher()

@@ -1,7 +1,6 @@
 import sqlite3
 import json
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
+from typing import Optional, List, Dict, Any
 from libs.log_config import logger
 
 
