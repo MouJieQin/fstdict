@@ -2,14 +2,13 @@
     <!-- 自定义 macOS 标题栏（仅 macOS 显示，包含 Pin 置顶按钮） -->
     <div>
         <div class="floating-window-titlebar">
-            <div @mousedown="preventDrag = true" @mouseup="preventDrag = false">
+            <div @mousedown.stop>
                 <WordOptionsAutoComplete :webSocket="props.webSocket" :env="props.env"
                     :redirectWord="props.redirectWord" :redirectHistoryWord="redirectHistoryWord"
                     :wordOptions="props.wordOptions" :sessionConfig="props.sessionConfig" :searchHistory="searchHistory"
                     @change:keyword="keywordChange" />
             </div>
-            <el-button-group class="floating-window-titlebar-button-container" @mousedown="preventDrag = true"
-                @mouseup="preventDrag = false">
+            <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
                 <el-button :icon="ArrowLeftBold" text @click="handleHistoryBack" class="floating-window-titlebar-button"
                     size="small" :disabled="historyIndex >= searchHistory.length - 1"
                     id="titlebar-history-back-button" />
@@ -84,46 +83,48 @@
         </div>
     </div>
 
-    <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记（markdown）'" width="500"
-        align-center draggable :close-on-click-modal="false">
-        <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
-            :autosize="{ minRows: 5, maxRows: 9 }" />
-        <template #footer>
-            <div class="dialog-footer">
-                <el-popconfirm confirm-button-text="删除" confirm-button-type="danger" cancel-button-text="取消"
-                    :icon="Delete" icon-color="#FF4949" title="确定删除笔记吗？" @confirm="handleDeleteNote">
-                    <template #reference>
-                        <el-button :icon="Delete" type="danger">Delete</el-button>
-                    </template>
-                </el-popconfirm>
+    <div @mousedown.stop>
+        <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记（markdown）'" width="500"
+            align-center draggable :close-on-click-modal="false">
+            <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
+                :autosize="{ minRows: 5, maxRows: 9 }" />
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-popconfirm confirm-button-text="删除" confirm-button-type="danger" cancel-button-text="取消"
+                        :icon="Delete" icon-color="#FF4949" title="确定删除笔记吗？" @confirm="handleDeleteNote">
+                        <template #reference>
+                            <el-button :icon="Delete" type="danger">Delete</el-button>
+                        </template>
+                    </el-popconfirm>
 
-                <el-button @click="noteDialogVisible = false">Cancel</el-button>
-                <el-button type="primary" @click="submitNote">
-                    Confirm
-                </el-button>
-            </div>
-        </template>
-    </el-dialog>
+                    <el-button @click="noteDialogVisible = false">Cancel</el-button>
+                    <el-button type="primary" @click="submitNote">
+                        Confirm
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
 
-    <!-- </el-dialog> :z-index="10000"> -->
-    <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
-        <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-            @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
-            :folderName="sessionDefaultFolderName" :folderId="props.sessionConfig.default_folder.id" />
-    </el-dialog>
-    <el-dialog v-model="settingDialogVisible" fullscreen>
-        <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-            :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress"
-            @update-visible="(visible) => settingDialogVisible = visible">
-        </Settings>
-    </el-dialog>
-    <el-dialog v-model="dictSSDialogVisible" fullscreen>
-        <DictSelectAndSortDialog :webSocket="props.webSocket" :env="props.env"
-            :dictSSDialogVisible="dictSSDialogVisible" :sessionConfig="props.sessionConfig"
-            :addDictMsgs="props.addDictMsgs" :refreshDicsSettingsInfoFlag="props.refreshDicsSettingsInfoFlag"
-            @clear:addDictMsgs="() => emits('clear:addDictMsgs')">
-        </DictSelectAndSortDialog>
-    </el-dialog>
+        <!-- </el-dialog> :z-index="10000"> -->
+        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
+            <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
+                @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
+                :folderName="sessionDefaultFolderName" :folderId="props.sessionConfig.default_folder.id" />
+        </el-dialog>
+        <el-dialog v-model="settingDialogVisible" fullscreen>
+            <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
+                :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress"
+                @update-visible="(visible) => settingDialogVisible = visible">
+            </Settings>
+        </el-dialog>
+        <el-dialog v-model="dictSSDialogVisible" fullscreen>
+            <DictSelectAndSortDialog :webSocket="props.webSocket" :env="props.env"
+                :dictSSDialogVisible="dictSSDialogVisible" :sessionConfig="props.sessionConfig"
+                :addDictMsgs="props.addDictMsgs" :refreshDicsSettingsInfoFlag="props.refreshDicsSettingsInfoFlag"
+                @clear:addDictMsgs="() => emits('clear:addDictMsgs')">
+            </DictSelectAndSortDialog>
+        </el-dialog>
+    </div>
 </template>
 
 <script lang="ts" setup>
@@ -248,7 +249,6 @@ const router = useRouter()
 const sessionsMenuVisble = ref(false)
 const dropdownSessions = ref<DropdownInstance>()
 const tauriAppWindow = ref<any | null>(null)
-const preventDrag = ref(false)
 const redirectHistoryWord = ref('')
 const keywordEditingNote = ref('')
 const favoriteWordsDialogVisible = ref(false)
@@ -368,9 +368,7 @@ watch(() => noteDialogVisible.value, (newVal) => {
     if (newVal) {
         keywordEditingNote.value = props.lastSearchKeyword
         noteContent.value = props.noteContent
-        preventDrag.value = true
     } else {
-        preventDrag.value = false
     }
     props.webSocket?.sendNoteIsEditing(newVal)
 })
@@ -380,31 +378,6 @@ watch(() => favoriteWordsDialogVisible.value, (newVal) => {
         props.webSocket?.sendFavoriteWordsRequest(props.sessionConfig.default_folder.id)
     }
 })
-
-watch(() => dictSSDialogVisible.value, (newVal) => {
-    if (newVal) {
-        preventDrag.value = true
-    } else {
-        preventDrag.value = false
-    }
-})
-
-watch(() => settingDialogVisible.value, (newVal) => {
-    if (newVal) {
-        preventDrag.value = true
-    } else {
-        preventDrag.value = false
-    }
-})
-
-watch(() => favoriteWordsDialogVisible.value, (newVal) => {
-    if (newVal) {
-        preventDrag.value = true
-    } else {
-        preventDrag.value = false
-    }
-})
-
 
 watch(() => props.iframeKeydownEvent, (newVal) => {
     if (newVal) {
@@ -494,9 +467,6 @@ const handleKeydown = (e: KeyboardEvent) => {
 const handleTitlebarMouseDown = (e: MouseEvent) => {
     if (e.buttons === 1) {
         // Primary (left) button
-        if (preventDrag.value) {
-            return
-        }
         if (e.detail === 2) {
             e.preventDefault()
             tauriAppWindow.value?.toggleMaximize() // Maximize on double click
