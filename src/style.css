@@ -152,6 +152,8 @@ body::-webkit-scrollbar-thumb {
 
 .fstdict-header {
     background: var(--app-header-bg);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .floating-window-titlebar {

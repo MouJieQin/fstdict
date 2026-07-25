@@ -1,7 +1,7 @@
 <template>
     <!-- 自定义 macOS 标题栏（仅 macOS 显示，包含 Pin 置顶按钮） -->
     <div>
-        <div class="floating-window-titlebar">
+        <div data-tauri-drag-region class="floating-window-titlebar">
             <div @mousedown.stop>
                 <WordOptionsAutoComplete :webSocket="props.webSocket" :env="props.env"
                     :redirectWord="props.redirectWord" :redirectHistoryWord="redirectHistoryWord"
@@ -464,32 +464,20 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleKeydownData(e)
 }
 
-const handleTitlebarMouseDown = (e: MouseEvent) => {
-    if (e.buttons === 1) {
-        // Primary (left) button
-        if (e.detail === 2) {
-            e.preventDefault()
-            tauriAppWindow.value?.toggleMaximize() // Maximize on double click
-        }
-        else {
-            e.preventDefault()
-            tauriAppWindow.value?.startDragging(); // Else start dragging
-        }
-    }
-}
+
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
     if (props.env === '') {
         tauriAppWindow.value = getCurrentWindow();
-        document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
+        // document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     if (props.env === '') {
-        document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
+        // document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
 
