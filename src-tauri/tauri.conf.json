@@ -4,9 +4,9 @@
   "version": "0.0.13",
   "identifier": "FstDict",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "cd src-tauri && cargo build --bin fstdict-helper; cd .. ; npm run dev",
     "devUrl": "http://localhost:9595",
-    "beforeBuildCommand": "npm run build:all",
+    "beforeBuildCommand": "npm run build:all && cd src-tauri && cargo build --bin fstdict-helper --release; cd .. ",
     "frontendDist": "../dist"
   },
   "app": {

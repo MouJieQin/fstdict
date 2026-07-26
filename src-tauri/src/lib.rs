@@ -102,6 +102,83 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+// ====================== 【新增】Helper 进程状态（完全对齐PythonServer风格） ======================
+#[cfg(target_os = "macos")]
+struct HelperProcess(Mutex<Option<Child>>);
+
+#[cfg(target_os = "macos")]
+/// Locate fstdict-helper binary, support dev & release bundle
+fn find_helper_binary(app: &App) -> Option<PathBuf> {
+    // Release bundle: Contents/MacOS/fstdict-helper
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let candidate = exe_dir.join("fstdict-helper");
+            if candidate.exists() {
+                return Some(candidate);
+            }
+        }
+    }
+
+    // Dev mode: src-tauri/target/debug/fstdict-helper
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let dev_bin = manifest_dir
+        .join("target")
+        .join("debug")
+        .join("fstdict-helper");
+    if dev_bin.exists() {
+        return Some(dev_bin);
+    }
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn start_helper(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+    let binary = match find_helper_binary(app) {
+        Some(path) => path,
+        None => {
+            warn!("fstdict-helper binary not found — skip launch");
+            return Ok(None);
+        }
+    };
+    info!("Starting fstdict-helper from: {:?}", binary);
+
+    let mut cmd = Command::new(&binary);
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Spawn fstdict-helper failed: {}", e))?;
+    info!("fstdict-helper started, PID: {}", child.id());
+    Ok(Some(child))
+}
+
+#[cfg(target_os = "macos")]
+fn stop_helper(process: &mut Option<Child>) {
+    if let Some(mut proc) = process.take() {
+        let pid = proc.id();
+        info!("Stopping fstdict-helper, process group PID: {}", pid);
+        unsafe {
+            libc::kill(-(pid as i32), libc::SIGTERM);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        match proc.try_wait() {
+            Ok(Some(_)) => {}
+            _ => unsafe {
+                libc::kill(-(pid as i32), libc::SIGKILL);
+            },
+        }
+        let _ = proc.wait();
+        info!("fstdict-helper stopped");
+    }
+}
+
 /// Application state holding the Python sidecar process handle
 struct PythonServer(Mutex<Option<Child>>);
 
@@ -243,6 +320,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
         .manage(PythonServer(Mutex::new(None)))
+        .manage(HelperProcess(Mutex::new(None)))
         .setup(|app: &mut App| {
             // Initialize logging using Tauri's standard app_log_dir
             let log_dir = app
@@ -269,6 +347,19 @@ pub fn run() {
                     return Err(e);
                 }
             }
+
+            // ======================【新增】启动 Helper (macOS) ======================
+            #[cfg(target_os = "macos")]
+            {
+                match start_helper(app) {
+                    Ok(Some(child)) => {
+                        *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
+                    }
+                    Ok(None) => warn!("Helper binary missing, skip launch"),
+                    Err(e) => error!("Start helper failed: {}", e),
+                }
+            }
+
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -283,6 +374,12 @@ pub fn run() {
                 // Fix lifetime by locking directly on the state extraction in one clean step
                 if let Ok(mut proc_guard) = app_handle.state::<PythonServer>().0.lock() {
                     stop_python_sidecar(&mut proc_guard);
+                }
+
+                // ======================【新增】退出时关闭 Helper (macOS) ======================
+                #[cfg(target_os = "macos")]
+                if let Ok(mut helper_guard) = app_handle.state::<HelperProcess>().0.lock() {
+                    stop_helper(&mut helper_guard);
                 }
             }
             _ => {}

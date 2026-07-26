@@ -323,7 +323,7 @@ const redirectSession = (sessionId: number) => {
     const systemConfigStore = useSystemConfigStore();
     let localSystemConfig = JSON.parse(JSON.stringify(systemConfigStore.systemConfig))
     localSystemConfig.app.session.id = sessionId
-    props.webSocket.sendUpdateSystemConfig(localSystemConfig)
+    props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
     router.push({
         path: `/dict/${sessionId}`,
         query: { env: props.env }
