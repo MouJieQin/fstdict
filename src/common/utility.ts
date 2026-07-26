@@ -18,7 +18,7 @@ const getDefaultSessionConfig = (sessionName: string) => {
         default_folder: { "id": null },
         dict_setting_option_name: "default",
         default_search_method: { "method": "prefix_search" },
-        pin: { "is_pinned": true }
+        pin: { "is_pinned": false }
     }
     return sessionConfig
 }

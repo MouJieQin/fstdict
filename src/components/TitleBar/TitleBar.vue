@@ -31,6 +31,8 @@
                 <el-button :icon="Setting" text id="titlebar-setting-button"
                     @click="settingDialogVisible = !settingDialogVisible" class="floating-window-titlebar-button"
                     size="small" />
+                <el-button v-if="showPinButton" :icon="props.isPinned ? BsPinAngleFill : BsPin" text
+                    @click="handlePinClick" class="floating-window-titlebar-button" size="small" />
 
                 <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
                     class="floating-window-titlebar-button" @command="handleSessionCommand">
@@ -46,7 +48,6 @@
                                     <span>{{ item.name }}</span>
                                 </el-dropdown-item>
                             </div>
-
                             <div v-for="item in props.sessionsNameId" :key="item.id">
                                 <el-dropdown-item v-if="item.id != sessionId" :command="{ cmd: 'switch', id: item.id }">
                                     <el-icon>
@@ -76,9 +77,6 @@
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
-
-                <el-button v-if="props.env === 'iwin'" :icon="props.isPinned ? BsPinAngleFill : BsPin" text
-                    @click="handlePinClick" class="floating-window-titlebar-button" size="small" />
             </el-button-group>
         </div>
     </div>
@@ -397,13 +395,51 @@ const favoriteWords = computed(() => {
     return props.folderWords[props.sessionConfig.default_folder.id] || []
 })
 
+const showPinButton = computed(() => {
+    return props.env === '' || props.env === 'iwin'
+})
+
 const handlePinClick = () => {
-    props.webSocket?.sendFloatingWindowPinClick(props.sessionId, !props.isPinned)
+    if (isTauriEnv) {
+        let localSessionConfig = JSON.parse(JSON.stringify(props.sessionConfig))
+        localSessionConfig.pin.is_pinned = !props.isPinned
+        props.webSocket?.sendSessionConfig(localSessionConfig)
+    }
+    else if (props.env === 'iwin') {
+        props.webSocket?.sendFloatingWindowPinClick(props.sessionId, !props.isPinned)
+    }
 }
 
 const handleFavorClick = () => {
     props.webSocket?.sendToggleFavor(props.lastSearchKeyword, props.sessionConfig.default_folder.id)
 }
+
+const pinSetup = async () => {
+    if (props.isPinned) {
+        if (tauriAppWindow.value) {
+            try {
+                await tauriAppWindow.value.setAlwaysOnTop(true);
+                console.log("setAlwaysOnTop 置顶设置生效");
+            } catch (err) {
+                // 设置失败：权限不足、平台不支持、窗口状态非法、系统策略拦截
+                console.error("置顶失败：", err);
+            }
+            try {
+                // await tauriAppWindow.value.setVisibleOnAllWorkspaces(true);
+                console.log("setVisibleOnAllWorkspaces 置顶设置生效");
+            } catch (err) {
+                // 设置失败：权限不足、平台不支持、窗口状态非法、系统策略拦截
+                console.error("setVisibleOnAllWorkspaces 置顶失败：", err);
+            }
+        }
+    } else {
+        if (tauriAppWindow.value) {
+            await tauriAppWindow.value.setAlwaysOnTop(false)
+        }
+    }
+}
+
+watch(() => props.isPinned, pinSetup)
 
 watch(() => props.leftHistory, (newVal) => {
     if (newVal) {
@@ -466,10 +502,11 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 
 
-onMounted(() => {
+onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     if (props.env === '') {
         tauriAppWindow.value = getCurrentWindow();
+        await pinSetup()
         // document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
     }
 })
