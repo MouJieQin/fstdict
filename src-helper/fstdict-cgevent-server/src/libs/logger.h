@@ -66,9 +66,9 @@ get_app_log_dir(const std::string &app_name = "FstDict") {
   return log_dir;
 }
 
-#define LOG_FILE_NAME "fstdict-cgevent-server.log"     // Log file name
-#define LOG_MAX_SIZE 1024 * 1024 * 5 // Max log file size: 5MB
-#define LOG_MAX_FILES 1              // Keep 1 backup files
+#define LOG_FILE_NAME "fstdict-cgevent-server.log" // Log file name
+#define LOG_MAX_SIZE 1024 * 1024 * 5               // Max log file size: 5MB
+#define LOG_MAX_FILES 1                            // Keep 1 backup files
 #define LOG_PATTERN "[%Y-%m-%d %H:%M:%S] [%^%l%$] [thread %t] [%s:%#] %v"
 
 class Logger {

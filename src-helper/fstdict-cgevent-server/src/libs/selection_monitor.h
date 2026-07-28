@@ -1,8 +1,8 @@
 #ifndef SELECTION_MONITOR_H
 #define SELECTION_MONITOR_H
 
-#include <string>
 #include <functional>
+#include <string>
 
 // 对外回调类型：选中文字时触发
 using SelectionCallback = std::function<void(const std::string &selected_text)>;

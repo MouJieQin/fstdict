@@ -142,8 +142,7 @@ string getSelectedTextBySimulateCopy() {
 
 // 获取选中文字
 void processSelection() {
-  if (g_isProcessing)
-    return;
+  if (g_isProcessing) return;
   g_isProcessing = true;
 
   auto selected = getSelectedText();
@@ -233,8 +232,7 @@ void input_text_full(NSString *text) {
 
 // 获取选中文字
 void handleSelection(const std::string &prefix, const std::string &suffix) {
-  if (g_isProcessing)
-    return;
+  if (g_isProcessing) return;
   g_isProcessing = true;
 
   this_thread::sleep_for(milliseconds(DELAY_AFTER_TRIGGER));
@@ -300,8 +298,7 @@ CGEventRef mouseCallback(CGEventTapProxy proxy, CGEventType type,
 
 // 启动监听
 bool start_mouse_event_listener() {
-  if (g_is_running)
-    return true;
+  if (g_is_running) return true;
 
   g_eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
                                 kCGEventTapOptionListenOnly,
@@ -326,8 +323,7 @@ bool start_mouse_event_listener() {
 
 // 停止监听
 void stop_macos_event_listener() {
-  if (!g_is_running)
-    return;
+  if (!g_is_running) return;
 
   if (g_eventTap) {
     CGEventTapEnable(g_eventTap, false);
@@ -350,9 +346,7 @@ void internal_on_text_selected(const std::string &text) {
   std::lock_guard<std::mutex> lock(g_mutex);
   g_last_selected = text;
 
-  if (g_user_callback) {
-    g_user_callback(text);
-  }
+  if (g_user_callback) { g_user_callback(text); }
 }
 
 // 外部启动方法
