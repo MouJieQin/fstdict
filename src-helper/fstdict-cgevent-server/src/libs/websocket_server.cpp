@@ -1,5 +1,6 @@
 #include "websocket_server.h"
 #include "logger.h"
+#include <CommonCrypto/CommonDigest.h>
 #include <arpa/inet.h>
 #include <cstdio>
 #include <cstdlib>
@@ -7,10 +8,6 @@
 #include <iomanip>
 #include <iostream>
 #include <netinet/in.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
-#include <openssl/sha.h>
 #include <sstream>
 #include <sys/socket.h>
 #include <thread>
@@ -103,36 +100,38 @@ string WebSocketServer::ws_parse_frame(const char *data, size_t len) {
   return msg;
 }
 
-// 握手
-// base64 编码（用于生成 Sec-WebSocket-Accept）
-string WebSocketServer::base64_encode(const unsigned char *buffer,
-                                      size_t length) {
-  BIO *bio, *b64;
-  BUF_MEM *buf;
+static const char base64_table[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-  b64 = BIO_new(BIO_f_base64());
-  bio = BIO_new(BIO_s_mem());
-  bio = BIO_push(b64, bio);
+std::string WebSocketServer::base64_encode(const unsigned char *data,
+                                           size_t len) {
+  std::string out;
+  out.reserve(((len + 2) / 3) * 4);
 
-  BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-  BIO_write(bio, buffer, length);
-  BIO_flush(bio);
-  BIO_get_mem_ptr(bio, &buf);
+  for (size_t i = 0; i < len; i += 3) {
+    uint32_t block = data[i] << 16;
+    if (i + 1 < len) block |= data[i + 1] << 8;
+    if (i + 2 < len) block |= data[i + 2];
 
-  string ret(buf->data, buf->length);
-  BIO_free_all(bio);
-  return ret;
+    out += base64_table[(block >> 18) & 0x3F];
+    out += base64_table[(block >> 12) & 0x3F];
+    if (i + 1 < len) out += base64_table[(block >> 6) & 0x3F];
+    if (i + 2 < len) out += base64_table[block & 0x3F];
+  }
+  // WebSocket规范要求：不要填充 =
+  return out;
 }
 
-// 计算 WebSocket Accept 密钥
-string WebSocketServer::compute_accept_key(const string &client_key) {
-  string guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  string concat = client_key + guid;
+// 计算 WebSocket Accept 密钥（使用原生CC_SHA1替代OpenSSL SHA1）
+std::string WebSocketServer::compute_accept_key(const std::string &client_key) {
+  std::string guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  std::string concat = client_key + guid;
 
-  unsigned char hash[SHA_DIGEST_LENGTH];
-  SHA1((const unsigned char *)concat.c_str(), concat.size(), hash);
+  unsigned char hash[CC_SHA1_DIGEST_LENGTH];
+  CC_SHA1(reinterpret_cast<const unsigned char *>(concat.c_str()),
+          static_cast<CC_LONG>(concat.size()), hash);
 
-  return base64_encode(hash, SHA_DIGEST_LENGTH);
+  return base64_encode(hash, CC_SHA1_DIGEST_LENGTH);
 }
 
 // 从请求头提取 Sec-WebSocket-Key

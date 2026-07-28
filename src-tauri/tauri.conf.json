@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "FstDict",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "identifier": "FstDict",
   "build": {
-    "beforeDevCommand": "cd src-tauri && cargo build --bin fstdict-helper; cd .. ; npm run dev",
+    "beforeDevCommand": "npm run dev:sidecar && npm run dev",
     "devUrl": "http://localhost:9595",
-    "beforeBuildCommand": "npm run build:all && cd src-tauri && cargo build --bin fstdict-helper --release; cd .. ",
+    "beforeBuildCommand": "npm run build:all",
     "frontendDist": "../dist"
   },
   "app": {

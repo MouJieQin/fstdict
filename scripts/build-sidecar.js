@@ -1,70 +1,53 @@
 import { execSync } from "node:child_process";
-import { cpSync, rmSync, existsSync } from "node:fs";
-import { resolve, join, delimiter } from "node:path";
 import { platform } from "node:process";
+import { resolve, join } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const pythonDir = join(root, "src-python");
-const vueDist = join(root, "dist");
-const staticDir = join(pythonDir, "static");
-const pyDistDir = join(pythonDir, "dist", "fstdict-server");
-const sidecarTargetDir = join(root, "src-tauri", "sidecars", "fstdict-server");
+const isDarwin = platform === "darwin";
+// 入参识别模式
+const isRelease = process.argv.includes("--release");
+const isDev = process.argv.includes("--dev");
 
-// PyInstaller --add-data separator: colon on Unix, semicolon on Windows
-const sep = platform === "win32" ? ";" : ":";
+console.log("\n========== Sidecar Build Dispatcher ==========\n");
 
-console.log("\n═══ Building Python sidecar ═══\n");
+const runCommand = (cmd) => {
+  console.log(`> ${cmd}`);
+  execSync(cmd, { stdio: "inherit", cwd: root });
+};
 
-// 1. Clean old static directory
-if (existsSync(staticDir)) {
-    rmSync(staticDir, { recursive: true });
+try {
+  // ========== Python sidecar：BUILD模式才执行，DEV模式跳过 ==========
+  if (isRelease) {
+    console.log("\n[Step] Build Python fstdict-server");
+    runCommand(`node ${join(root, "scripts/build-python.js")}`);
+  } else {
+    console.log("[Skip] Python sidecar (dev mode)");
+  }
+
+  // ========== macOS专属任务：dev & build 都执行；非mac直接跳过 ==========
+  if (isDarwin) {
+    console.log("\n[Step] Build C++ helper fstdict_cgevent_server");
+    const cppScript = join(root, "scripts/build-helper.js");
+    runCommand(`node ${cppScript} ${isRelease ? "--release" : ""}`);
+
+    console.log("\n[Step] Build Rust fstdict-helper");
+    const cargoFlag = isRelease ? "--release" : "";
+    runCommand(`cargo build --bin fstdict-helper ${cargoFlag} --manifest-path src-tauri/Cargo.toml`);
+
+    // 将rust输出二进制复制到sidecar目录（关键！）
+    const fs = await import("node:fs");
+    const srcBin = join(root, "src-tauri", "target", isRelease ? "release" : "debug", "fstdict-helper");
+    const destDir = join(root, "src-tauri", "sidecars", "helper");
+    if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true });
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.cpSync(srcBin, join(destDir, "fstdict-helper"));
+    console.log(`  ✓ Rust fstdict-helper copied to sidecars/helper/`);
+  } else {
+    console.log("\nℹ Skip macOS-only binaries (not darwin)");
+  }
+
+  console.log("\n✅ All sidecar tasks completed\n");
+} catch (err) {
+  console.error("\n❌ Build failed", err.message);
+  process.exit(1);
 }
-
-// 2. Copy Vue build output to Python static/
-cpSync(vueDist, staticDir, { recursive: true });
-console.log("  ✓ Vue dist → src-python/static");
-
-// 3. Run PyInstaller
-console.log("  Running PyInstaller...");
-const addDataStatic = `static${sep}static`;
-const addDataConfig = `config.json${sep}.`;
-
-// Default command configuration
-let commandPrefix = "";
-let targetArchFlag = "";
-
-// Detect if we are building a macOS x86_64 target on GitHub Actions or locally
-const isMac = platform === "darwin";
-// Check GitHub Actions matrix target or custom env vars
-const rustTarget = process.env.TAURI_TARGET || "";
-
-if (isMac) {
-    // If explicitly building for x86_64 (Intel)
-    if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
-        commandPrefix = "arch -x86_64 ";
-        targetArchFlag = " --target-arch x86_64";
-    } else if (
-        rustTarget.includes("aarch64") ||
-        process.argv.includes("aarch64")
-    ) {
-        targetArchFlag = " --target-arch arm64";
-    }
-}
-
-execSync(
-    `${commandPrefix}pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
-        `--add-data "${addDataStatic}" --add-data "${addDataConfig}"${targetArchFlag} ` +
-        `fstdict-server.py`,
-    { cwd: pythonDir, stdio: "inherit" },
-);
-
-// 4. Clean old sidecar in Tauri
-if (existsSync(sidecarTargetDir)) {
-    rmSync(sidecarTargetDir, { recursive: true });
-}
-
-// 5. Copy PyInstaller output to sidecars/
-cpSync(pyDistDir, sidecarTargetDir, { recursive: true });
-console.log(`  ✓ Sidecar → src-tauri/sidecars/fstdict-server/`);
-
-console.log("\n✓ Python sidecar build complete\n");
