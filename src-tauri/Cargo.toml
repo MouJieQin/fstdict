@@ -32,8 +32,10 @@ env_logger = "0.11.10"
 chrono = "0.4.44"
 colored = "2"
 dirs = "5"
-#tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
-tauri-nspanel = { path = "/Users/qinmoujie/QMJgithub/tauri-nspanel" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
+#tauri-nspanel = { path = "/Users/qinmoujie/QMJgithub/tauri-nspanel" }
 
 
 [target.'cfg(unix)'.dependencies]
