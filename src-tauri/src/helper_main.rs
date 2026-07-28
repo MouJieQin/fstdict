@@ -91,7 +91,7 @@ fn main() {
         .setup(|app| {
             // Helper 全程 Accessory，无 Dock 图标，天然支持全屏覆盖
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-            init(app.app_handle());
+            let _ = init(app.app_handle());
 
             // if let Err(e) = show_panel(app.handle().clone(), "http://localhost:9595/#/dict/39".to_string())
             // {
@@ -104,8 +104,12 @@ fn main() {
         .expect("helper app failed to start");
 }
 
-fn init(app_handle: &AppHandle) {
+fn init(app_handle: &AppHandle) -> Result<(), String> {
     let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
+    // url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
+    let url = "http://localhost:9595/#/dict/39".to_string();
+    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
+    let _ = window.navigate(parsed);
 
     let panel = window.to_panel::<FloatSearchPanel>().unwrap();
 
@@ -139,7 +143,7 @@ fn init(app_handle: &AppHandle) {
     );
 
     panel.set_event_handler(Some(handler.as_ref()));
-
+    Ok(())
     // Note: The tracking area is configured in the panel definition above.
     // Mouse events (mouseEntered, mouseExited, mouseMoved) will be sent to the
     // panel's content view. To handle these events, you would need to:
