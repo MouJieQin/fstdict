@@ -20,16 +20,15 @@ if (platform !== "darwin") {
 }
 
 const rustTarget = process.env.TAURI_TARGET || "";
-let archPrefix = "";
-let buildArch = "";
+let cmakeArchFlag = "";
+let buildArch = "native";
 
-if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
-    archPrefix = "arch -x86_64 ";
+if (rustTarget.includes("x86_64-apple-darwin")) {
     buildArch = "x86_64";
-} else if (rustTarget.includes("aarch64") || process.argv.includes("aarch64")) {
+    cmakeArchFlag = "-DCMAKE_OSX_ARCHITECTURES=x86_64";
+} else if (rustTarget.includes("aarch64-apple-darwin")) {
     buildArch = "arm64";
-} else {
-    buildArch = "native";
+    cmakeArchFlag = "-DCMAKE_OSX_ARCHITECTURES=arm64";
 }
 console.log(`  Target arch: ${buildArch}`);
 
@@ -51,13 +50,13 @@ const buildType = isReleaseBuild ? "Release" : "Debug";
 if (!existsSync(join(buildDir, "CMakeCache.txt"))) {
     console.log("  Running CMake configure...");
     execSync(
-        `${archPrefix}cmake -B build -DCMAKE_BUILD_TYPE=${buildType} ${fetchFlag}`,
+        `cmake -B build -DCMAKE_BUILD_TYPE=${buildType} ${fetchFlag} ${cmakeArchFlag}`,
         { cwd: cppProjectDir, stdio: "inherit" },
     );
 }
 
 console.log("  Running CMake build...");
-execSync(`${archPrefix}cmake --build build -j$(sysctl -n hw.ncpu)`, {
+execSync(`cmake --build build -j$(sysctl -n hw.ncpu)`, {
     cwd: cppProjectDir,
     stdio: "inherit",
 });

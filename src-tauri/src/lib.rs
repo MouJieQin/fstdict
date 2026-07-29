@@ -101,8 +101,6 @@ fn daily_log_file(log_dir: &PathBuf) -> std::io::Result<fs::File> {
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
-
-// ====================== 【新增】Helper 进程状态（完全对齐PythonServer风格） ======================
 #[cfg(target_os = "macos")]
 struct HelperProcess(Mutex<Option<Child>>);
 
@@ -136,7 +134,7 @@ fn start_helper(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> 
     let binary = match find_helper_binary(app) {
         Some(path) => path,
         None => {
-            warn!("fstdict-helper binary not found — skip launch");
+            error!("fstdict-helper binary not found — skip launch");
             return Ok(None);
         }
     };
@@ -316,11 +314,18 @@ fn stop_python_sidecar(process: &mut Option<Child>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
-        .manage(PythonServer(Mutex::new(None)))
-        .manage(HelperProcess(Mutex::new(None)))
+        .manage(PythonServer(Mutex::new(None)));
+
+    // ======================【修正】只在 macOS 上注册 HelperProcess 状态托管 ======================
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.manage(HelperProcess(Mutex::new(None)));
+    }
+
+    let app = builder
         .setup(|app: &mut App| {
             // Initialize logging using Tauri's standard app_log_dir
             let log_dir = app
@@ -348,14 +353,14 @@ pub fn run() {
                 }
             }
 
-            // ======================【新增】启动 Helper (macOS) ======================
+            // ====================== 启动 Helper (macOS) ======================
             #[cfg(target_os = "macos")]
             {
                 match start_helper(app) {
                     Ok(Some(child)) => {
                         *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
                     }
-                    Ok(None) => warn!("Helper binary missing, skip launch"),
+                    Ok(None) => error!("Helper binary missing, skip launch"),
                     Err(e) => error!("Start helper failed: {}", e),
                 }
             }
@@ -376,7 +381,7 @@ pub fn run() {
                     stop_python_sidecar(&mut proc_guard);
                 }
 
-                // ======================【新增】退出时关闭 Helper (macOS) ======================
+                // ======================【修正】退出时关闭 Helper 同样使用平台宏保护 ======================
                 #[cfg(target_os = "macos")]
                 if let Ok(mut helper_guard) = app_handle.state::<HelperProcess>().0.lock() {
                     stop_helper(&mut helper_guard);
