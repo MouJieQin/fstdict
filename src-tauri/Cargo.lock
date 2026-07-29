@@ -1142,8 +1142,18 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
- "tauri-nspanel",
  "tauri-plugin-opener",
+]
+
+[[package]]
+name = "fstdict-helper"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-nspanel",
 ]
 
 [[package]]

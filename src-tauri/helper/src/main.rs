@@ -1,3 +1,4 @@
+#![cfg(target_os = "macos")]
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -106,7 +107,6 @@ fn main() {
 
 fn init(app_handle: &AppHandle) -> Result<(), String> {
     let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
-    // url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let url = "http://localhost:9595/#/dict/39".to_string();
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let _ = window.navigate(parsed);
