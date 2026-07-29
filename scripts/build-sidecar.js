@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { platform } from "node:process";
 import { resolve, join } from "node:path";
-import { mkdirSync, copyFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, existsSync } from "node:fs";
 
 const root = resolve(import.meta.dirname, "..");
 const isDarwin = platform === "darwin";
@@ -80,15 +80,37 @@ try {
             },
         );
 
-        // 2. Prepare the binaries directory
+        // 2. FIX: Check BOTH possible target layout outputs
+        const triple = getTargetTriple();
+        const possiblePaths = [
+            // If cross-compiling or building via target triple
+            join(
+                root,
+                `src-tauri/target/${triple}/${buildType}/fstdict-helper`,
+            ),
+            // Default target path fallback
+            join(root, `src-tauri/target/${buildType}/fstdict-helper`),
+        ];
+
+        let sourceBin = "";
+        for (const p of possiblePaths) {
+            if (existsSync(p)) {
+                sourceBin = p;
+                break;
+            }
+        }
+
+        if (!sourceBin) {
+            throw new Error(
+                `Binary fstdict-helper not found in any expected target paths: ${possiblePaths.join(", ")}`,
+            );
+        }
+
+        // Prepare the binaries directory
         const binariesDir = join(root, "src-tauri/binaries");
         mkdirSync(binariesDir, { recursive: true });
 
         // Copy the real binary to the target location
-        const sourceBin = join(
-            root,
-            `src-tauri/target/${buildType}/fstdict-helper`,
-        );
         copyFileSync(sourceBin, sidecarPath);
         console.log(`✅ Bundled real binary: ${sidecarName}`);
     } else {
