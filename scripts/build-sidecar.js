@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { platform } from "node:process";
 import { resolve, join } from "node:path";
-import { mkdirSync, copyFileSync, existsSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 
 const root = resolve(import.meta.dirname, "..");
 const isDarwin = platform === "darwin";
