@@ -3,6 +3,9 @@
   "productName": "FstDict Helper",
   "version": "0.0.14",
   "identifier": "FstDict.Helper",
+  "build": {
+    "frontendDist": "../../dist"
+  },
   "app": {
     "windows": [
       {

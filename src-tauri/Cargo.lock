@@ -1154,6 +1154,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
+ "tauri-plugin-opener",
 ]
 
 [[package]]

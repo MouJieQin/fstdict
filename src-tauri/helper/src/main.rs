@@ -87,6 +87,7 @@ fn hide_panel(app: tauri::AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![show_panel, hide_panel])
         .setup(|app| {
@@ -107,9 +108,9 @@ fn main() {
 
 fn init(app_handle: &AppHandle) -> Result<(), String> {
     let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
-    let url = "http://localhost:9595/#/dict/39".to_string();
-    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
-    let _ = window.navigate(parsed);
+    // let url = "http://localhost:9595/#/dict/39".to_string();
+    // let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
+    // let _ = window.navigate(parsed);
 
     let panel = window.to_panel::<FloatSearchPanel>().unwrap();
 
