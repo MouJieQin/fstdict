@@ -5,11 +5,13 @@
 )]
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
-// use tauri_nspanel::{tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel};
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
 };
+// 1. UPDATE YOUR IMPORTS (Replace tauri_plugin_tray with core tauri modules)
+use tauri::image::Image;
+use tauri::tray::{TrayIconBuilder, TrayIconEvent}; // Used to safely load raw icon buffers if needed
 
 tauri_panel! {
     panel!(FloatSearchPanel {
@@ -18,14 +20,12 @@ tauri_panel! {
             is_floating_panel: true
         }
         with: {
-            // Enable mouse tracking for the panel's content view
-            // This allows the panel to receive mouse events even when not key/active
             tracking_area: {
                 options: TrackingAreaOptions::new()
-                    .active_always()           // Track mouse even when app is not active
-                    .mouse_entered_and_exited() // Get notified when mouse enters/exits
-                    .mouse_moved(),             // Track mouse movement
-                auto_resize: true               // Resize tracking area with window
+                    .active_always()
+                    .mouse_entered_and_exited()
+                    .mouse_moved(),
+                auto_resize: true
             }
         }
     })
@@ -39,42 +39,26 @@ tauri_panel! {
 #[tauri::command]
 fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
     if let Ok(panel) = app.get_webview_panel("float-search") {
-        panel.show();
+        panel.show_and_make_key(); // Changed to show_and_make_key for better usability
         return Ok(());
     }
 
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let panel = PanelBuilder::<_, FloatSearchPanel>::new(&app, "float-search")
         .url(WebviewUrl::External(parsed))
-        .with_window(|window| {
-            window
-                // .min_inner_size(300.0, 200.0)
-                // .max_inner_size(800.0, 600.0)
-                // .resizable(false)
-                // .decorations(false)
-                // .title_bar_style(TitleBarStyle::Overlay)
-                .always_on_top(true)
-            // .visible_on_all_workspaces(true)
-            // .skip_taskbar(true)
-        })
-        // .level(PanelLevel::ModalPanel)
-        // .size(600.0, 400.0)
-        // .decorations(false)
-        // .resizable(true)
+        .with_window(|window| window.always_on_top(true))
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Set the window to float level
     panel.set_level(PanelLevel::ModalPanel.value());
-
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            // .can_join_all_spaces()
+            .can_join_all_spaces() // Allow it to follow the user across full screen desktops
             .into(),
     );
 
-    panel.show();
+    panel.show_and_make_key();
     Ok(())
 }
 
@@ -91,8 +75,33 @@ fn main() {
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![show_panel, hide_panel])
         .setup(|app| {
-            // Helper 全程 Accessory，无 Dock 图标，天然支持全屏覆盖
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // 2. BUILD THE TRAY ICON USING NATIVE CORE API
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("FstDict Helper")
+                .on_tray_icon_event(|tray_handle, event| {
+                    // Match a standard click gesture via core event mappings
+                    if let TrayIconEvent::Click { .. } = event {
+                        let app_handle = tray_handle.app_handle();
+
+                        if let Ok(panel) = app_handle.get_webview_panel("main") {
+                            panel.show_and_make_key(); // Changed to show_and_make_key for better usability
+                        }
+
+                        // if let Ok(panel) = app_handle.get_webview_panel("float-search") {
+                        //     if let Some(window) = app_handle.get_webview_window("main") {
+                        //         if window.is_visible().unwrap_or(false) {
+                        //             panel.hide();
+                        //         } else {
+                        //             panel.show_and_make_key();
+                        //         }
+                        //     }
+                        // }
+                    }
+                })
+                .build(app)?;
 
             let _ = init(app.app_handle());
             Ok(())
@@ -109,9 +118,7 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     let _ = window.navigate(parsed);
 
     let panel = window.to_panel::<FloatSearchPanel>().unwrap();
-
     let handler = MyPanelEventHandler::new();
-
     let handle = app_handle.to_owned();
 
     handler.window_did_become_key(move |_notification| {
@@ -123,28 +130,17 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
         println!("[info]: panel resigned from key window!");
     });
 
-    // Set the window to float level
     panel.set_level(PanelLevel::ModalPanel.value());
-
-    // Ensures the panel cannot activate the app
-    // panel.set_style_mask(StyleMask::empty().nonactivating_panel().into());
-
-    // Allows the panel to:
-    // - display on the same space as the full screen window
-    // - join all spaces
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            // .can_join_all_spaces()
+            .can_join_all_spaces() // Ensures it follows spaces cleanly on Tray interaction
             .into(),
     );
 
     panel.set_event_handler(Some(handler.as_ref()));
+
+    // Explicitly show it once assets load
+    panel.show_and_make_key();
     Ok(())
-    // Note: The tracking area is configured in the panel definition above.
-    // Mouse events (mouseEntered, mouseExited, mouseMoved) will be sent to the
-    // panel's content view. To handle these events, you would need to:
-    // 1. Create a custom NSView subclass that overrides these methods
-    // 2. Use JavaScript in your webview to listen for mouse events
-    // 3. Or use Tauri's event system to communicate mouse positions
 }
