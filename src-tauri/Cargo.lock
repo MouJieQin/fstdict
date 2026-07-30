@@ -1144,6 +1144,7 @@ dependencies = [
  "env_logger",
  "libc",
  "log",
+ "macos-accessibility-client",
  "serde",
  "serde_json",
  "tauri",
@@ -2150,6 +2151,16 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "macos-accessibility-client"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c33254f6f9b60b98eff934c3664530e5058ff7173e0c6b12419a17d5461e7145"
+dependencies = [
+ "core-foundation",
+ "core-foundation-sys",
+]
 
 [[package]]
 name = "markup5ever"
