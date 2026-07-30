@@ -204,6 +204,9 @@ fn launch_cgevent_helper(app_handle: tauri::AppHandle) -> Result<String, String>
     }
 }
 
+#[cfg(target_os = "macos")]
+struct CGEventHelperProcess(Mutex<Option<Child>>);
+
 /// Application state holding the Python sidecar process handle
 struct PythonServer(Mutex<Option<Child>>);
 
@@ -239,6 +242,60 @@ fn find_sidecar_path(app: &App, base_name: &str) -> Option<std::path::PathBuf> {
     }
 
     None
+}
+
+#[cfg(target_os = "macos")]
+fn start_cgevent_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+    let binary = match find_sidecar_path(app, "fstdict_cgevent_server") {
+        Some(path) => path,
+        None => {
+            log::warn!("Python sidecar 'fstdict_cgevent_server' not found — skipping");
+            return Ok(None);
+        }
+    };
+
+    log::info!("Starting fstdict cgevent server from: {:?}", binary);
+    let mut cmd = Command::new(&binary);
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+    use std::os::unix::process::CommandExt;
+    cmd.process_group(0);
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn fstdict cgevent server: {}", e))?;
+
+    log::info!(
+        "fstdict cgevent server server started (PID: {})",
+        child.id()
+    );
+    Ok(Some(child))
+}
+
+#[cfg(target_os = "macos")]
+fn stop_cgevent_sidecar(process: &mut Option<Child>) {
+    if let Some(mut proc) = process.take() {
+        let pid = proc.id();
+        log::info!(
+            "Shutting fstdict cgevnt server (process group PID: {})",
+            pid
+        );
+        // Send SIGTERM to the entire process group (negative PID)
+        unsafe {
+            libc::kill(-(pid as i32), libc::SIGTERM);
+        }
+        // Give it 200ms to exit gracefully, then force kill
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        // Check if it's still alive before kill (optional but cleaner)
+        match proc.try_wait() {
+            Ok(Some(_)) => {} // Already dead
+            _ => unsafe {
+                libc::kill(-(pid as i32), libc::SIGKILL);
+            },
+        }
+        // Avoid blocking the UI thread for too long
+        let _ = proc.wait();
+        log::info!("fstdict cgevnt server stopped");
+    }
 }
 
 #[cfg(not(dev))]
@@ -379,6 +436,7 @@ pub fn run() {
                 request_accessibility,
                 launch_cgevent_helper
             ])
+            .manage(CGEventHelperProcess(Mutex::new(None)))
             .manage(HelperProcess(Mutex::new(None)));
     }
 
@@ -414,6 +472,17 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 if macos_accessibility_client::accessibility::application_is_trusted() {
+                    match start_cgevent_sidecar(app) {
+                        Ok(Some(child)) => {
+                            *app.state::<CGEventHelperProcess>().0.lock().unwrap() = Some(child);
+                        }
+                        Ok(None) => warn!("Cgevent server sidecar binary missing at startup"),
+                        Err(e) => {
+                            error!("Failed to start cgevent server: {}", e);
+                            return Err(e);
+                        }
+                    }
+
                     match start_helper() {
                         Ok(Some(child)) => {
                             *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
@@ -442,8 +511,15 @@ pub fn run() {
 
                 // ======================【修正】退出时关闭 Helper 同样使用平台宏保护 ======================
                 #[cfg(target_os = "macos")]
-                if let Ok(mut helper_guard) = app_handle.state::<HelperProcess>().0.lock() {
-                    stop_helper(&mut helper_guard);
+                {
+                    if let Ok(mut helper_guard) = app_handle.state::<HelperProcess>().0.lock() {
+                        stop_helper(&mut helper_guard);
+                    }
+                    if let Ok(mut cgevent_server_guard) =
+                        app_handle.state::<CGEventHelperProcess>().0.lock()
+                    {
+                        stop_cgevent_sidecar(&mut cgevent_server_guard);
+                    }
                 }
             }
             _ => {}

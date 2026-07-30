@@ -7,7 +7,7 @@ const root = resolve(import.meta.dirname, "..");
 const cppProjectDir = join(root, "src-helper", "fstdict-cgevent-server");
 const buildDir = join(cppProjectDir, "build");
 const binSourcePath = join(buildDir, "bin", "fstdict_cgevent_server");
-const sidecarTargetDir = join(root, "src-tauri", "sidecars", "helper");
+const sidecarTargetDir = join(root, "src-tauri", "sidecars", "fstdict_cgevent_server");
 
 // 传入参数 --release 代表正式打包，清空构建目录；dev模式增量编译
 const isReleaseBuild = process.argv.includes("--release");
