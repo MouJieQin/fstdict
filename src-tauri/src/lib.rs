@@ -106,7 +106,7 @@ struct HelperProcess(Mutex<Option<Child>>);
 
 #[cfg(target_os = "macos")]
 /// Locate fstdict-helper binary, support dev & release bundle
-fn find_helper_binary(app: &App) -> Option<PathBuf> {
+fn find_helper_binary() -> Option<PathBuf> {
     // Release bundle: Contents/MacOS/fstdict-helper
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
@@ -130,8 +130,9 @@ fn find_helper_binary(app: &App) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-fn start_helper(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
-    let binary = match find_helper_binary(app) {
+fn start_helper() -> Result<Option<Child>, Box<dyn std::error::Error>> {
+    // No arguments needed here anymore
+    let binary = match find_helper_binary() {
         Some(path) => path,
         None => {
             error!("fstdict-helper binary not found — skip launch");
@@ -174,6 +175,32 @@ fn stop_helper(process: &mut Option<Child>) {
         }
         let _ = proc.wait();
         info!("fstdict-helper stopped");
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn launch_cgevent_helper(app_handle: tauri::AppHandle) -> Result<String, String> {
+    // 1. Verify accessibility trust status first
+    if !macos_accessibility_client::accessibility::application_is_trusted() {
+        return Err("Accessibility permission is missing. Cannot spawn helper.".to_string());
+    }
+
+    // 2. Lock global managed process state to prevent duplicate spawning loops
+    let state = app_handle.state::<HelperProcess>();
+    let mut lock = state.0.lock().unwrap();
+    if lock.is_some() {
+        return Ok("Helper is already running.".to_string());
+    }
+
+    // 3. Fire the launch sequence cleanly
+    match start_helper() {
+        Ok(Some(child)) => {
+            *lock = Some(child);
+            Ok("Helper started successfully.".to_string())
+        }
+        Ok(None) => Err("Helper binary could not be located on disk.".to_string()),
+        Err(e) => Err(format!("Failed to spawn process: {}", e)),
     }
 }
 
@@ -316,45 +343,24 @@ use macos_accessibility_client::accessibility::{
     application_is_trusted, application_is_trusted_with_prompt,
 };
 
-// Expose a command to check permissions status from your front-end
+// Only compiled and registered when building for macOS
+#[cfg(target_os = "macos")]
 #[tauri::command]
 fn check_accessibility() -> bool {
-    application_is_trusted()
+    macos_accessibility_client::accessibility::application_is_trusted()
 }
 
-// Expose a command that prompts the system dialog or opens System Settings
+#[cfg(target_os = "macos")]
 #[tauri::command]
 fn request_accessibility() -> bool {
-    // 1. Try to trigger the default system alert popup
+    use macos_accessibility_client::accessibility::application_is_trusted_with_prompt;
     let is_trusted = application_is_trusted_with_prompt();
-
     if !is_trusted {
-        // 2. If the user already clicked "Deny" in the past, the system popup won't show again.
-        // We must manually open the "Privacy & Security -> Accessibility" settings panel.
         let _ = std::process::Command::new("open")
             .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
             .spawn();
     }
-
     is_trusted
-}
-
-#[tauri::command]
-fn start_helper_main(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    match start_helper(app) {
-        Ok(Some(child)) => {
-            *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
-        }
-        Ok(None) => error!("Helper binary missing, skip launch"),
-        Err(e) => error!("Start helper failed: {}", e),
-    };
-}
-
-#[tauri::command]
-fn hide_panel(app: tauri::AppHandle) {
-    if let Ok(panel) = app.get_webview_panel("float-search") {
-        panel.hide();
-    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -370,7 +376,8 @@ pub fn run() {
         builder = builder
             .invoke_handler(tauri::generate_handler![
                 check_accessibility,
-                request_accessibility
+                request_accessibility,
+                launch_cgevent_helper
             ])
             .manage(HelperProcess(Mutex::new(None)));
     }
@@ -403,17 +410,19 @@ pub fn run() {
                 }
             }
 
-            // // ====================== 启动 Helper (macOS) ======================
-            // #[cfg(target_os = "macos")]
-            // {
-            //     match start_helper(app) {
-            //         Ok(Some(child)) => {
-            //             *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
-            //         }
-            //         Ok(None) => error!("Helper binary missing, skip launch"),
-            //         Err(e) => error!("Start helper failed: {}", e),
-            //     }
-            // }
+            // ====================== 启动 Helper (macOS) =====================
+            #[cfg(target_os = "macos")]
+            {
+                if macos_accessibility_client::accessibility::application_is_trusted() {
+                    match start_helper() {
+                        Ok(Some(child)) => {
+                            *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
+                        }
+                        Ok(None) => warn!("Helper binary missing at startup"),
+                        Err(e) => error!("Start helper at startup failed: {}", e),
+                    }
+                }
+            }
 
             Ok(())
         })

@@ -80,16 +80,18 @@
                     </div>
                 </div>
 
-                <!-- <div class="config-class">
-                    <p class="config-class-title">优先后缀</p>
+                <div class="config-class">
+                    <p class="config-class-title">Helper</p>
                     <p class="config-class-desc">
-                        前缀距离搜索时的优先后缀
+                        helper accessibility
                     </p>
-                </div> -->
+                    <el-switch v-model="is_help_enabled" />
+                </div>
             </el-form>
         </div>
 
-        <el-dialog v-model="createOrEditDialogVisible" :title="dialogTitle" width="500" align-center @keydown.enter.prevent.stop>
+        <el-dialog v-model="createOrEditDialogVisible" :title="dialogTitle" width="500" align-center
+            @keydown.enter.prevent.stop>
             <el-form ref="ruleFormRef" style="max-width: 600px" :model="ruleForm" status-icon :rules="rules"
                 label-width="auto" class="demo-ruleForm">
                 <el-form-item label="Name" prop="name" required>
@@ -156,6 +158,8 @@ import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, FolderConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import AnkiPorgress from '@/components/Dialogs/AnkiPorgress.vue'
+import { invoke } from '@tauri-apps/api/core';
+import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility';
 
 const props = defineProps({
     settingDialogVisible: {
@@ -194,6 +198,7 @@ const createOrEditDialogVisible = ref(false)
 const ankiDialogVisible = ref(false)
 const favoriteWordsDialogVisible = ref(false)
 const isCreate = ref(true)
+const is_help_enabled = ref(false)
 const folderIdEditing = ref('')
 const folderIdToShow = ref<number>(0)
 const folderIdNameToShow = ref('')
@@ -222,6 +227,32 @@ watch(() => systemConfigStore.systemConfig, (newVal) => {
     localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
 }, { deep: true })
 
+watch(() => is_help_enabled.value, async (newVal) => {
+
+    if (newVal) {
+        if (isMacOS()) {
+            if (! await checkAccessibilitySafe()) {
+                await requestAccessibilitySafe()
+                console.log("Out of requestAccessibilitySafe.")
+                is_help_enabled.value = false
+                return
+            }
+            try {
+                console.log("Accessibility verified! Requesting sidecar launch...");
+                // Trigger the new Rust command
+                const response = await invoke<string>('launch_cgevent_helper');
+                console.log("Backend response:", response);
+            } catch (error) {
+                console.error("Failed to spin up sidecar:", error);
+            }
+        } else {
+            console.log("Non-macOS platform detected, skipping sidecar execution.");
+        }
+    } else {
+
+    }
+
+})
 
 const updateSystemConfig = () => {
     props.webSocket.sendUpdateSystemConfig(localSystemConfig.value)
