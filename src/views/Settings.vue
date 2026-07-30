@@ -240,8 +240,10 @@ watch(() => is_help_enabled.value, async (newVal) => {
             try {
                 console.log("Accessibility verified! Requesting sidecar launch...");
                 // Trigger the new Rust command
-                const response = await invoke<string>('launch_cgevent_helper');
-                console.log("Backend response:", response);
+                const response_cgevent_helper = await invoke<string>('launch_cgevent_server');
+                const response_helper = await invoke<string>('launch_helper');
+                console.log("Backend response:", response_cgevent_helper);
+                console.log("Backend response:", response_helper);
             } catch (error) {
                 console.error("Failed to spin up sidecar:", error);
             }

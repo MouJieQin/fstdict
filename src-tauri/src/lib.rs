@@ -9,7 +9,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
-use tauri::{App, Manager, RunEvent};
+use tauri::{App, AppHandle, Manager, RunEvent};
 
 /// Initialize logging: colored console + daily rotated file output.
 /// Must be called after the Tauri app is created so we can use app_log_dir().
@@ -180,7 +180,7 @@ fn stop_helper(process: &mut Option<Child>) {
 
 #[cfg(target_os = "macos")]
 #[tauri::command]
-fn launch_cgevent_helper(app_handle: tauri::AppHandle) -> Result<String, String> {
+fn launch_helper(app_handle: tauri::AppHandle) -> Result<String, String> {
     // 1. Verify accessibility trust status first
     if !macos_accessibility_client::accessibility::application_is_trusted() {
         return Err("Accessibility permission is missing. Cannot spawn helper.".to_string());
@@ -244,9 +244,36 @@ fn find_sidecar_path(app: &App, base_name: &str) -> Option<std::path::PathBuf> {
     None
 }
 
+// CHANGED: Accept &AppHandle so this can run inside an invoke command handler context
+fn find_sidecar_path_by_app_handle(app: &AppHandle, base_name: &str) -> Option<PathBuf> {
+    let filename = sidecar_filename(base_name);
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let p = resource_dir
+            .join("sidecars")
+            .join(base_name)
+            .join(&filename);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let p = exe_dir.join(&filename);
+            if p.exists() {
+                return Some(p);
+            }
+        }
+    }
+
+    None
+}
+
 #[cfg(target_os = "macos")]
-fn start_cgevent_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
-    let binary = match find_sidecar_path(app, "fstdict_cgevent_server") {
+fn start_cgevent_sidecar(app: &AppHandle) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+    // Pass the AppHandle reference to your file locator
+    let binary = match find_sidecar_path_by_app_handle(app, "fstdict_cgevent_server") {
         Some(path) => path,
         None => {
             log::warn!("Python sidecar 'fstdict_cgevent_server' not found — skipping");
@@ -258,8 +285,10 @@ fn start_cgevent_sidecar(app: &App) -> Result<Option<Child>, Box<dyn std::error:
     let mut cmd = Command::new(&binary);
     cmd.stdout(Stdio::null());
     cmd.stderr(Stdio::null());
+
     use std::os::unix::process::CommandExt;
     cmd.process_group(0);
+
     let child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn fstdict cgevent server: {}", e))?;
@@ -420,6 +449,32 @@ fn request_accessibility() -> bool {
     is_trusted
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn launch_cgevent_server(app_handle: AppHandle) -> Result<String, String> {
+    // 1. Double check permission constraints before spawning the sidecar loop
+    if !macos_accessibility_client::accessibility::application_is_trusted() {
+        return Err("Accessibility permission is missing. Cannot spawn sidecar.".to_string());
+    }
+
+    // 2. Lock managed state to prevent duplicate runtime spawns
+    let state = app_handle.state::<CGEventHelperProcess>();
+    let mut lock = state.0.lock().unwrap();
+    if lock.is_some() {
+        return Ok("CgEvent sidecar is already running.".to_string());
+    }
+
+    // 3. Fire the launch protocol using the shared app handle wrapper context
+    match start_cgevent_sidecar(&app_handle) {
+        Ok(Some(child)) => {
+            *lock = Some(child);
+            Ok("CgEvent sidecar started successfully.".to_string())
+        }
+        Ok(None) => Err("Sidecar binary file path matching lookup failed.".to_string()),
+        Err(e) => Err(format!("Process spawn runtime exception: {}", e)),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -434,7 +489,8 @@ pub fn run() {
             .invoke_handler(tauri::generate_handler![
                 check_accessibility,
                 request_accessibility,
-                launch_cgevent_helper
+                launch_helper,
+                launch_cgevent_server
             ])
             .manage(CGEventHelperProcess(Mutex::new(None)))
             .manage(HelperProcess(Mutex::new(None)));
@@ -472,7 +528,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 if macos_accessibility_client::accessibility::application_is_trusted() {
-                    match start_cgevent_sidecar(app) {
+                    match start_cgevent_sidecar(app.handle()) {
                         Ok(Some(child)) => {
                             *app.state::<CGEventHelperProcess>().0.lock().unwrap() = Some(child);
                         }

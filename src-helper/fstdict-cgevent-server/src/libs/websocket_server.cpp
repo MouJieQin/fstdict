@@ -115,10 +115,17 @@ std::string WebSocketServer::base64_encode(const unsigned char *data,
 
     out += base64_table[(block >> 18) & 0x3F];
     out += base64_table[(block >> 12) & 0x3F];
-    if (i + 1 < len) out += base64_table[(block >> 6) & 0x3F];
-    if (i + 2 < len) out += base64_table[block & 0x3F];
+    if (i + 1 < len) {
+      out += base64_table[(block >> 6) & 0x3F];
+    } else {
+      out += '=';
+    }
+    if (i + 2 < len) {
+      out += base64_table[block & 0x3F];
+    } else {
+      out += '=';
+    }
   }
-  // WebSocket规范要求：不要填充 =
   return out;
 }
 
