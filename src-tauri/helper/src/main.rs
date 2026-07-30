@@ -4,14 +4,15 @@
     windows_subsystem = "windows"
 )]
 
+use tauri::image::Image;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
 };
-// 1. UPDATE YOUR IMPORTS (Replace tauri_plugin_tray with core tauri modules)
-use tauri::image::Image;
-use tauri::tray::{TrayIconBuilder, TrayIconEvent}; // Used to safely load raw icon buffers if needed
+// 1. Ensure you import MouseButton and MouseButtonState along with TrayIconEvent
+use tauri::menu::{Menu, MenuItem};
 
 tauri_panel! {
     panel!(FloatSearchPanel {
@@ -39,7 +40,7 @@ tauri_panel! {
 #[tauri::command]
 fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
     if let Ok(panel) = app.get_webview_panel("float-search") {
-        panel.show_and_make_key(); // Changed to show_and_make_key for better usability
+        panel.show_and_make_key();
         return Ok(());
     }
 
@@ -54,7 +55,7 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            .can_join_all_spaces() // Allow it to follow the user across full screen desktops
+            // .can_join_all_spaces()
             .into(),
     );
 
@@ -77,29 +78,51 @@ fn main() {
         .setup(|app| {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // 2. BUILD THE TRAY ICON USING NATIVE CORE API
+            let quit_item = MenuItem::with_id(app, "quit", "Exit FstDict", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&quit_item])?;
+
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("FstDict Helper")
+                .menu(&tray_menu)
+                // ADDED: Prevent the menu from automatically opening on a regular Left-Click
+                // This preserves Left-Click for your toggle UI and keeps Right-Click for the context menu.
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app_handle, event| {
+                    if event.id.as_ref() == "quit" {
+                        app_handle.exit(0);
+                    }
+                })
                 .on_tray_icon_event(|tray_handle, event| {
-                    // Match a standard click gesture via core event mappings
-                    if let TrayIconEvent::Click { .. } = event {
+                    // 2. MODIFIED: Explicitly filter out Left-Clicks only
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
                         let app_handle = tray_handle.app_handle();
 
                         if let Ok(panel) = app_handle.get_webview_panel("main") {
-                            panel.show_and_make_key(); // Changed to show_and_make_key for better usability
+                            panel.show_and_make_key();
                         }
-
-                        // if let Ok(panel) = app_handle.get_webview_panel("float-search") {
-                        //     if let Some(window) = app_handle.get_webview_window("main") {
-                        //         if window.is_visible().unwrap_or(false) {
-                        //             panel.hide();
-                        //         } else {
-                        //             panel.show_and_make_key();
-                        //         }
-                        //     }
-                        // }
+                        if let Ok(panel) = app_handle.get_webview_panel("float-search") {
+                            if let Some(window) = app_handle.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    panel.hide();
+                                } else {
+                                    panel.show_and_make_key();
+                                }
+                            }
+                        } else {
+                            let _ = show_panel(
+                                app_handle.clone(),
+                                "tauri://localhost/#/dict/95".to_string(),
+                            );
+                        }
                     }
+                    // Right-clicks and two-finger clicks are ignored here,
+                    // allowing macOS to cleanly fall back and render your context .menu() layout.
                 })
                 .build(app)?;
 
@@ -134,13 +157,11 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            .can_join_all_spaces() // Ensures it follows spaces cleanly on Tray interaction
+            // .can_join_all_spaces()
             .into(),
     );
 
     panel.set_event_handler(Some(handler.as_ref()));
-
-    // Explicitly show it once assets load
     panel.show_and_make_key();
     Ok(())
 }
