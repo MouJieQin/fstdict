@@ -425,6 +425,7 @@ fn stop_python_sidecar(process: &mut Option<Child>) {
     }
 }
 
+#[cfg(target_os = "macos")]
 use macos_accessibility_client::accessibility::{
     application_is_trusted, application_is_trusted_with_prompt,
 };
