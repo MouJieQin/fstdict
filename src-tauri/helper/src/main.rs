@@ -6,7 +6,7 @@
 
 use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
+use tauri::{AppHandle, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow};
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
@@ -47,7 +47,15 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let panel = PanelBuilder::<_, FloatSearchPanel>::new(&app, "float-search")
         .url(WebviewUrl::External(parsed))
-        .with_window(|window| window.always_on_top(true))
+        .with_window(
+            |window| {
+                window
+                    .hidden_title(true)
+                    .title_bar_style(tauri::TitleBarStyle::Overlay)
+                    .accept_first_mouse(true)
+                    .always_on_top(true)
+            }, // .theme(Some(Theme::Dark))
+        )
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -136,12 +144,12 @@ fn main() {
 fn init(app_handle: &AppHandle) -> Result<(), String> {
     let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
     let _ = window.set_always_on_top(true);
-    let url = "tauri://localhost/#/dict/39".to_string();
+    let url = "tauri://localhost/#/dict/39?env=iwin".to_string();
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let _ = window.navigate(parsed);
 
     let panel = window.to_panel::<FloatSearchPanel>().unwrap();
-    let handler = MyPanelEventHandler::new();
+    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
     let handle = app_handle.to_owned();
 
     handler.window_did_become_key(move |_notification| {
@@ -161,7 +169,17 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
             .into(),
     );
 
+    panel.set_floating_panel(true);
     panel.set_event_handler(Some(handler.as_ref()));
+    // Convert your raw coordinates into a Tauri LogicalPosition wrapper
+    let coordinates = LogicalPosition::new(0.0, 0.0);
+
+    // Pass the coordinates wrapped inside the Position enum structure
+    panel
+        .to_window()
+        .unwrap()
+        .set_position(Position::Logical(coordinates))
+        .unwrap();
     panel.show_and_make_key();
     Ok(())
 }

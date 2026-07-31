@@ -505,7 +505,7 @@ pub fn run() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir);
-
+            
             // Ensure app data directory exists
             let app_data_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_data_dir)?;

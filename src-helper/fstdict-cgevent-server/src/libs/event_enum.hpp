@@ -8,13 +8,16 @@
 enum class EventType {
   kCGEventLeftMouseDown,
   handlerEventTextSelection,
+  globalKeyboardShortCut
 };
 
 // ===================== C++20 极简枚举工具 =====================
 consteval auto getEnumNames(EventType) {
-  return std::array<std::pair<std::string_view, EventType>, 2>{
+  return std::array<std::pair<std::string_view, EventType>, 3>{
       {{"kCGEventLeftMouseDown", EventType::kCGEventLeftMouseDown},
-       {"handlerEventTextSelection", EventType::handlerEventTextSelection}}};
+       {"handlerEventTextSelection", EventType::handlerEventTextSelection},
+       {"globalKeyboardShortCut", EventType::globalKeyboardShortCut},
+      }};
 }
 
 struct EventTypeEnum {

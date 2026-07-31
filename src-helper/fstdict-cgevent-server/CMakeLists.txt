@@ -5,7 +5,7 @@ cmake_policy(SET CMP0148 NEW)
 
 # ===================== Build Type Postfix Config =====================
 set(RELEASE_POSTFIX "" CACHE STRING "Postfix for release build binaries")
-set(DEBUG_POSTFIX "d" CACHE STRING "Postfix for debug build binaries")
+set(DEBUG_POSTFIX "" CACHE STRING "Postfix for debug build binaries")
 set(COVERAGE_POSTFIX "" CACHE STRING "Postfix for coverage build binaries")
 set(GPERF_POSTFIX "" CACHE STRING "Postfix for gperf build binaries")
 

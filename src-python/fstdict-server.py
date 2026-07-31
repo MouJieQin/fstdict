@@ -80,6 +80,10 @@ Utils.iwin_ws_client = WsClient(
     "ws://localhost:9999/ws/fstdict", MessageHandler.handle_iwin_message
 )
 
+Utils.cgevent_ws_client = WsClient(
+    "ws://localhost:5995", MessageHandler.handle_cgevent_message
+)
+
 
 @app.get("/api/connectiwin")
 async def connectiwin():
@@ -87,6 +91,15 @@ async def connectiwin():
         return {"status": "connected"}
     # 🔥 关键：用 create_task 后台启动，不阻塞接口
     asyncio.create_task(Utils.iwin_ws_client.connect())
+    return {"status": "connecting"}
+
+
+@app.get("/api/connectcgevent")
+async def connectcgevent():
+    if Utils.cgevent_ws_client.is_connected():
+        return {"status": "connected"}
+    # 🔥 关键：用 create_task 后台启动，不阻塞接口
+    asyncio.create_task(Utils.cgevent_ws_client.connect())
     return {"status": "connecting"}
 
 

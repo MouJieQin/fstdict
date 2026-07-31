@@ -119,6 +119,7 @@ import { ref, nextTick, onMounted, onUnmounted, onBeforeUnmount, computed, watch
 import { useRouter, useRoute } from 'vue-router'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
@@ -247,21 +248,33 @@ const setupWebSocket = () => {
     }
 }
 
-const initDictPage = () => {
+const connectCgevent = async () => {
+    try {
+        const res = await axios.get('http://127.0.0.1:5959/api/connectcgevent')
+        console.log(res.data)
+    } catch (err) {
+        console.error('请求失败', err)
+    }
+}
+
+const initDictPage = async () => {
     if (envFromRoute.value === 'anki') {
         document.body.classList.add('anki-mode')
     } else {
         document.body.classList.remove('anki-mode')
     }
     console.log("Current env:", envFromRoute.value)
-
+    if (envFromRoute.value === 'iwin') {
+        await connectCgevent()
+    }
     setupWebSocket()
+
 }
 
 watch(
     () => route.params.id,
-    () => {
-        initDictPage()
+    async () => {
+        await initDictPage()
     },
     { immediate: false }
 )
@@ -485,19 +498,6 @@ const handleDropdownCommand = (dictName: string) => {
         })
     })
 }
-
-// const handleDropdownCommand = (dictName: string) => {
-
-// 核心：给元素设置顶部滚动边距 = 标题高度
-// element.style.scrollMarginTop = '68px';
-//     element.scrollIntoView({ behavior: 'instant', block: 'start' })
-//     // element.scrollBy(0, 0)
-//     if (!(dictName in activeNames.value)) {
-//         activeNames.value.push(dictName)
-//     }
-// }
-// }
-
 </script>
 
 <style scoped>

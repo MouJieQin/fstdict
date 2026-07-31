@@ -53,7 +53,13 @@ class WsClient:
                 self.ws = await websockets.connect(self.uri, ping_interval=30)
                 logger.info(f"✅ 已连接 {self.uri} WS服务器: {self.uri}")
                 self._retry_count = 0
-
+                msg = {"type": "register_request",
+                       "data": {
+                           "event": "globalKeyboardShortCut"
+                       }}
+                await self.send(msg)
+                msg["data"]["event"] = "handlerEventTextSelection"
+                await self.send(msg)
                 # 监听消息
                 while True:
                     try:

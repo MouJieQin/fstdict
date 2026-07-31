@@ -12,12 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": "main",
         "width": 1440,
         "height": 900,
         "dragDropEnabled": true,
         "titleBarStyle": "Overlay",
-        "acceptFirstMouse": true
+        "acceptFirstMouse": true,
+        "hiddenTitle": true
       }
     ],
     "security": {

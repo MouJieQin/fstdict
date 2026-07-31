@@ -3,6 +3,7 @@
 #include "key_map.h"
 #include "logger.h"
 #include "selection_monitor.h"
+#include "websocket_server.h"
 
 #include <algorithm>
 #include <cstdlib> // 用于 system() 执行shell命令
@@ -13,6 +14,7 @@
 
 using namespace std;
 using json = nlohmann::json;
+static auto &g_websocket_server = WebSocketServer::instance();
 
 #define FLAGS_MODIFIER_COMMAND (flags & MODIFIER_COMMAND)
 #define FLAGS_MODIFIER_OPTION (flags & MODIFIER_OPTION)
@@ -233,6 +235,12 @@ bool ShortcutRunner::check_shortcut(CGEventRef event) {
   } else {
     // 其他快捷键，直接执行命令
     execute_shell_command_fork(cmd);
+    json json_data;
+    json_data["type"] = "CGEvent";
+    json_data["data"]["type"] =
+        EventTypeEnum::toString(EventType::globalKeyboardShortCut);
+    json_data["data"]["msg"] = iter.value()["msg"];
+    g_websocket_server.push_event_json(json_data);
   }
   return true; // 拦截快捷键，不传递事件
 }

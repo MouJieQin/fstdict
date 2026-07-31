@@ -44,7 +44,7 @@ private:
   void broadcast_json(const json &j) const;
 
   // 解析帧
-  static string ws_parse_frame(const char *data, size_t len);
+  string ws_parse_frame(int client, const char *data, size_t len) const;
 
   // 握手
   // base64 编码（用于生成 Sec-WebSocket-Accept）
@@ -62,6 +62,9 @@ private:
   void handle_event_queue();
   // 处理客户端
   void handle_ws_client(int client);
+
+  // 发送 PONG 帧响应 PING
+  void ws_send_pong(int fd, const uint8_t *payload, size_t payload_len) const;
 
 private:
   size_t max_clients;

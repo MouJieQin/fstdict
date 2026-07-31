@@ -13,6 +13,7 @@ class Utils(UtilsBase):
     db = FstDictDatabase(UtilsBase.FSTDICT_DATABASE_PATH)
     dict_db = DictDatabase(UtilsBase.DICT_DATABASE_PATH)
     iwin_ws_client: WsClient
+    cgevent_ws_client: WsClient
 
     @staticmethod
     def delete_dictionary(dict_name: str) -> None:

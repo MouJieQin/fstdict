@@ -78,25 +78,89 @@ void WebSocketServer::broadcast_json(const json &j) const {
   }
 }
 
+// 发送 PONG 控制帧（服务端回复客户端PING）
+void WebSocketServer::ws_send_pong(int fd, const uint8_t *payload,
+                                   size_t payload_len) const {
+  std::lock_guard<std::mutex> lock(*client_mutexes[fd]);
+  if (fd <= 0) return;
+
+  uint8_t header[128];
+  size_t hlen = 0;
+  header[hlen++] = 0x8A; // FIN + PONG opcode(0xA)
+
+  if (payload_len < 126) {
+    header[hlen++] = static_cast<uint8_t>(payload_len);
+  } else if (payload_len < 65536) {
+    header[hlen++] = 126;
+    header[hlen++] = static_cast<uint8_t>((payload_len >> 8) & 0xFF);
+    header[hlen++] = static_cast<uint8_t>(payload_len & 0xFF);
+  }
+  // 一般ping载荷很短，无需实现127超长负载
+
+  memcpy(header + hlen, payload, payload_len);
+  hlen += payload_len;
+
+  ws_send_raw(fd, reinterpret_cast<const char *>(header), hlen);
+}
+
 // 解析帧
-string WebSocketServer::ws_parse_frame(const char *data, size_t len) {
+string WebSocketServer::ws_parse_frame(int client, const char *data,
+                                       size_t len) const {
   if (len < 6) return "";
+
   uint8_t fin = (data[0] >> 7) & 1;
   uint8_t opcode = data[0] & 0x0F;
   uint8_t mask = (data[1] >> 7) & 1;
-  uint8_t plen = data[1] & 0x7F;
+  uint64_t plen = data[1] & 0x7F;
 
+  // Calculate standard base dynamic offset lengths
   size_t payload_start = 2;
-  if (plen == 126) payload_start += 2;
+  if (plen == 126) {
+    if (len < 4) return "";
+    plen = ((unsigned char)data[2] << 8) | (unsigned char)data[3];
+    payload_start += 2;
+  } else if (plen == 127) {
+    if (len < 10) return "";
+    plen = 0;
+    for (int i = 0; i < 8; i++) {
+      plen = (plen << 8) | (unsigned char)data[2 + i];
+    }
+    payload_start += 8;
+  }
+
   if (!mask) return "";
+  if (len < payload_start + 4 + plen) return "";
 
   const uint8_t *mask_key = (const uint8_t *)data + payload_start;
   payload_start += 4;
 
+  // Extract and unmask the frame payload
   string msg;
+  msg.reserve(plen);
   for (size_t i = 0; i < plen; i++) {
     msg += data[payload_start + i] ^ mask_key[i % 4];
   }
+
+  // -------------------------------------------------------------------------
+  // ACTIONABLE PING/PONG INTERACTION HOOK
+  // -------------------------------------------------------------------------
+  if (opcode == 0x9) {
+    // According to RFC-6455, a Pong MUST include the identical payload
+    // sent within the triggering Ping frame.
+    ws_send_pong(client, reinterpret_cast<const uint8_t *>(msg.data()),
+                 msg.length());
+    return ""; // Return empty string to seamlessly ignore this in the main
+               // router loop
+  }
+
+  if (opcode == 0xA) {
+    return ""; // Drop unidirectional client-side pongs
+  }
+
+  if (opcode == 0x8) {
+    return "close"; // Request structural cleanup hook matching string
+  }
+
   return msg;
 }
 
@@ -179,54 +243,81 @@ bool WebSocketServer::ws_handshake(int client) {
 
 // 处理客户端
 void WebSocketServer::handle_ws_client(int client) {
-
   if (!ws_handshake(client)) {
     close(client);
-    LOG_ERROR("[WebSocket] [{}] 客户端握手失败", client);
+    LOG_ERROR("[WebSocket] [{}] Client handshake failed", client);
     return;
   }
-  LOG_INFO("[WebSocket] [{}] 客户端已连接", client);
+  LOG_INFO("[WebSocket] [{}] Client connected successfully", client);
   client_connected[client] = true;
 
-  char buf[2048];
+  char buf[4096];
   while (true) {
-    ssize_t n = recv(client, buf, sizeof(buf), 0);
+    memset(buf, 0, sizeof(buf));
+
+    // Leave 1 trailing byte free to guarantee a secure null-terminator string
+    // slot
+    ssize_t n = recv(client, buf, sizeof(buf) - 1, 0);
     if (n <= 0) { break; }
 
-    string msg = ws_parse_frame(buf, n);
-    if (msg.empty()) { continue; }
-    LOG_INFO("[WebSocket] 收到客户端 [{}] 消息: {}", client, msg);
+    // Explicitly null-terminate raw socket context buffer
+    buf[n] = '\0';
 
-    // 处理 JSON 消息
+    string msg = ws_parse_frame(client, buf, n);
+    if (msg.empty()) { continue; }
+
+    // Drop background network framework ping/pong heartbeat messages safely
+    if (msg.find("keepalive") != string::npos ||
+        msg.find("ping") != string::npos) {
+      LOG_INFO("[WebSocket] [{}] Dropped control/ping keepalive payload frame",
+               client);
+      continue;
+    }
+
+    // Catch native close frames before they hit the json tokenizer stream
+    if (msg == "close" || (msg.length() > 0 && msg[0] == '\x03')) {
+      LOG_INFO("[WebSocket] [{}] Client requested connection tear-down",
+               client);
+      break;
+    }
+
+    LOG_INFO("[WebSocket] Received frame from client [{}]: {}", client, msg);
+
     json j;
     try {
       j = json::parse(msg);
     } catch (const json::exception &e) {
-      LOG_ERROR("[WebSocket] [{}] 解析 JSON 消息失败: {}", client, e.what());
+      LOG_ERROR("[WebSocket] [{}] JSON parsing failed: {}", client, e.what());
       continue;
     } catch (...) {
-      LOG_ERROR("[WebSocket] [{}] 解析 JSON 消息失败: 未知异常", client);
+      LOG_ERROR(
+          "[WebSocket] [{}] JSON parsing failed: Unknown exception caught",
+          client);
       continue;
     }
 
     if (!j.contains("type")) {
-      LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 缺少 type 字段", client);
+      LOG_WARN("[WebSocket] [{}] Message rejected: Missing 'type' field",
+               client);
     } else {
       std::string type = j["type"];
       if (type == "register_request") {
         if (!j.contains("data")) {
-          LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 缺少 data 字段",
+          LOG_WARN("[WebSocket] [{}] Registration rejected: Missing 'data' "
+                   "payload object",
                    client);
         } else {
           const json &data = j["data"];
           if (!data.contains("event")) {
-            LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 缺少 event 字段",
+            LOG_WARN("[WebSocket] [{}] Registration rejected: Missing target "
+                     "'event' key",
                      client);
           } else {
             std::string event = data["event"];
             auto type = EventTypeEnum::fromString(event);
             if (!type) {
-              LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 未知 event: {}",
+              LOG_WARN("[WebSocket] [{}] Registration rejected: Unknown target "
+                       "event code [{}]",
                        client, event);
             } else {
               size_t event_index = size_t(type.value());
@@ -241,18 +332,21 @@ void WebSocketServer::handle_ws_client(int client) {
         }
       } else if (type == "unregister_request") {
         if (!j.contains("data")) {
-          LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 缺少 data 字段",
+          LOG_WARN("[WebSocket] [{}] Unregistration rejected: Missing 'data' "
+                   "payload object",
                    client);
         } else {
           const json &data = j["data"];
           if (!data.contains("event")) {
-            LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 缺少 event 字段",
+            LOG_WARN("[WebSocket] [{}] Unregistration rejected: Missing target "
+                     "'event' key",
                      client);
           } else {
             std::string event = data["event"];
             auto type = EventTypeEnum::fromString(event);
             if (!type) {
-              LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 未知 event: [{}]",
+              LOG_WARN("[WebSocket] [{}] Unregistration rejected: Unknown "
+                       "target event code [{}]",
                        client, event);
             } else {
               size_t event_index = size_t(type.value());
@@ -266,15 +360,17 @@ void WebSocketServer::handle_ws_client(int client) {
           }
         }
       } else {
-        LOG_WARN("[WebSocket] [{}] 解析 JSON 消息失败: 未知 type: {}", client,
-                 type);
+        LOG_WARN(
+            "[WebSocket] [{}] Request dropped: Unknown event schema type [{}]",
+            client, type);
       }
     }
-    LOG_INFO("[WebSocket] 发送客户端 [{}] 消息: {}", client, j.dump());
   }
+
+  // Graceful state cleanup sequences
   client_connected[client] = false;
   close(client);
-  LOG_INFO("[WebSocket] [{}] 客户端断开连接", client);
+  LOG_INFO("[WebSocket] [{}] Connection destroyed cleanly", client);
   std::lock_guard<std::mutex> lock(events_map_mutex);
   for (auto &event : clients_map_events[client]) {
     events_map_clients[size_t(event)].erase(client);
