@@ -10,6 +10,8 @@
     "core:default",
     "opener:default",
     "core:window:default",
+    "core:window:allow-current-monitor",
+    "core:window:allow-cursor-position",
     "core:window:allow-create",
     "core:webview:allow-create-webview-window",
     "core:window:allow-start-dragging",

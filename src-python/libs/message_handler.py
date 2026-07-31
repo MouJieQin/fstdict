@@ -84,14 +84,25 @@ class MessageHandler:
     @staticmethod
     async def handle_cgevent_message(ws: ClientConnection, data: str):
         """处理iWin消息"""
+        print("handle_cgevent_message")
         try:
             message = json.loads(data)
-            command_type = message["type"]
-            if command_type == "client_id":
-                client_id = message["data"]["client_id"]
-                Utils.iwin_ws_client.set_client_id(client_id)
-                logger.info(f"设置 iWin 客户端 ID: {client_id}")
-            elif command_type == "toggle_floating_pin":
+            print(message)
+            type = message["type"]
+            if type == "CGEvent":
+                smsg = {"type": "cgevent"}
+                cg_event_type = message["data"]["type"]
+                if cg_event_type == "globalKeyboardShortCut":
+                    msg = message["data"]["msg"]
+                    logger.info(f"globalKeyboardShortCut:{msg}")
+                elif cg_event_type == "handlerEventTextSelection":
+                    smsg["data"] = message["data"]
+                    await SessionManager.broadcast_all(json.dumps(smsg))
+                    text_selected = message["data"]["text_selected"]
+                    logger.info(f"text_selected:{text_selected}")
+                else:
+                    logger.warning(f"unknow cgevent type: {cg_event_type}")
+            elif type == "toggle_floating_pin":
                 session_id = message["data"]["session_id"]
                 # connection_id = message["data"]["connection_id"]
                 msg = {
@@ -99,11 +110,11 @@ class MessageHandler:
                     "data": {"is_pinned": message["data"]["is_pinned"]},
                 }
                 await SessionManager.broadcast_session(session_id, json.dumps(msg))
-            elif command_type == "close_fixed_window":
+            elif type == "close_fixed_window":
                 session_id = message["data"]["session_id"]
                 await SessionManager.broadcast_session(session_id, data)
             else:
-                logger.warning(f"未知的cgevent命令类型: {command_type}")
+                logger.warning(f"未知的cgevent命令类型: {type}")
         except Exception as e:
             logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
 

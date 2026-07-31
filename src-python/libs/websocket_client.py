@@ -55,10 +55,10 @@ class WsClient:
                 self._retry_count = 0
                 msg = {"type": "register_request",
                        "data": {
-                           "event": "globalKeyboardShortCut"
+                           "event": "handlerEventTextSelection"
                        }}
                 await self.send(msg)
-                msg["data"]["event"] = "handlerEventTextSelection"
+                msg["data"]["event"] = "globalKeyboardShortCut"
                 await self.send(msg)
                 # 监听消息
                 while True:

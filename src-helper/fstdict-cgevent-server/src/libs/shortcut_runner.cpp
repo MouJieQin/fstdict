@@ -234,7 +234,7 @@ bool ShortcutRunner::check_shortcut(CGEventRef event) {
     return true;
   } else {
     // 其他快捷键，直接执行命令
-    execute_shell_command_fork(cmd);
+    // execute_shell_command_fork(cmd);
     json json_data;
     json_data["type"] = "CGEvent";
     json_data["data"]["type"] =

@@ -144,7 +144,7 @@ fn main() {
 fn init(app_handle: &AppHandle) -> Result<(), String> {
     let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
     let _ = window.set_always_on_top(true);
-    let url = "tauri://localhost/#/dict/39?env=iwin".to_string();
+    let url = "tauri://localhost/#/dict/39?env=floating_tauri".to_string();
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     let _ = window.navigate(parsed);
 
@@ -165,21 +165,21 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            // .can_join_all_spaces()
+            .can_join_all_spaces()
             .into(),
     );
 
     panel.set_floating_panel(true);
     panel.set_event_handler(Some(handler.as_ref()));
     // Convert your raw coordinates into a Tauri LogicalPosition wrapper
-    let coordinates = LogicalPosition::new(0.0, 0.0);
+    // let coordinates = LogicalPosition::new(0.0, 0.0);
 
     // Pass the coordinates wrapped inside the Position enum structure
-    panel
-        .to_window()
-        .unwrap()
-        .set_position(Position::Logical(coordinates))
-        .unwrap();
+    // panel
+    //     .to_window()
+    //     .unwrap()
+    //     .set_position(Position::Logical(coordinates))
+    //     .unwrap();
     panel.show_and_make_key();
     Ok(())
 }

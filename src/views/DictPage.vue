@@ -122,6 +122,7 @@ import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
+import { popupPanelNearCursor } from '@/common/window-controll'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import WordOptions from '@/components/WordOptions.vue'
 import DictIframe from '@/components/DictIframe.vue';
@@ -264,11 +265,10 @@ const initDictPage = async () => {
         document.body.classList.remove('anki-mode')
     }
     console.log("Current env:", envFromRoute.value)
-    if (envFromRoute.value === 'iwin') {
+    if (envFromRoute.value === 'floating_tauri') {
         await connectCgevent()
     }
     setupWebSocket()
-
 }
 
 watch(
@@ -373,6 +373,9 @@ const handleWebSocketMessage = (message: any) => {
         case 'add_dictionary':
             addDictMsgs.value.push(message.data)
             break
+        case 'cgevent':
+            handleCgevent(message.data);
+            break;
         case 'error_session_not_exist':
             router.push('/')
             break
@@ -453,6 +456,17 @@ const handleToggleFloatPin = (message: any) => {
         sessionConfig.value.pin = { "is_pinned": message.data.is_pinned }
     }
     webSocket.value?.sendSessionConfig(sessionConfig.value)
+}
+
+const handleCgevent = async (data: any) => {
+    if (envFromRoute.value != 'floating_tauri') {
+        return
+    }
+    const type = data.type
+    if (type === 'handlerEventTextSelection') {
+        redirectWord.value=data.text_selected
+        await popupPanelNearCursor()
+    }
 }
 
 const handleCloseFixedWindow = (message: any) => {
