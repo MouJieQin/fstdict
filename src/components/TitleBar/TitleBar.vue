@@ -6,7 +6,7 @@
                 <WordOptionsAutoComplete :webSocket="props.webSocket" :env="props.env"
                     :redirectWord="props.redirectWord" :redirectHistoryWord="redirectHistoryWord"
                     :wordOptions="props.wordOptions" :sessionConfig="props.sessionConfig" :searchHistory="searchHistory"
-                    @change:keyword="keywordChange" />
+                    @change:keyword="keywordChange" :showPopoverWordOptions="showPopoverWordOptions"/>
             </div>
             <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
                 <el-button :icon="ArrowLeftBold" text @click="handleHistoryBack" class="floating-window-titlebar-button"
@@ -237,6 +237,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showPopoverWordOptions: {
+        type: Boolean,
+        default: true,
+    }
 })
 
 const emits = defineEmits<{

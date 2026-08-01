@@ -9,11 +9,13 @@
                 :redirectWord="redirectWord" @change:keyword="handleChangeKeyword"
                 @clear:addDictMsgs="() => addDictMsgs = []" :iframeKeydownEvent="iframeKeydownEvent"
                 :ankiProgress="ankiProgress" :addDictMsgs="addDictMsgs"
-                :refreshDicsSettingsInfoFlag="refreshDicsSettingsInfoFlag" />
+                :refreshDicsSettingsInfoFlag="refreshDicsSettingsInfoFlag"
+                :showPopoverWordOptions="showPopoverWordOptions" />
         </el-header>
         <el-main class="no-padding-main">
             <el-splitter>
-                <el-splitter-panel :size="wordOptionsSize" @update:size="handlePanelResize">
+                <el-splitter-panel v-if="!showPopoverWordOptions" :size="wordOptionsSize"
+                    @update:size="handlePanelResize">
                     <div class="word-options">
                         <WordOptions :webSocket="webSocket as SessionWebSocketService"
                             :sessionConfig="sessionConfig as SessionConfig" :wordOptions="wordOptions"
@@ -172,11 +174,17 @@ const iframeKeydownEvent = ref<any | null>(null)
 const ankiProgress = ref<any>({})
 const addDictMsgs = ref<any>([])
 const showAddDictInfo = ref(false)
+const viewportWidth = ref(window.innerWidth)
+const showPopoverWordOptions = ref(false)
 
 const isFloatingWindowPinned = ref<boolean>(sessionConfig.value?.pin?.is_pinned || false)
 
 watch(() => sessionConfig.value?.pin?.is_pinned, (newVal) => {
     isFloatingWindowPinned.value = newVal
+})
+
+watch(() => viewportWidth.value, (newWidth) => {
+    showPopoverWordOptions.value = newWidth < 700
 })
 
 const isTauriEnv = computed(() => {
@@ -269,6 +277,12 @@ const initDictPage = async () => {
     if (envFromRoute.value === 'floating_tauri') {
         await connectCgevent()
     }
+    window.addEventListener('resize', handleResize)
+
+}
+
+function handleResize() {
+    viewportWidth.value = window.innerWidth
 }
 
 watch(
@@ -285,6 +299,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
 })
 
 router.beforeEach(async (to, from) => {

@@ -40,7 +40,7 @@ body::-webkit-scrollbar-thumb {
 }
 
 :root {
-    --header-height: 60px;
+    --header-height: 50px;
     --app-header-bg: rgba(243, 243, 242, 1);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 1);
@@ -525,7 +525,7 @@ el-tabs__item {
     width: 360px;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 700px) {
     #titlebar-setting-button {
         display: none;
     }

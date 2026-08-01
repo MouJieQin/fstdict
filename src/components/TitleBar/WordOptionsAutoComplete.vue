@@ -1,9 +1,9 @@
 <template>
     <div class="floating-window-search-container">
-        <el-input v-if="!showPopoverSuggestions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
-            autocapitalize="off" spellcheck="false" placeholder="Search" clearable style="font-size: 1rem;"
-            @input="handleInputChange" @keydown.enter.prevent="handleKeyEnter" @compositionstart="onCompositionStart"
-            @compositionend="onCompositionEnd">
+        <el-input v-if="!props.showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off"
+            autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search" clearable
+            style="font-size: 1rem;" @input="handleInputChange" @keydown.enter.prevent="handleKeyEnter"
+            @compositionstart="onCompositionStart" @compositionend="onCompositionEnd">
             <template #prefix>
                 <SearchMethodSelect :searchMethod="props.sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
@@ -77,6 +77,7 @@ const props = defineProps<{
     redirectHistoryWord: string
     searchHistory: Array<{ word: string }>
     wordOptions: string[]
+    showPopoverWordOptions: boolean
 }>()
 
 const emits = defineEmits<{
@@ -98,10 +99,6 @@ const isComposing = ref(false)
 
 let searchDebounceTimer: any = null
 let resizeObserver: ResizeObserver | null = null
-
-const showPopoverSuggestions = computed(() => {
-    return props.env === 'iwin'
-})
 
 // Setup layout trackers and global input listener bounds on initialization
 onMounted(() => {
@@ -208,7 +205,7 @@ const handleKeyEnter = () => {
             }
         }
     }
-    if (!showPopoverSuggestions) {
+    if (!props.showPopoverWordOptions) {
         sendLookupKeyword()
     } else {
         if (isDropdownVisible.value && activeIndex.value >= 0 && activeIndex.value < links.value.length) {
@@ -249,6 +246,7 @@ watch(() => props.searchHistory, syncSuggestions, { deep: true })
 watch(() => props.redirectWord, (newVal) => {
     keyword.value = newVal
     sendLookupKeyword()
+    sendKeywordOptionsSearch()
 })
 watch(() => props.redirectHistoryWord, (newVal) => {
     keyword.value = newVal
@@ -303,7 +301,7 @@ const sendLookupKeyword = (leftHistory: boolean = true) => {
 }
 
 const handleInputChange = () => {
-    if (showPopoverSuggestions) {
+    if (props.showPopoverWordOptions) {
         isDropdownVisible.value = true
     }
     emits('change:keyword', keyword.value)
