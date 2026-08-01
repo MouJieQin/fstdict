@@ -257,14 +257,14 @@ const setupWebSocket = () => {
     }
 }
 
-const connectCgevent = async () => {
-    try {
-        const res = await axios.get('http://127.0.0.1:5959/api/connectcgevent')
-        console.log(res.data)
-    } catch (err) {
-        console.error('请求失败', err)
-    }
-}
+// const connectCgevent = async () => {
+//     try {
+//         const res = await axios.get('http://127.0.0.1:5959/api/connectcgevent')
+//         console.log(res.data)
+//     } catch (err) {
+//         console.error('请求失败', err)
+//     }
+// }
 
 const initDictPage = async () => {
     if (envFromRoute.value === 'anki') {
@@ -274,11 +274,11 @@ const initDictPage = async () => {
     }
     console.log("Current env:", envFromRoute.value)
     setupWebSocket()
-    if (envFromRoute.value === 'floating_tauri') {
-        await connectCgevent()
-    }
+    // if (envFromRoute.value === 'floating_tauri') {
+    //     await connectCgevent()
+    // }
     window.addEventListener('resize', handleResize)
-
+    showPopoverWordOptions.value = window.innerWidth < 700
 }
 
 function handleResize() {

@@ -205,6 +205,13 @@ def run_frontend_server():
                 access_log=False, log_level="info")
 
 
+def connect_cgevent():
+    def run_connect_cgevent():
+        asyncio.run(Utils.cgevent_ws_client.connect())
+    connect_thread = threading.Thread(target=run_connect_cgevent, daemon=True)
+    connect_thread.start()
+
+
 def main():
     if getattr(sys, "frozen", False):
         # 启动前检查
@@ -221,13 +228,14 @@ def main():
         logger.info("✅ Frontend:     http://127.0.0.1:9595")
         logger.info("✅ API server:   http://127.0.0.1:5959")
 
+        connect_cgevent()
         # API 服务放主线程（阻塞运行，程序主循环在这里）
         run_api_server()
     else:
         # if not is_port_available(5959):
         #     logger.error("❌ 端口 5959 已被占用，词典后端可能已经在运行")
         #     sys.exit(1)
-
+        connect_cgevent()
         run_api_server()
 
 

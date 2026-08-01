@@ -1136,7 +1136,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "chrono",
  "colored",
@@ -1154,7 +1154,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict-helper"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "serde",
  "serde_json",

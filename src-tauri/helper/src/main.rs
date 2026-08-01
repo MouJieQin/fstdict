@@ -125,7 +125,7 @@ fn main() {
                         } else {
                             let _ = show_panel(
                                 app_handle.clone(),
-                                "tauri://localhost/#/dict/95".to_string(),
+                                "tauri://localhost/#/dict/95?env=floating_tauri".to_string()
                             );
                         }
                     }

@@ -1,4 +1,5 @@
 #include "websocket_server.h"
+#include "http_client.h"
 #include "logger.h"
 #include <CommonCrypto/CommonDigest.h>
 #include <arpa/inet.h>
@@ -435,6 +436,16 @@ void WebSocketServer::start_websocket_server() {
   }
 
   LOG_INFO("[WebSocket] 运行在 ws://localhost:{}", WS_PORT);
+  std::string fstdict_api_url = "http://127.0.0.1:5959/api/connectcgevent";
+  http_get_async(fstdict_api_url, 8, [](bool ok, const std::string &result) {
+    if (ok) {
+      LOG_INFO("[WebSocket] 成功通知 FSTDict 后端 CGEvent 监听服务已启动: {}",
+               result);
+    } else {
+      LOG_ERROR("[WebSocket] 通知 FSTDict 后端 CGEvent 监听服务启动失败: {}",
+                result);
+    }
+  });
 
   auto &ws_server = WebSocketServer::instance();
   thread(&WebSocketServer::handle_event_queue, &ws_server).detach();

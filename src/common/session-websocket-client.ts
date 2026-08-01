@@ -291,7 +291,7 @@ class SessionWebSocketService extends WebSocketService {
 // 导出单例或工厂函数，根据项目需求选择
 let sessionWebSocketInstance: SessionWebSocketService | null = null;
 export function useSessionWebSocket(id: number) {
-    sessionWebSocketInstance = new SessionWebSocketService("ws://localhost:5959/ws/dictionary/session/" + id);
+    sessionWebSocketInstance = new SessionWebSocketService("ws://127.0.0.1:5959/ws/dictionary/session/" + id);
     return sessionWebSocketInstance;
 }
 export { SessionWebSocketService }
