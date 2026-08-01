@@ -7,6 +7,7 @@ export interface DictInfo {
     js: string[];
     data: string;
     cover: string;
+    cover_url: string;
 }
 
 export interface DictsInfo {
@@ -15,7 +16,7 @@ export interface DictsInfo {
 
 export interface DictSettingInfo {
     name: string;
-    cover_url: string;
+    // cover_url: string;
     is_enabled: boolean;
 }
 

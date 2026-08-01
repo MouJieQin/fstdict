@@ -3,12 +3,12 @@
         <el-header data-tauri-drag-region height="var(--header-height)" id="fstdict-header" class="fstdict-header">
             <Titlebar :webSocket="webSocket as SessionWebSocketService" :sessionId="sessionId" :env="envFromRoute"
                 :isWordFavorited="isWordFavorited" :sessionConfig="sessionConfig as SessionConfig"
-                :sessionsNameId="sessionsNameId" :folderWords="folderWords" :leftHistory="leftHistory"
-                :searchHistory="searchHistory" :isPinned="isFloatingWindowPinned" :lastSearchKeyword="lastSearchKeyword"
-                :hasResultLastSearch="hasResultLastSearch" :noteContent="noteContent" :wordOptions="wordOptions"
-                :redirectWord="redirectWord" @change:keyword="handleChangeKeyword"
-                @clear:addDictMsgs="() => addDictMsgs = []" :iframeKeydownEvent="iframeKeydownEvent"
-                :ankiProgress="ankiProgress" :addDictMsgs="addDictMsgs"
+                :dictsInfo="dictsInfo" :sessionsNameId="sessionsNameId" :folderWords="folderWords"
+                :leftHistory="leftHistory" :searchHistory="searchHistory" :isPinned="isFloatingWindowPinned"
+                :lastSearchKeyword="lastSearchKeyword" :hasResultLastSearch="hasResultLastSearch"
+                :noteContent="noteContent" :wordOptions="wordOptions" :redirectWord="redirectWord"
+                @change:keyword="handleChangeKeyword" @clear:addDictMsgs="() => addDictMsgs = []"
+                :iframeKeydownEvent="iframeKeydownEvent" :ankiProgress="ankiProgress" :addDictMsgs="addDictMsgs"
                 :refreshDicsSettingsInfoFlag="refreshDicsSettingsInfoFlag"
                 :showPopoverWordOptions="showPopoverWordOptions" />
         </el-header>
@@ -398,8 +398,7 @@ const handleWebSocketMessage = (message: any) => {
 }
 
 const getDictIcon = (dictName: string) => {
-    const item = sessionDictsSettingInfo.value?.find((item: any) => item.name === dictName)
-    return item ? item.cover_url : ''
+    return dictsInfo.value[dictName]?.cover_url || ''
 }
 
 const handleLookupKeyword = (data: any) => {

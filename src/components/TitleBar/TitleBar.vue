@@ -6,7 +6,7 @@
                 <WordOptionsAutoComplete :webSocket="props.webSocket" :env="props.env"
                     :redirectWord="props.redirectWord" :redirectHistoryWord="redirectHistoryWord"
                     :wordOptions="props.wordOptions" :sessionConfig="props.sessionConfig" :searchHistory="searchHistory"
-                    @change:keyword="keywordChange" :showPopoverWordOptions="showPopoverWordOptions"/>
+                    @change:keyword="keywordChange" :showPopoverWordOptions="showPopoverWordOptions" />
             </div>
             <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
                 <el-button :icon="ArrowLeftBold" text @click="handleHistoryBack" class="floating-window-titlebar-button"
@@ -118,7 +118,8 @@
         <el-dialog v-model="dictSSDialogVisible" fullscreen>
             <DictSelectAndSortDialog :webSocket="props.webSocket" :env="props.env"
                 :dictSSDialogVisible="dictSSDialogVisible" :sessionConfig="props.sessionConfig"
-                :addDictMsgs="props.addDictMsgs" :refreshDicsSettingsInfoFlag="props.refreshDicsSettingsInfoFlag"
+                :dictsInfo="props.dictsInfo" :addDictMsgs="props.addDictMsgs"
+                :refreshDicsSettingsInfoFlag="props.refreshDicsSettingsInfoFlag"
                 @clear:addDictMsgs="() => emits('clear:addDictMsgs')">
             </DictSelectAndSortDialog>
         </el-dialog>
@@ -145,7 +146,7 @@ import { getDictSettingsForLookup, getDefaultSessionConfig } from '@/common/util
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
 import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
 import { ElMessageBox } from 'element-plus'
-import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig } from '@/common/type-interface'
+import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig, DictInfo } from '@/common/type-interface'
 import { useRouter } from 'vue-router'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
@@ -172,6 +173,11 @@ const props = defineProps({
         type: Object as () => SessionConfig,
         required: true,
         default: () => ({})
+    },
+    dictsInfo: {
+        type: Object as PropType<DictInfo>,
+        required: true,
+        default: () => ({}),
     },
     folderWords: {
         type: Object as () => FolderWords,
@@ -208,7 +214,7 @@ const props = defineProps({
         default: false,
     },
     wordOptions: {
-        type: Array,
+        type: Array as PropType<string[]>,
         default: () => [],
     },
     redirectWord: {

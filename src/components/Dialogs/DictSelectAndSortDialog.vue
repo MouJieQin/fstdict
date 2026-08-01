@@ -28,7 +28,7 @@
         <el-card class="dict-settings-drag-card" shadow="always" :class="{ 'is-disabled': !item.is_enabled }">
           <div class="dict-settings-drag-card-content">
             <div class="left-group">
-              <el-image :src="item.cover_url" class="icon">
+              <el-image :src="props.dictsInfo[item.name]?.cover_url" class="icon">
                 <template #error>
                   <BiSolidBookBookmark size="35" />
                 </template>
@@ -84,7 +84,7 @@ import { ref, onMounted, computed, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
 import { MoreFilled, Delete, Edit, Plus } from '@element-plus/icons-vue'
-import type { DictSettingInfo, DictsSettingInfo, SessionConfig } from '@/common/type-interface'
+import type { DictSettingInfo, DictsSettingInfo, SessionConfig, DictInfo } from '@/common/type-interface'
 import { useSystemConfigStore } from '@/stores/stores'
 import type { PropType } from 'vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
@@ -129,6 +129,10 @@ const props = defineProps({
   },
   sessionConfig: {
     type: Object as PropType<SessionConfig>,
+    required: true
+  },
+  dictsInfo: {
+    type: Object as PropType<DictsSettingInfo>,
     required: true
   },
   addDictMsgs: {
