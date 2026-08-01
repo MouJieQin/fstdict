@@ -265,10 +265,10 @@ const initDictPage = async () => {
         document.body.classList.remove('anki-mode')
     }
     console.log("Current env:", envFromRoute.value)
+    setupWebSocket()
     if (envFromRoute.value === 'floating_tauri') {
         await connectCgevent()
     }
-    setupWebSocket()
 }
 
 watch(
@@ -464,7 +464,7 @@ const handleCgevent = async (data: any) => {
     }
     const type = data.type
     if (type === 'handlerEventTextSelection') {
-        redirectWord.value=data.text_selected
+        redirectWord.value = data.text_selected
         await popupPanelNearCursor()
     }
 }

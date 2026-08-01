@@ -1,6 +1,7 @@
 [package]
 name = "fstdict-helper"
 version = "0.0.15"
+authors = ["Moujie Qin"]
 edition = "2021"
 
 [build-dependencies]
