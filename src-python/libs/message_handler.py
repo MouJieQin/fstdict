@@ -84,16 +84,31 @@ class MessageHandler:
     @staticmethod
     async def handle_cgevent_message(ws: ClientConnection, data: str):
         """处理iWin消息"""
-        print("handle_cgevent_message")
         try:
             message = json.loads(data)
-            print(message)
             type = message["type"]
             if type == "CGEvent":
                 smsg = {"type": "cgevent"}
                 cg_event_type = message["data"]["type"]
                 if cg_event_type == "globalKeyboardShortCut":
                     msg = message["data"]["msg"]
+                    if msg["type"] == "toggle_selection":
+                        enabled = Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"]
+                        enabled = not enabled
+                        Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"] = enabled
+                        Utils.Config.syncCgeventConfig()
+                        if enabled:
+                            await Utils.cgevent_ws_client.send_register_request("handlerEventTextSelection")
+                            if "handlerEventTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("handlerEventTextSelection")
+                                Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
+                            logger.info("已启用选词浮窗")
+                        else:
+                            await Utils.cgevent_ws_client.send_unregister_request("handlerEventTextSelection")
+                            if "handlerEventTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
+                                Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
+                            logger.info("已禁用选词浮窗")
                     logger.info(f"globalKeyboardShortCut:{msg}")
                 elif cg_event_type == "handlerEventTextSelection":
                     smsg["data"] = message["data"]
@@ -102,17 +117,6 @@ class MessageHandler:
                     logger.info(f"text_selected:{text_selected}")
                 else:
                     logger.warning(f"unknow cgevent type: {cg_event_type}")
-            elif type == "toggle_floating_pin":
-                session_id = message["data"]["session_id"]
-                # connection_id = message["data"]["connection_id"]
-                msg = {
-                    "type": "toggle_floating_pin",
-                    "data": {"is_pinned": message["data"]["is_pinned"]},
-                }
-                await SessionManager.broadcast_session(session_id, json.dumps(msg))
-            elif type == "close_fixed_window":
-                session_id = message["data"]["session_id"]
-                await SessionManager.broadcast_session(session_id, data)
             else:
                 logger.warning(f"未知的cgevent命令类型: {type}")
         except Exception as e:

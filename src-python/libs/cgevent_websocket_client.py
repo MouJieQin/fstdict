@@ -8,27 +8,24 @@ from websockets.asyncio.client import ClientConnection
 from libs.log_config import logger
 
 
-class WsClient:
-    def __init__(self, uri: str, message_handler):
+class CgeventWsClient:
+    def __init__(self, uri: str, register_events: typing.List[str], message_handler):
         self.uri = uri
         self.ws: typing.Optional[ClientConnection] = None
         self.message_handler = message_handler
-        self._client_id = ""
         self._retry_count = 0
-        self._connected_task = None  # 保存连接任务
         self._do_not_retry = False
+        self._register_events = register_events
 
     def is_connected(self):
         # websockets >=11.0 uses 'open' property to check connection status
         return self.ws is not None
 
-    # and getattr(self.ws, 'open', False)
-
     def set_do_not_retry(self):
         self._do_not_retry = True
 
-    def set_client_id(self, client_id: str):
-        self._client_id = client_id
+    def set_register_events_right_after_connection(self, events: typing.List[str]):
+        self.register_events = events
 
     async def close(self):
         """外部调用：立刻关闭连接并退出循环"""
@@ -49,10 +46,11 @@ class WsClient:
                 return
 
             try:
-                # 去掉 async with，改用手动管理，才能被外部 close() 打断
                 self.ws = await websockets.connect(self.uri, ping_interval=30)
                 logger.info(f"✅ 已连接 {self.uri} WS服务器: {self.uri}")
                 self._retry_count = 0
+                for event in self._register_events:
+                    await self.send_register_request(event)
                 # 监听消息
                 while True:
                     try:
@@ -76,8 +74,27 @@ class WsClient:
     async def send(self, msg: typing.Dict):
         """发送消息到"""
         if self.is_connected():
-            msg["data"]["client_id"] = self._client_id
             await self.ws.send(json.dumps(msg))  # type: ignore
             print(f"✅ 发给 {self.uri} WebSocket: {msg}")
         else:
             print(f"❌ 未连接 {self.uri}")
+
+    async def send_register_request(self, event: str):
+        """发送注册请求"""
+        msg = {
+            "type": "register_request",
+            "data": {
+                "event": event
+            }
+        }
+        await self.send(msg)
+
+    async def send_unregister_request(self, event: str):
+        """发送注销请求"""
+        msg = {
+            "type": "unregister_request",
+            "data": {
+                "event": event
+            }
+        }
+        await self.send(msg)

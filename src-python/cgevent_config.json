@@ -1,4 +1,15 @@
 {
+    "app":{
+        "selection_float_search":{
+            "enabled": false,
+            "width": 600,
+            "height": 500,
+            "position": {
+                "x": 0,
+                "y": 0
+            }
+        }
+    },
     "shortcuts": {
         "settings": {
             "name": "settings",

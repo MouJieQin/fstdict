@@ -3,6 +3,7 @@ import subprocess
 import os
 from libs.config import UtilsBase
 from libs.websocket_client import WsClient
+from libs.cgevent_websocket_client import CgeventWsClient
 from libs.fstdict_database import FstDictDatabase
 from libs.dict_database import DictDatabase
 
@@ -13,7 +14,7 @@ class Utils(UtilsBase):
     db = FstDictDatabase(UtilsBase.FSTDICT_DATABASE_PATH)
     dict_db = DictDatabase(UtilsBase.DICT_DATABASE_PATH)
     iwin_ws_client: WsClient
-    cgevent_ws_client: WsClient
+    cgevent_ws_client: CgeventWsClient
 
     @staticmethod
     def delete_dictionary(dict_name: str) -> None:

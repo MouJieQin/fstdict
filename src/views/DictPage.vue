@@ -473,7 +473,7 @@ const handleToggleFloatPin = (message: any) => {
 }
 
 const handleCgevent = async (data: any) => {
-    if (envFromRoute.value != 'floating_tauri') {
+    if (envFromRoute.value != 'selection_float_search') {
         return
     }
     const type = data.type

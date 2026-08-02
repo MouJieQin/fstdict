@@ -195,7 +195,6 @@ bool ShortcutRunner::check_shortcut(CGEventRef event) {
     }
   }
   auto iter = it->second.begin();
-  const auto cmd = iter.value()["command"].get<string>();
   const std::string shortcut_name = iter.key();
 
   if (shortcut_name == "toggle shortcut") {
@@ -210,7 +209,6 @@ bool ShortcutRunner::check_shortcut(CGEventRef event) {
 
   if (shortcut_name == "reload config") {
     cgEventHandlerRef.load_config();
-    execute_shell_command_fork(cmd);
   }
   // else if (shortcut_name == "toggle selection monitor")
   // {
@@ -233,8 +231,6 @@ bool ShortcutRunner::check_shortcut(CGEventRef event) {
     CFRunLoopStop(CFRunLoopGetCurrent());
     return true;
   } else {
-    // 其他快捷键，直接执行命令
-    // execute_shell_command_fork(cmd);
     json json_data;
     json_data["type"] = "CGEvent";
     json_data["data"]["type"] =

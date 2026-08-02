@@ -5,6 +5,7 @@ import sys
 import os
 import socket
 from libs.websocket_client import WsClient
+from libs.cgevent_websocket_client import CgeventWsClient
 from libs.message_handler import MessageHandler
 from libs.session_manager import SessionManager
 from libs.common import Utils
@@ -80,8 +81,9 @@ Utils.iwin_ws_client = WsClient(
     "ws://localhost:9999/ws/fstdict", MessageHandler.handle_iwin_message
 )
 
-Utils.cgevent_ws_client = WsClient(
-    "ws://localhost:5995", MessageHandler.handle_cgevent_message
+Utils.cgevent_ws_client = CgeventWsClient(
+    "ws://localhost:5995", Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION,
+    MessageHandler.handle_cgevent_message
 )
 
 

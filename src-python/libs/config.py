@@ -24,8 +24,10 @@ class UtilsBase:
     FSTDICT_STORAGE_PATH = f"{FSTDICT_SUPPORT_PATH}/Storage"
     USER_CONFIG_DIR = FSTDICT_STORAGE_PATH + "/config"
     CONFIG_FILE = USER_CONFIG_DIR + "/config.json"
+    CGEVENT_CONFIG_FILE = USER_CONFIG_DIR + "/cgevent_config.json"
     ANKI_CONFIG_FILE = USER_CONFIG_DIR + "/anki_config.json"
     DEFAULT_CONFIG_FILE = str(BASE_DIR / "config.json")
+    DEFAULT_CGEVENT_CONFIG_FILE = str(BASE_DIR / "cgevent_config.json")
     DICTIONARYS_PATH = FSTDICT_STORAGE_PATH + "/dictionaries"
     FSTD_SEARCHER_META_PATH = DICTIONARYS_PATH + "/fstd_searcher_meta.json"
     FSTDX_INDEX_PATH = DICTIONARYS_PATH + "/fstd_indexes.fstdxidx"
@@ -37,6 +39,9 @@ class UtilsBase:
 
     DEFAULT_CONFIG = {}
     CONFIG = {}
+    DEFAULT_CGEVENT_CONFIG = {}
+    CGEVENT_CONFIG = {}
+    REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION = ["globalKeyboardShortCut"]
     FSTDICT_CONFIG = {}
     DICT_INFO = {}
 
@@ -90,10 +95,22 @@ class UtilsBase:
                 f.write(json.dumps(UtilsBase.CONFIG, ensure_ascii=False, indent=4))
 
         @staticmethod
+        def syncCgeventConfig():
+            """同步Cgevent配置文件"""
+            with open(UtilsBase.CGEVENT_CONFIG_FILE, mode="w", encoding="utf-8") as f:
+                f.write(json.dumps(UtilsBase.CGEVENT_CONFIG, ensure_ascii=False, indent=4))
+
+        @staticmethod
         def init_config(config: dict):
             """初始化配置目录和文件"""
             UtilsBase.CONFIG = config
             UtilsBase.Config.syncConfig()
+
+        @staticmethod
+        def init_cgevent_config(cgevent_config: dict):
+            """初始化Cgevent配置目录和文件"""
+            UtilsBase.CGEVENT_CONFIG = cgevent_config
+            UtilsBase.Config.syncCgeventConfig()
 
         @staticmethod
         def create_dict_set_option(option_name: str) -> bool:
@@ -205,11 +222,20 @@ def init_config():
     with open(UtilsBase.DEFAULT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
         UtilsBase.DEFAULT_CONFIG = json.load(f)
 
+    with open(UtilsBase.DEFAULT_CGEVENT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+        UtilsBase.DEFAULT_CGEVENT_CONFIG = json.load(f)
+
     if os.path.isfile(UtilsBase.CONFIG_FILE):
         with open(UtilsBase.CONFIG_FILE, mode="r", encoding="utf-8") as f:
             UtilsBase.CONFIG = json.load(f)
     else:
         UtilsBase.CONFIG = {}
+
+    if os.path.isfile(UtilsBase.CGEVENT_CONFIG_FILE):
+        with open(UtilsBase.CGEVENT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+            UtilsBase.CGEVENT_CONFIG = json.load(f)
+    else:
+        UtilsBase.CGEVENT_CONFIG = {}
 
     dict_path = Path(UtilsBase.DICTIONARYS_PATH)
     for file in dict_path.iterdir():
@@ -230,15 +256,20 @@ def init_config():
                     setDefaultValIfNone(config[key], default_val)
 
     setDefaultValIfNone(UtilsBase.CONFIG, UtilsBase.DEFAULT_CONFIG)
-
     if diff_flag:
-        logger.info("配置文件缺失部分项，已使用默认值填充")
-        logger.info(f"配置文件: {UtilsBase.CONFIG_FILE}")
-        logger.info(f"默认配置: {UtilsBase.DEFAULT_CONFIG_FILE}")
         UtilsBase.Config.syncConfig()
+
+    diff_flag = False
+    setDefaultValIfNone(UtilsBase.CGEVENT_CONFIG, UtilsBase.DEFAULT_CGEVENT_CONFIG)
+    if diff_flag:
+        UtilsBase.Config.syncCgeventConfig()
+
+    if UtilsBase.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"]:
+        UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
 
     UtilsBase.Config.renew_dict_set_options()
     UtilsBase.Config.init_config(UtilsBase.CONFIG)
+    UtilsBase.Config.init_cgevent_config(UtilsBase.CGEVENT_CONFIG)
 
 
 init_config()

@@ -39,13 +39,13 @@ tauri_panel! {
 
 #[tauri::command]
 fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    if let Ok(panel) = app.get_webview_panel("float-search") {
+    if let Ok(panel) = app.get_webview_panel("selection-float-search") {
         panel.show_and_make_key();
         return Ok(());
     }
 
     let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
-    let panel = PanelBuilder::<_, FloatSearchPanel>::new(&app, "float-search")
+    let panel = PanelBuilder::<_, FloatSearchPanel>::new(&app, "selection-float-search")
         .url(WebviewUrl::External(parsed))
         .with_window(
             |window| {
@@ -67,7 +67,7 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
             .into(),
     );
 
-    panel.show_and_make_key();
+    // panel.show_and_make_key();
     Ok(())
 }
 
@@ -114,20 +114,20 @@ fn main() {
                         if let Ok(panel) = app_handle.get_webview_panel("main") {
                             panel.show_and_make_key();
                         }
-                        if let Ok(panel) = app_handle.get_webview_panel("float-search") {
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                if window.is_visible().unwrap_or(false) {
-                                    panel.hide();
-                                } else {
-                                    panel.show_and_make_key();
-                                }
-                            }
-                        } else {
-                            let _ = show_panel(
-                                app_handle.clone(),
-                                "tauri://localhost/#/dict/95?env=floating_tauri".to_string()
-                            );
-                        }
+                        // if let Ok(panel) = app_handle.get_webview_panel("float-search") {
+                        //     if let Some(window) = app_handle.get_webview_window("main") {
+                        //         if window.is_visible().unwrap_or(false) {
+                        //             panel.hide();
+                        //         } else {
+                        //             panel.show_and_make_key();
+                        //         }
+                        //     }
+                        // } else {
+                        //     let _ = show_panel(
+                        //         app_handle.clone(),
+                        //         "tauri://localhost/#/dict/95?env=selection_float_search".to_string()
+                        //     );
+                        // }
                     }
                     // Right-clicks and two-finger clicks are ignored here,
                     // allowing macOS to cleanly fall back and render your context .menu() layout.
@@ -181,5 +181,10 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     //     .set_position(Position::Logical(coordinates))
     //     .unwrap();
     panel.show_and_make_key();
+
+    let _ = show_panel(
+        app_handle.clone(),
+        "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
+    );
     Ok(())
 }
