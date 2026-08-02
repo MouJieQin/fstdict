@@ -289,7 +289,7 @@ const triggerAsyncSearch = () => {
                 sendKeywordOptionsSearch()
             }
         }
-    }, 200)
+    }, 300)
 }
 
 const sendLookupKeyword = (leftHistory: boolean = true) => {

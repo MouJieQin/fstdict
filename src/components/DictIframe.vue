@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import debounce from 'lodash/debounce'
 
 interface Props {
   dictionaryName: string
@@ -15,7 +16,7 @@ interface Props {
   jsUrls: string[]
   basePath: string
   dictionaryRoot: string,
-  isDark: bool
+  isDark: boolean
 }
 
 const props = defineProps<Props>()
@@ -136,9 +137,7 @@ async function renderIframe() {
   p.textContent = "tail"
   p.id = props.dictionaryName + '-dict-tail'
   doc.body.appendChild(p)
-  setTimeout(() => {
-    updateIframeHeight()
-  }, 100)
+  updateIframeHeightDebounced()
 }
 
 function injectKeydownHandler(doc: Document) {
@@ -208,11 +207,11 @@ function injectClickHandler(doc: Document) {
 
 //  ================ 监听窗口resize ================
 onMounted(() => {
-  window.addEventListener('resize', updateIframeHeight)
+  window.addEventListener('resize', updateIframeHeightDebounced)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateIframeHeight)
+  window.removeEventListener('resize', updateIframeHeightDebounced)
 })
 
 
@@ -225,8 +224,9 @@ function updateIframeHeight() {
   const realHeight = doc.getElementById(`${props.dictionaryName}-dict-tail`)?.getBoundingClientRect().bottom || 0
   // 赋值给 iframe
   iframe.style.height = `${realHeight + 10}px`
-
 }
+
+const updateIframeHeightDebounced = debounce(updateIframeHeight, 200)
 
 // ================ 监听变化 ================
 watch(() => props.isDark, (dark) => {
