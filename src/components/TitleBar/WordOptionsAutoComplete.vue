@@ -42,7 +42,8 @@
                 <ThreeDotsLoader v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_SEARCHING'))"
                     style="margin-left:1rem;" />
 
-                <UseVirtualList v-show="(links.length >= 1 && (!links[0].value.startsWith('FSTD_ERROR')))"
+                <UseVirtualList
+                    v-show="(links.length >= 1 && (!links[0].value.startsWith('FSTD_ERROR') && !links[0].value.startsWith('FSTD_WARN') && !links[0].value.startsWith('FSTD_SEARCHING')))"
                     ref="virtualListRef" :list="links" :options="{ itemHeight: 35, overscan: 10 }" height="250px">
                     <template #default="{ data, index }">
                         <div class="suggestion-item" :class="{ 'is-active': index === activeIndex }"
@@ -320,9 +321,7 @@ const handleFocus = () => {
 }
 
 const handleBlur = () => {
-    setTimeout(() => {
-        isDropdownVisible.value = false
-    }, 200)
+    isDropdownVisible.value = false
 }
 
 const handleSelect = (item: LinkItem) => {
