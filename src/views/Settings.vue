@@ -257,7 +257,7 @@ watch(() => is_help_enabled.value, async (newVal) => {
 })
 
 const updateSystemConfig = () => {
-    props.webSocket.sendUpdateSystemConfig(localSystemConfig.value)
+    props.webSocket?.sendUpdateSystemConfig(localSystemConfig.value)
 }
 
 const appTheme = computed({

@@ -4,12 +4,19 @@ use chrono::Local;
 use colored::*;
 use env_logger::{Builder, Env};
 use log::{debug, error, info, warn, Level, LevelFilter};
+use serde::{Deserialize, Serialize};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
+#[cfg(dev)]
+use std::path::MAIN_SEPARATOR;
 use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
-use tauri::{App, AppHandle, Manager, RunEvent};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tauri::{
+    App, AppHandle, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
+};
 
 /// Initialize logging: colored console + daily rotated file output.
 /// Must be called after the Tauri app is created so we can use app_log_dir().
@@ -476,6 +483,215 @@ fn launch_cgevent_server(app_handle: AppHandle) -> Result<String, String> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MainWindowState {
+    pub x: Option<f64>,
+    pub y: Option<f64>,
+    pub width: f64,
+    pub height: f64,
+    pub maximized: bool,
+}
+
+impl Default for MainWindowState {
+    fn default() -> Self {
+        Self {
+            x: None,
+            y: None,
+            width: 1440.0,
+            height: 900.0,
+            maximized: false,
+        }
+    }
+}
+
+impl MainWindowState {
+    fn config_path(app: &AppHandle) -> PathBuf {
+        app.path()
+            .app_data_dir()
+            .expect("get app data dir failed")
+            .join("Storage/config/main-window-state.json")
+    }
+
+    pub fn load(app: &AppHandle) -> Self {
+        let path = Self::config_path(app);
+        if !path.exists() {
+            return Self::default();
+        }
+        // FIX: Removed the "anisotropy" typo.
+        // We use map_err to discard errors safely.
+        std::fs::read_to_string(&path)
+            .map_err(|_| ())
+            .and_then(|text| serde_json::from_str(&text).map_err(|_| ()))
+            .unwrap_or_else(|_| Self::default())
+    }
+
+    pub fn save(&self, app: &AppHandle) {
+        let path = Self::config_path(app);
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        if let Ok(json) = serde_json::to_string_pretty(self) {
+            let _ = std::fs::write(path, json);
+        }
+    }
+
+    // FIX: Convert Physical dimensions to Logical dimensions using Screen Scale Factor
+    pub fn from_window(win: &WebviewWindow) -> Self {
+        let maximized = win.is_maximized().unwrap_or(false);
+        let scale_factor = win.scale_factor().unwrap_or(1.0); // Fetch high-DPI scaling factor
+
+        let (width, height) = if maximized {
+            (Self::default().width, Self::default().height)
+        } else if let Ok(physical_size) = win.inner_size() {
+            // Map physical resolution back down to logical workspace pixels
+            let logical_size = physical_size.to_logical::<f64>(scale_factor);
+            (logical_size.width, logical_size.height)
+        } else {
+            (Self::default().width, Self::default().height)
+        };
+
+        let (x, y) = if let Ok(physical_pos) = win.outer_position() {
+            let logical_pos = physical_pos.to_logical::<f64>(scale_factor);
+            (Some(logical_pos.x), Some(logical_pos.y))
+        } else {
+            (None, None)
+        };
+
+        Self {
+            x,
+            y,
+            width,
+            height,
+            maximized,
+        }
+    }
+
+    pub fn is_position_visible(app: &AppHandle, x: f64, y: f64, w: f64, h: f64) -> bool {
+        let monitors = app.available_monitors().unwrap_or_default();
+        if monitors.is_empty() {
+            return true;
+        }
+
+        for monitor in monitors {
+            let scale_factor = monitor.scale_factor();
+            let size = monitor.size().to_logical::<f64>(scale_factor);
+            let pos = monitor.position().to_logical::<f64>(scale_factor);
+
+            let m_x = pos.x;
+            let m_y = pos.y;
+            let m_w = size.width;
+            let m_h = size.height;
+
+            if x >= m_x && x <= (m_x + m_w) && y >= m_y && y <= (m_y + m_h) {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
+    let app_handle = app.handle().clone();
+    let state = MainWindowState::load(&app_handle);
+
+    #[cfg(not(dev))]
+    let main_url = "tauri://localhost/#/dict/1";
+
+    #[cfg(dev)]
+    let main_url = "http://localhost:9595/#/dict/1";
+
+    let mut win_builder =
+        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
+            .title("FstDict")
+            .inner_size(state.width, state.height)
+            .title_bar_style(tauri::TitleBarStyle::Overlay);
+
+    // Correct coordinate matching boundary check
+    if let (Some(x), Some(y)) = (state.x, state.y) {
+        if MainWindowState::is_position_visible(&app_handle, x, y, state.width, state.height) {
+            win_builder = win_builder.position(x, y);
+            log::info!("Restoring main window position to ({}, {})", x, y);
+        } else {
+            win_builder = win_builder.center();
+            log::warn!(
+                "Saved main window position ({}, {}) is off-screen. Centering instead.",
+                x,
+                y
+            );
+        }
+    } else {
+        win_builder = win_builder.center();
+        log::info!("No saved main window position. Centering window.");
+    }
+
+    let main_win = win_builder.build()?;
+
+    if state.maximized {
+        let _ = main_win.maximize();
+    }
+    // main_win.show().unwrap_or_else(|e| {
+    //     error!("Failed to show main window: {}", e);
+    // });
+
+    // ===== Guard to suppress background events during initialization framework setup =====
+    let is_ready = Arc::new(AtomicBool::new(false));
+
+    // ===== Tokio Thread-Safe Debouncer Implementation =====
+    let task_id = Arc::new(Mutex::new(0u64));
+    const DEBOUNCE_MS: u64 = 350;
+    // Use a single cohesive event controller to avoid reference move duplication
+    let trigger_save = {
+        let w = main_win.clone();
+        let ah = app_handle.clone();
+        let is_ready_clone = Arc::clone(&is_ready);
+        move || {
+            // Refuse hooks if window structure creation sequencing hasn't finished
+            if !is_ready_clone.load(Ordering::Relaxed) {
+                return;
+            }
+
+            let task_id_clone = Arc::clone(&task_id);
+            let w_clone = w.clone();
+            let ah_clone = ah.clone();
+
+            tauri::async_runtime::spawn(async move {
+                let current_id = {
+                    let mut guard = task_id_clone.lock().unwrap();
+                    *guard += 1;
+                    *guard
+                };
+
+                tokio::time::sleep(Duration::from_millis(DEBOUNCE_MS)).await;
+
+                let latest_id = {
+                    let guard = task_id_clone.lock().unwrap();
+                    *guard
+                };
+                if current_id == latest_id {
+                    let current_state = MainWindowState::from_window(&w_clone);
+                    current_state.save(&ah_clone);
+                }
+            });
+        }
+    };
+
+    main_win.on_window_event(move |event| match event {
+        WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+            trigger_save();
+        }
+        _ => {}
+    });
+
+    // Allow the layout thread to settle, then arm the tracker to safely accept events
+    let is_ready_arm = Arc::clone(&is_ready);
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        is_ready_arm.store(true, Ordering::Relaxed);
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -505,11 +721,13 @@ pub fn run() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir);
-            
+
             // Ensure app data directory exists
             let app_data_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_data_dir)?;
             info!("App data directory: {:?}", app_data_dir);
+
+            main_window_setup(app)?;
 
             // Start Python sidecar (skipped automatically in dev mode)
             match start_python_sidecar(app) {

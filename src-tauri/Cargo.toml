@@ -33,6 +33,7 @@ env_logger = "0.11.10"
 chrono = "0.4.44"
 colored = "2"
 dirs = "5"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "time", "sync"] } 
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-accessibility-client = "0.0.2"

@@ -73,7 +73,7 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
 
 #[tauri::command]
 fn hide_panel(app: tauri::AppHandle) {
-    if let Ok(panel) = app.get_webview_panel("float-search") {
+    if let Ok(panel) = app.get_webview_panel("selection-float-search") {
         panel.hide();
     }
 }
@@ -171,6 +171,7 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
 
     panel.set_floating_panel(true);
     panel.set_event_handler(Some(handler.as_ref()));
+    panel.hide();
     // Convert your raw coordinates into a Tauri LogicalPosition wrapper
     // let coordinates = LogicalPosition::new(0.0, 0.0);
 
@@ -180,11 +181,12 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     //     .unwrap()
     //     .set_position(Position::Logical(coordinates))
     //     .unwrap();
-    panel.show_and_make_key();
+    // panel.show_and_make_key();
 
     let _ = show_panel(
         app_handle.clone(),
         "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
     );
+    let _ = hide_panel(app_handle.clone());
     Ok(())
 }
