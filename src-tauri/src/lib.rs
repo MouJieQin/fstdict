@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{
-    App, AppHandle, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
+    App, AppHandle, DragDropEvent, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
 };
 
 /// Initialize logging: colored console + daily rotated file output.
@@ -602,8 +602,10 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
 
     let mut win_builder =
         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
-            .title("FstDict")
+            .title("main")
+            .hidden_title(true)
             .inner_size(state.width, state.height)
+            .accept_first_mouse(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay);
 
     // Correct coordinate matching boundary check

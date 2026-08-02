@@ -539,6 +539,7 @@ const handleDropdownCommand = (dictName: string) => {
 
 /* 自定义图标样式 */
 :deep(.collapse-custom-icon) {
+    flex-shrink: 0;
     width: 2rem;
     height: 2rem;
     margin-right: 8px;
@@ -547,6 +548,7 @@ const handleDropdownCommand = (dictName: string) => {
 }
 
 :deep(.el-collapse-item__arrow) {
+    flex-shrink: 0;
     /* width: 2rem; */
     /* height: 2rem; */
 }
@@ -570,6 +572,12 @@ const handleDropdownCommand = (dictName: string) => {
 
     /* 可选：调整内边距，让标题更美观 */
     padding-right: 20px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    /* text-overflow: ellipsis; */
+    /* max-width: calc(100% - 60px); */
+
 }
 
 /* 可选：去掉第一个折叠项的顶部边框，更美观 */

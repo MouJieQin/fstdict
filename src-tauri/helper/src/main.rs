@@ -187,6 +187,6 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
         app_handle.clone(),
         "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
     );
-    let _ = hide_panel(app_handle.clone());
+    // let _ = hide_panel(app_handle.clone());
     Ok(())
 }
