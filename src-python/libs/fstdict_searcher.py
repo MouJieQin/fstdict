@@ -53,6 +53,8 @@ class FstDictSearcher:
 
     async def _copy_file(self, file: str, reload_dict_names: list[str], send_progress: Callable) -> None:
         dict_name = Path(file).stem.split('.')[0]
+        if not dict_name:
+            return
         dict_dir = UtilsBase.getDictDir(dict_name)
         if os.path.exists(dict_dir):
             target_path = os.path.join(dict_dir, Path(file).name)
@@ -156,13 +158,15 @@ class FstDictSearcher:
 
         reload_dict_names = []
         for item in mdd:
-            dict_name = Path(item).stem
+            dict_name = Path(item).stem.split('.')[0]
+            if not dict_name:
+                continue
             dict_dir = UtilsBase.getDictDir(dict_name)
             if not os.path.exists(dict_dir):
                 await send_progress({"msg": f"不存在词典 `{dict_name}`，跳过 `{item}`", "type": "warning"})
                 continue
 
-            output_path = os.path.join(dict_dir, dict_name + ".fstdd")
+            output_path = os.path.join(dict_dir, Path(item).stem + ".fstdd")
             await send_progress({"type": "info", "msg": f"Converting `{item}` to `fstdd`, it may take a while, please wait ..."})
             ret = fstdtools.convert(item, output_path, compress_level=5, compress_dict_size=130, block_size=32)
             if ret != 0:

@@ -246,7 +246,7 @@ watch(
 let mutationObserver: MutationObserver | null = null
 const changedByThisCode = ref(false)
 
-watch(iframeRef, (val) => {
+const handleIframeChange = (val: HTMLIFrameElement | null) => {
   // 清理旧监听
   if (mutationObserver) {
     mutationObserver.disconnect()
@@ -285,6 +285,10 @@ watch(iframeRef, (val) => {
       characterData: true
     })
   })
+}
+
+watch(iframeRef, (val) => {
+  handleIframeChange(val)
 }, { immediate: true })
 
 // 销毁时清理
