@@ -15,7 +15,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{
-    App, AppHandle, DragDropEvent, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
+    App, AppHandle, DragDropEvent, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window,
+    WindowEvent,
 };
 
 /// Initialize logging: colored console + daily rotated file output.
@@ -600,6 +601,7 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
     #[cfg(dev)]
     let main_url = "http://localhost:9595/#/dict/1";
 
+    #[cfg(target_os = "macos")]
     let mut win_builder =
         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
             .title("main")
@@ -607,6 +609,13 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
             .inner_size(state.width, state.height)
             .accept_first_mouse(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay);
+
+    #[cfg(not(target_os = "macos"))]
+    let mut win_builder =
+        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
+            .title("main")
+            .inner_size(state.width, state.height)
+            .accept_first_mouse(true);
 
     // Correct coordinate matching boundary check
     if let (Some(x), Some(y)) = (state.x, state.y) {
