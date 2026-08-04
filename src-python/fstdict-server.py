@@ -4,6 +4,8 @@
 import sys
 import os
 import socket
+
+import urllib
 from libs.websocket_client import WsClient
 from libs.cgevent_websocket_client import CgeventWsClient
 from libs.message_handler import MessageHandler
@@ -14,6 +16,7 @@ import signal
 import time
 import asyncio
 import threading
+import subprocess
 
 from fastapi import (
     FastAPI,
@@ -22,12 +25,11 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pathlib import Path
-from urllib.parse import unquote
 
 os.chdir(os.path.dirname(__file__))
 
@@ -43,15 +45,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+ffmpeg_semaphore = asyncio.Semaphore(4)
 
 
 @app.get("/api/download")
 async def download(path: str):
     logger.info(f"original download path: {path}")
-    path = unquote(path)
+    path = urllib.parse.unquote(path)
     logger.info(f"download path: {path}")
     path = path.replace("//", "/")
     file_path = "/".join([Utils.DICTIONARYS_PATH, path])
+
+    # 解压逻辑保持原样
     if not os.path.isfile(file_path):
         try:
             dict_name, _, file_key = path.split("/", maxsplit=2)
@@ -66,11 +71,64 @@ async def download(path: str):
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=400, detail="Is not a file or does not exist")
 
-    fr = FileResponse(
-        path=file_path,
-        filename=Path(file_path).name,
+    # 判断是否音频；非音频直接原样返回文件
+    ext = Path(file_path).suffix.lower()
+    if ext not in Utils.AUDIO_SUFFIX:
+        return FileResponse(
+            path=file_path,
+            filename=Path(file_path).name,
+        )
+
+    # ========== 音频文件：调用ffmpeg转码mp3流式输出 ==========
+    ffmpeg_bin = Utils.FFMPEG_PATH
+    # ffmpeg 参数：本地文件输入 → libmp3lame → 管道输出mp3
+    cmd = [
+        ffmpeg_bin,
+        "-y",
+        "-i", file_path,
+        "-c:a", "libmp3lame",
+        "-b:a", "96k",
+        "-f", "mp3",
+        "pipe:1"
+    ]
+    try:
+        async with ffmpeg_semaphore:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL
+            )
+    except Exception as e:
+        logger.error(f"ffmpeg start failed: {e}")
+        return FileResponse(
+            path=file_path,
+            filename=Path(file_path).name,
+        )
+        raise HTTPException(status_code=500, detail="Audio convert start error")
+
+    async def stream_mp3():
+        try:
+            while chunk := proc.stdout.read(65536):
+                yield chunk
+            proc.wait()
+            retcode = proc.returncode
+            if retcode != 0:
+                err = proc.stderr.read(2048).decode("utf-8", errors="ignore")
+                logger.error(f"ffmpeg convert failed code={retcode}, stderr={err}")
+        finally:
+            # 确保进程销毁，防止僵尸进程
+            if proc.poll() is None:
+                proc.terminate()
+                proc.wait()
+
+    return StreamingResponse(
+        stream_mp3(),
+        media_type="audio/mpeg",
+        headers={
+            "Content-Disposition": f'attachment; filename="{Path(file_path).stem}.mp3"'
+        }
     )
-    return fr
 
 
 # ==============================================
@@ -216,13 +274,6 @@ def connect_cgevent():
 
 def main():
     if getattr(sys, "frozen", False):
-        # 启动前检查
-        # if not is_port_available(5959):
-        #     logger.error("❌ 端口 5959 已被占用，词典后端可能已经在运行")
-        #     sys.exit(1)
-        # if not is_port_available(9595):
-        #     logger.error("❌ 端口 9595 已被占用，词典前端可能已经在运行")
-        #     sys.exit(1)
         # 前端静态服务放子线程（daemon=True，主线程退出它自动结束）
         fe_thread = threading.Thread(target=run_frontend_server, daemon=True)
         fe_thread.start()
@@ -234,9 +285,6 @@ def main():
         # API 服务放主线程（阻塞运行，程序主循环在这里）
         run_api_server()
     else:
-        # if not is_port_available(5959):
-        #     logger.error("❌ 端口 5959 已被占用，词典后端可能已经在运行")
-        #     sys.exit(1)
         connect_cgevent()
         run_api_server()
 

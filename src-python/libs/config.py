@@ -16,6 +16,7 @@ class UtilsBase:
     # 路径配置
     APP_NAME = "FstDict"
     APP_AUTHOR = "qinmoujie"
+    AUDIO_SUFFIX = {".spx", ".ogg", ".wav", ".mp3", ".amr", ".aac", ".flac", ".m4a", ".opus", ".wma"}
     BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent.parent
     APP_SUPPORT_PATH = platformdirs.user_data_dir(APP_NAME, APP_AUTHOR)
     APP_LOG_PATH = platformdirs.user_log_dir(APP_NAME, APP_AUTHOR)
@@ -28,6 +29,7 @@ class UtilsBase:
     ANKI_CONFIG_FILE = USER_CONFIG_DIR + "/anki_config.json"
     DEFAULT_CONFIG_FILE = str(BASE_DIR / "config.json")
     DEFAULT_CGEVENT_CONFIG_FILE = str(BASE_DIR / "cgevent_config.json")
+    FFMPEG_PATH = str(BASE_DIR / "ffmpeg" / ("fstdict-ffmpeg.exe" if sys.platform.startswith("win") else "fstdict-ffmpeg"))
     DICTIONARYS_PATH = FSTDICT_STORAGE_PATH + "/dictionaries"
     FSTD_SEARCHER_META_PATH = DICTIONARYS_PATH + "/fstd_searcher_meta.json"
     FSTDX_INDEX_PATH = DICTIONARYS_PATH + "/fstd_indexes.fstdxidx"

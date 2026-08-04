@@ -9,3 +9,8 @@ dist/
 *.spec
 
 static/
+
+ffmpeg/
+
+*.tar.gz
+*.zip
