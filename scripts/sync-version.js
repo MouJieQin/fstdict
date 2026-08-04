@@ -15,6 +15,7 @@ console.log(`  ✓ package.json → ${version}`);
 const pkgLockPath = join(root, "package-lock.json");
 const pkgLock = JSON.parse(readFileSync(pkgLockPath, "utf8"));
 pkgLock.version = version;
+pkgLock.packages[""].version = version;
 writeFileSync(pkgLockPath, JSON.stringify(pkgLock, null, 2) + "\n");
 console.log(`  ✓ package-lock.json → ${version}`);
 

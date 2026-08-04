@@ -97,5 +97,4 @@ export async function popupPanelNearCursor() {
     // 7. Update Window Position and Visibility Frameworks
     await win.setPosition(new LogicalPosition(x, y));
     await win.show();
-    await win.setFocus();
 }

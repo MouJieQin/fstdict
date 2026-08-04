@@ -97,18 +97,25 @@ class MessageHandler:
                         enabled = not enabled
                         Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"] = enabled
                         Utils.Config.syncCgeventConfig()
+                        smsg = {
+                            "type": "tauri_notification",
+                            "data": {}
+                        }
                         if enabled:
                             await Utils.cgevent_ws_client.send_register_request("handlerEventTextSelection")
                             if "handlerEventTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
                                 Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("handlerEventTextSelection")
                                 Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
                             logger.info("已启用选词浮窗")
+                            smsg["data"]["message"] = "已启用选词浮窗"
                         else:
                             await Utils.cgevent_ws_client.send_unregister_request("handlerEventTextSelection")
                             if "handlerEventTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
                                 Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
                                 Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
                             logger.info("已禁用选词浮窗")
+                            smsg["data"]["message"] = "已禁用选词浮窗"
+                    await SessionManager.broadcast_all(json.dumps(smsg))
                     logger.info(f"globalKeyboardShortCut:{msg}")
                 elif cg_event_type == "handlerEventTextSelection":
                     smsg["data"] = message["data"]

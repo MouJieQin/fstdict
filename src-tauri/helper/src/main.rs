@@ -4,9 +4,13 @@
     windows_subsystem = "windows"
 )]
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::Duration;
 use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow,
+};
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
@@ -31,10 +35,174 @@ tauri_panel! {
         }
     })
 
+    panel!(NotificationPanel {
+        config: {
+            // allows it to interact while being a background element
+            can_become_key_window: false,
+            is_floating_panel: true
+        }
+    })
+
     panel_event!(MyPanelEventHandler {
         window_did_become_key(notification: &NSNotification) -> (),
         window_did_resign_key(notification: &NSNotification) -> ()
     })
+}
+
+// Use a global or state-managed counter to manage debouncing tasks across commands safely.
+// You can also add this to your app state via `.manage(NotificationState::default())`.
+
+static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
+static PANEL_IS_CREATING: AtomicBool = AtomicBool::new(false);
+
+#[tauri::command]
+fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
+    let task_id = CURRENT_TASK_ID.fetch_add(1, Ordering::SeqCst) + 1;
+
+    // 1. REUSE PATH: Panel already exists in memory.
+    if let Some(w) = app.get_webview_window("notify-layer") {
+        // FIX: Force event delivery directly to this specific webview label
+        let _ = w.emit_to("notify-layer", "update-message", &message);
+
+        // Re-center on the screen where the cursor currently is
+        if let Ok(cursor_pos) = app.cursor_position() {
+            if let Some(monitor) = app
+                .available_monitors()
+                .unwrap_or_default()
+                .into_iter()
+                .find(|m| {
+                    let scale = m.scale_factor();
+                    let log_pos = m.position().to_logical::<f64>(scale);
+                    let log_size = m.size().to_logical::<f64>(scale);
+                    cursor_pos.x >= log_pos.x
+                        && cursor_pos.x <= (log_pos.x + log_size.width)
+                        && cursor_pos.y >= log_pos.y
+                        && cursor_pos.y <= (log_pos.y + log_size.height)
+                })
+            {
+                let scale = monitor.scale_factor();
+                let screen_pos = monitor.position().to_logical::<f64>(scale);
+                let screen_size = monitor.size().to_logical::<f64>(scale);
+                let target_x = screen_pos.x + ((screen_size.width - 360.0) / 2.0);
+                let target_y = screen_pos.y + ((screen_size.height - 90.0) / 2.0);
+                let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
+                    target_x, target_y,
+                )));
+            }
+        }
+
+        let _ = w.show();
+
+        // Start fade out timer
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(2000)).await;
+            if CURRENT_TASK_ID.load(Ordering::SeqCst) == task_id {
+                let _ = w.emit_to("notify-layer", "start-fade-out", ());
+            }
+            tokio::time::sleep(Duration::from_millis(550)).await;
+
+            if CURRENT_TASK_ID.load(Ordering::SeqCst) == task_id {
+                let _ = w.close();
+            }
+        });
+
+        return Ok(());
+    }
+
+    // 2. CONCURRENCY PROTECTION: Prevent rapid double creations
+    if PANEL_IS_CREATING.swap(true, Ordering::SeqCst) {
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            for _ in 0..10 {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                if let Some(w) = app_clone.get_webview_window("notify-layer") {
+                    let _ = w.emit_to("notify-layer", "update-message", &message);
+                    let _ = w.show();
+                    break;
+                }
+            }
+        });
+        return Ok(());
+    }
+
+    // 3. FIRST TIME CREATION PATH
+    let encoded_message = urlencoding::encode(&message);
+    let target_url = format!("notification.html?message={}", encoded_message);
+
+    let panel_res = tauri_nspanel::PanelBuilder::<_, NotificationPanel>::new(&app, "notify-layer")
+        .url(WebviewUrl::App(target_url.into()))
+        .with_window(|window| {
+            window
+                .hidden_title(true)
+                .inner_size(360.0, 90.0)
+                .accept_first_mouse(true)
+                .always_on_top(true)
+                .transparent(true)
+                .decorations(false)
+                .resizable(false)
+        })
+        .level(tauri_nspanel::PanelLevel::Status)
+        .build();
+
+    PANEL_IS_CREATING.store(false, Ordering::SeqCst);
+
+    let panel = match panel_res {
+        Ok(p) => p,
+        Err(e) => return Err(format!("Failed to build panel: {:?}", e)),
+    };
+
+    panel.set_collection_behavior(
+        tauri_nspanel::CollectionBehavior::new()
+            .full_screen_auxiliary()
+            .can_join_all_spaces()
+            .into(),
+    );
+
+    let w = panel.to_window().unwrap().clone();
+
+    // Position window centrally on the monitor with user cursor focus
+    if let Ok(cursor_pos) = app.cursor_position() {
+        if let Some(monitor) = app
+            .available_monitors()
+            .unwrap_or_default()
+            .into_iter()
+            .find(|m| {
+                let scale = m.scale_factor();
+                let log_pos = m.position().to_logical::<f64>(scale);
+                let log_size = m.size().to_logical::<f64>(scale);
+                cursor_pos.x >= log_pos.x
+                    && cursor_pos.x <= (log_pos.x + log_size.width)
+                    && cursor_pos.y >= log_pos.y
+                    && cursor_pos.y <= (log_pos.y + log_size.height)
+            })
+        {
+            let scale = monitor.scale_factor();
+            let screen_pos = monitor.position().to_logical::<f64>(scale);
+            let screen_size = monitor.size().to_logical::<f64>(scale);
+            let target_x = screen_pos.x + ((screen_size.width - 360.0) / 2.0);
+            let target_y = screen_pos.y + ((screen_size.height - 90.0) / 2.0);
+            let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
+                target_x, target_y,
+            )));
+        }
+    }
+
+    panel.show();
+
+    // Fade out first-time notice after 3 seconds
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(2000)).await;
+        if CURRENT_TASK_ID.load(Ordering::SeqCst) == task_id {
+            let _ = w.emit_to("notify-layer", "start-fade-out", ());
+        }
+        tokio::time::sleep(Duration::from_millis(550)).await;
+
+        if CURRENT_TASK_ID.load(Ordering::SeqCst) == task_id {
+            let _ = w.close();
+        }
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -82,7 +250,11 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
-        .invoke_handler(tauri::generate_handler![show_panel, hide_panel])
+        .invoke_handler(tauri::generate_handler![
+            show_panel,
+            hide_panel,
+            trigger_notification
+        ])
         .setup(|app| {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
@@ -187,6 +359,7 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
         app_handle.clone(),
         "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
     );
+
     // let _ = hide_panel(app_handle.clone());
     Ok(())
 }

@@ -1,7 +1,7 @@
 {
   "name": "fstdict",
   "private": true,
-  "version": "0.0.18",
+  "version": "0.0.19",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,7 +22,6 @@
     "@tauri-apps/plugin-opener": "^2",
     "@vueuse/components": "^14.3.0",
     "@vueuse/core": "^14.3.0",
-    "axios": "^1.19.0",
     "element-plus": "^2.13.6",
     "markdown-it": "^14.1.1",
     "pinia": "^3.0.4",

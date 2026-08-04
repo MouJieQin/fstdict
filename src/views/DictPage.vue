@@ -121,7 +121,7 @@ import { ref, nextTick, onMounted, onUnmounted, onBeforeUnmount, computed, watch
 import { useRouter, useRoute } from 'vue-router'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
-import axios from 'axios'
+import { invoke } from '@tauri-apps/api/core';
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import { popupPanelNearCursor } from '@/common/window-controll'
@@ -391,6 +391,9 @@ const handleWebSocketMessage = (message: any) => {
         case 'cgevent':
             handleCgevent(message.data);
             break;
+        case 'tauri_notification':
+            handle_tauri_notification(message.data);
+            break;
         case 'error_session_not_exist':
             router.push('/')
             break
@@ -481,6 +484,16 @@ const handleCgevent = async (data: any) => {
         redirectWord.value = data.text_selected
         await popupPanelNearCursor()
     }
+}
+
+const handle_tauri_notification = (data: any) => {
+    if (envFromRoute.value != 'selection_float_search') {
+        return
+    }
+    const message = data.message || ''
+    invoke('trigger_notification', {
+        message: message,
+    });
 }
 
 const handleCloseFixedWindow = (message: any) => {
