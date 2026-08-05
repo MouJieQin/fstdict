@@ -4,7 +4,7 @@ import { resolve, join } from "node:path";
 import { platform, arch } from "node:process"; // process.arch is safer than os.arch()
 
 // === 1. FFmpeg 核心版本配置 (使用 /download/ 确保拿到真实直链) ===
-const FFMPEG_VERSION_TAG = "v8.1.2-build2";
+const FFMPEG_VERSION_TAG = "v8.1.2-build3";
 const REPO_URL = `https://github.com/MouJieQin/fstdict-ffmpeg/releases/download/${FFMPEG_VERSION_TAG}`;
 
 const root = resolve(import.meta.dirname, "..");
