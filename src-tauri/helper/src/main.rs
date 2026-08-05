@@ -55,6 +55,50 @@ tauri_panel! {
 static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
 static PANEL_IS_CREATING: AtomicBool = AtomicBool::new(false);
 
+fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), String> {
+    // Position window at the top-right corner of the monitor with user cursor focus
+    if let Ok(cursor_pos) = app.cursor_position() {
+        println!(
+            "[info]: Cursor position: ({}, {})",
+            cursor_pos.x, cursor_pos.y
+        );
+        if let Some(monitor) = app
+            .available_monitors()
+            .unwrap_or_default()
+            .into_iter()
+            .find(|m| {
+                let m_pos = m.position();
+                let m_size = m.size();
+                println!(
+                    "m_pos:({}, {}), m_size:({}, {})",
+                    m_pos.x, m_pos.y, m_size.width, m_size.height
+                );
+                cursor_pos.x >= m_pos.x as f64
+                    && cursor_pos.x <= (m_pos.x as f64 + m_size.width as f64)
+                    && cursor_pos.y >= m_pos.y as f64
+                    && cursor_pos.y <= (m_pos.y as f64 + m_size.height as f64)
+            })
+        {
+            let scale = monitor.scale_factor();
+            let screen_pos = monitor.position().to_logical::<f64>(scale);
+            let screen_size = monitor.size().to_logical::<f64>(scale);
+
+            let panel_width = 360.0;
+            let edge_padding = 24.0;
+            let top_padding = 40.0;
+
+            let target_x = screen_pos.x + screen_size.width - panel_width - edge_padding;
+            let target_y = screen_pos.y + top_padding;
+
+            // Set layout position coordinates safely
+            let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
+                target_x, target_y,
+            )));
+        }
+    }
+    return Ok(());
+}
+
 #[tauri::command]
 fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
     let task_id = CURRENT_TASK_ID.fetch_add(1, Ordering::SeqCst) + 1;
@@ -63,34 +107,7 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("notify-layer") {
         // FIX: Force event delivery directly to this specific webview label
         let _ = w.emit_to("notify-layer", "update-message", &message);
-
-        // Re-center on the screen where the cursor currently is
-        if let Ok(cursor_pos) = app.cursor_position() {
-            if let Some(monitor) = app
-                .available_monitors()
-                .unwrap_or_default()
-                .into_iter()
-                .find(|m| {
-                    let scale = m.scale_factor();
-                    let log_pos = m.position().to_logical::<f64>(scale);
-                    let log_size = m.size().to_logical::<f64>(scale);
-                    cursor_pos.x >= log_pos.x
-                        && cursor_pos.x <= (log_pos.x + log_size.width)
-                        && cursor_pos.y >= log_pos.y
-                        && cursor_pos.y <= (log_pos.y + log_size.height)
-                })
-            {
-                let scale = monitor.scale_factor();
-                let screen_pos = monitor.position().to_logical::<f64>(scale);
-                let screen_size = monitor.size().to_logical::<f64>(scale);
-                let target_x = screen_pos.x + ((screen_size.width - 360.0) / 2.0);
-                let target_y = screen_pos.y + ((screen_size.height - 90.0) / 2.0);
-                let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
-                    target_x, target_y,
-                )));
-            }
-        }
-
+        let _ = set_noti_pannel_position(app, &w);
         let _ = w.show();
 
         // Start fade out timer
@@ -117,6 +134,7 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 if let Some(w) = app_clone.get_webview_window("notify-layer") {
                     let _ = w.emit_to("notify-layer", "update-message", &message);
+                    let _ = set_noti_pannel_position(app, &w);
                     let _ = w.show();
                     break;
                 }
@@ -140,6 +158,7 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
                 .transparent(true)
                 .decorations(false)
                 .resizable(false)
+                .focusable(false)
         })
         .level(tauri_nspanel::PanelLevel::Status)
         .build();
@@ -158,35 +177,9 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
             .into(),
     );
 
-    let w = panel.to_window().unwrap().clone();
+    let w: WebviewWindow = panel.to_window().unwrap().clone();
 
-    // Position window centrally on the monitor with user cursor focus
-    if let Ok(cursor_pos) = app.cursor_position() {
-        if let Some(monitor) = app
-            .available_monitors()
-            .unwrap_or_default()
-            .into_iter()
-            .find(|m| {
-                let scale = m.scale_factor();
-                let log_pos = m.position().to_logical::<f64>(scale);
-                let log_size = m.size().to_logical::<f64>(scale);
-                cursor_pos.x >= log_pos.x
-                    && cursor_pos.x <= (log_pos.x + log_size.width)
-                    && cursor_pos.y >= log_pos.y
-                    && cursor_pos.y <= (log_pos.y + log_size.height)
-            })
-        {
-            let scale = monitor.scale_factor();
-            let screen_pos = monitor.position().to_logical::<f64>(scale);
-            let screen_size = monitor.size().to_logical::<f64>(scale);
-            let target_x = screen_pos.x + ((screen_size.width - 360.0) / 2.0);
-            let target_y = screen_pos.y + ((screen_size.height - 90.0) / 2.0);
-            let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
-                target_x, target_y,
-            )));
-        }
-    }
-
+    let _ = set_noti_pannel_position(app, &w);
     panel.show();
 
     // Fade out first-time notice after 3 seconds
