@@ -53,6 +53,8 @@ tauri_panel! {
     })
 
     panel_event!(MyPanelEventHandler {
+        window_did_move(notification: &NSNotification) -> (),
+        window_did_resize(notification: &NSNotification) -> (),
         window_did_become_key(notification: &NSNotification) -> (),
         window_did_resign_key(notification: &NSNotification) -> ()
     })
@@ -280,7 +282,7 @@ fn window_setup(
 ) -> Result<(), tauri::Error> {
     let app_handle = app.handle().clone();
 
-    // FIX: Convert the config filename into a thread-safe atomic reference counted slice
+    // Convert the config filename into a thread-safe atomic reference counted slice
     let shared_config_name: Arc<str> = Arc::from(config_filename);
 
     let state = WindowState::load(&app_handle, &shared_config_name);
@@ -326,11 +328,9 @@ fn window_setup(
         let w = win.clone();
         let ah = app_handle.clone();
         let is_ready_clone = Arc::clone(&is_ready);
-        // Clone for the outer closure environment
         let config_clone = Arc::clone(&shared_config_name);
 
         move || {
-            // Refuse hooks if window structure creation sequencing hasn't finished
             if !is_ready_clone.load(Ordering::Relaxed) {
                 return;
             }
@@ -338,7 +338,6 @@ fn window_setup(
             let task_id_clone = Arc::clone(&task_id);
             let w_clone = w.clone();
             let ah_clone = ah.clone();
-            // FIX: Clone again so the spawned async thread gets its own owned pointer allocation handle
             let async_config_target = Arc::clone(&config_clone);
 
             tauri::async_runtime::spawn(async move {
@@ -356,19 +355,13 @@ fn window_setup(
                 };
                 if current_id == latest_id {
                     let current_state = WindowState::from_window(&w_clone);
-                    // Pass by dereferencing the Arc string slice cleanly
                     current_state.save(&ah_clone, &async_config_target);
                 }
             });
         }
     };
 
-    win.on_window_event(move |event| match event {
-        WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
-            trigger_save();
-        }
-        _ => {}
-    });
+    // Remove the old win.on_window_event handler since it's blocked by NSPanel
 
     // Allow the layout thread to settle, then arm the tracker to safely accept events
     let is_ready_arm = Arc::clone(&is_ready);
@@ -381,6 +374,17 @@ fn window_setup(
     let panel = win.to_panel::<FloatSearchPanel>().unwrap();
     let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
     let handle = app_handle.to_owned();
+
+    // ====== Mount the position/resize listeners onto the active event handler delegate ======
+    let move_trigger = trigger_save.clone();
+    handler.window_did_move(move |_notification| {
+        move_trigger();
+    });
+
+    let resize_trigger = trigger_save;
+    handler.window_did_resize(move |_notification| {
+        resize_trigger();
+    });
 
     handler.window_did_become_key(move |_notification| {
         let app_name = handle.package_info().name.to_owned();
