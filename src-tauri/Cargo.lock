@@ -1203,6 +1203,7 @@ dependencies = [
  "colored",
  "dirs 5.0.1",
  "env_logger",
+ "fstdict_common",
  "libc",
  "log",
  "macos-accessibility-client",
@@ -1218,6 +1219,7 @@ dependencies = [
 name = "fstdict-helper"
 version = "0.0.19"
 dependencies = [
+ "fstdict_common",
  "futures-util",
  "serde",
  "serde_json",
@@ -1228,6 +1230,15 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "urlencoding",
+]
+
+[[package]]
+name = "fstdict_common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
 ]
 
 [[package]]
