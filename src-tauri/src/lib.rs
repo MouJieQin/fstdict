@@ -608,6 +608,7 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
             .hidden_title(true)
             .inner_size(state.width, state.height)
             .accept_first_mouse(true)
+            .zoom_hotkeys_enabled(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay);
 
     #[cfg(not(target_os = "macos"))]

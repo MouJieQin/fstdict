@@ -482,18 +482,20 @@ const handleCgevent = async (data: any) => {
     const type = data.type
     if (type === 'handlerEventTextSelection') {
         redirectWord.value = data.text_selected
+        invoke("show_panel")
         await popupPanelNearCursor()
     }
 }
 
 const handle_tauri_notification = (data: any) => {
-    if (envFromRoute.value != 'selection_float_search') {
+    if (envFromRoute.value != 'floating_tauri') {
         return
     }
+    console.log(new Date(), "trigger_notification!")
     const message = data.message || ''
     invoke('trigger_notification', {
         message: message,
-    });
+    })
 }
 
 const handleCloseFixedWindow = (message: any) => {

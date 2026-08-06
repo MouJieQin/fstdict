@@ -115,7 +115,9 @@ class MessageHandler:
                                 Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
                             logger.info("已禁用选词浮窗")
                             smsg["data"]["message"] = "已禁用选词浮窗"
-                    await SessionManager.broadcast_all(json.dumps(smsg))
+                    # await SessionManager.broadcast_all(json.dumps(smsg))
+                    if Utils.fstdict_helper_websocket:
+                        await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
                     logger.info(f"globalKeyboardShortCut:{msg}")
                 elif cg_event_type == "handlerEventTextSelection":
                     smsg["data"] = message["data"]

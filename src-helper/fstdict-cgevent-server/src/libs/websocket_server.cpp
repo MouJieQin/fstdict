@@ -435,7 +435,7 @@ void WebSocketServer::start_websocket_server() {
     return;
   }
 
-  LOG_INFO("[WebSocket] 运行在 ws://localhost:{}", WS_PORT);
+  LOG_INFO("[WebSocket] 运行在 ws://127.0.0.1:{}", WS_PORT);
   std::string fstdict_api_url = "http://127.0.0.1:5959/api/connectcgevent";
   http_get_async(fstdict_api_url, 8, [](bool ok, const std::string &result) {
     if (ok) {

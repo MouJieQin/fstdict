@@ -136,11 +136,11 @@ async def download(path: str):
 # ==============================================
 # 全局单例（整个程序共用一个连接）
 Utils.iwin_ws_client = WsClient(
-    "ws://localhost:9999/ws/fstdict", MessageHandler.handle_iwin_message
+    "ws://127.0.0.1:9999/ws/fstdict", MessageHandler.handle_iwin_message
 )
 
 Utils.cgevent_ws_client = CgeventWsClient(
-    "ws://localhost:5995", Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION,
+    "ws://127.0.0.1:5995", Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION,
     MessageHandler.handle_cgevent_message
 )
 
@@ -174,6 +174,25 @@ async def command_command(request: CommandRequest):
     logger.info(f"command data: {request.data}")
     res = await MessageHandler.handle_command_message(request.type, request.data)
     return res
+
+
+@app.websocket("/ws/fstdict/helper")
+async def fstdict_helper_websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        Utils.fstdict_helper_websocket = websocket
+        while True:
+            text = await websocket.receive_text()
+            logger.info(f"/ws/fstdict/helper WebSocket收到消息: {text}")
+            # await MessageHandler.handle_fstdict_helper_message(
+            #     websocket, text
+            # )
+    except WebSocketDisconnect:
+        logger.info("/ws/fstdict/helper WebSocket断开连接")
+    except Exception as e:
+        logger.error(f"/ws/fstdict/helper WebSocket错误: {e}", exc_info=True)
+    finally:
+        Utils.fstdict_helper_websocket = None
 
 
 @app.websocket("/ws/dictionary/session/{clientID}")

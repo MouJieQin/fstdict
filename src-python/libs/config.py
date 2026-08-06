@@ -52,6 +52,7 @@ class UtilsBase:
     spa_websockets: Dict[int, WebSocket] = {}
     session_websockets: Dict[int, Dict[int, WebSocket]] = {}
     windows_websockets: Dict[int, WebSocket] = {}
+    fstdict_helper_websocket: WebSocket | None = None
 
     @staticmethod
     def createDirIfnotExists(path: str):

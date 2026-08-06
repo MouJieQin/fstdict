@@ -6,7 +6,6 @@
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
-use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
     AppHandle, Emitter, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow,
@@ -15,6 +14,10 @@ use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
 };
+
+use futures_util::{SinkExt, StreamExt};
+use serde::Deserialize;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
 // 1. Ensure you import MouseButton and MouseButtonState along with TrayIconEvent
 use tauri::menu::{Menu, MenuItem};
 
@@ -58,10 +61,10 @@ static PANEL_IS_CREATING: AtomicBool = AtomicBool::new(false);
 fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), String> {
     // Position window at the top-right corner of the monitor with user cursor focus
     if let Ok(cursor_pos) = app.cursor_position() {
-        println!(
-            "[info]: Cursor position: ({}, {})",
-            cursor_pos.x, cursor_pos.y
-        );
+        // println!(
+        //     "[info]: Cursor position: ({}, {})",
+        //     cursor_pos.x, cursor_pos.y
+        // );
         if let Some(monitor) = app
             .available_monitors()
             .unwrap_or_default()
@@ -69,10 +72,10 @@ fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), Str
             .find(|m| {
                 let m_pos = m.position();
                 let m_size = m.size();
-                println!(
-                    "m_pos:({}, {}), m_size:({}, {})",
-                    m_pos.x, m_pos.y, m_size.width, m_size.height
-                );
+                // println!(
+                //     "m_pos:({}, {}), m_size:({}, {})",
+                //     m_pos.x, m_pos.y, m_size.width, m_size.height
+                // );
                 cursor_pos.x >= m_pos.x as f64
                     && cursor_pos.x <= (m_pos.x as f64 + m_size.width as f64)
                     && cursor_pos.y >= m_pos.y as f64
@@ -99,8 +102,7 @@ fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), Str
     return Ok(());
 }
 
-#[tauri::command]
-fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
+fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
     let task_id = CURRENT_TASK_ID.fetch_add(1, Ordering::SeqCst) + 1;
 
     // 1. REUSE PATH: Panel already exists in memory.
@@ -199,9 +201,16 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
+    return show_notification(app, message);
+}
+
+#[tauri::command]
 fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    println!("Receive show_panel");
     if let Ok(panel) = app.get_webview_panel("selection-float-search") {
-        panel.show_and_make_key();
+        println!(" show()");
+        panel.show();
         return Ok(());
     }
 
@@ -215,31 +224,179 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
                     .title_bar_style(tauri::TitleBarStyle::Overlay)
                     .accept_first_mouse(true)
                     .always_on_top(true)
+                    .minimizable(false)
             }, // .theme(Some(Theme::Dark))
         )
         .build()
         .map_err(|e| e.to_string())?;
 
+    let handle = app.to_owned();
+    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
+    handler.window_did_become_key(move |_notification| {
+        let app_name = handle.package_info().name.to_owned();
+        println!("[info]: {:?} panel becomes key window!", app_name);
+    });
+
+    // let panel_clone = panel.clone();
+    handler.window_did_resign_key(move |_notification| {
+        // panel_clone.hide();
+        println!("[info]: panel resigned from key window!");
+    });
+
+    panel.set_floating_panel(true);
+    // panel.set_hides_on_deactivate(true);
     panel.set_level(PanelLevel::ModalPanel.value());
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            // .can_join_all_spaces()
+            .can_join_all_spaces()
             .into(),
     );
+    // panel.set_hides_on_deactivate(true);
 
-    // panel.show_and_make_key();
+    panel.set_event_handler(Some(handler.as_ref()));
     Ok(())
 }
 
 #[tauri::command]
 fn hide_panel(app: tauri::AppHandle) {
-    if let Ok(panel) = app.get_webview_panel("selection-float-search") {
-        panel.hide();
+    if let Some(w) = app.get_webview_window("selection-float-search") {
+        let _ = w.close();
     }
 }
 
-fn main() {
+fn init(app_handle: &AppHandle) -> Result<(), String> {
+    let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
+    let url = "tauri://localhost/#/dict/39?env=floating_tauri".to_string();
+    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
+    let _ = window.navigate(parsed);
+
+    let panel = window.to_panel::<FloatSearchPanel>().unwrap();
+    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
+    let handle = app_handle.to_owned();
+
+    // panel.set_released_when_closed(false);
+
+    handler.window_did_become_key(move |_notification| {
+        let app_name = handle.package_info().name.to_owned();
+        println!("[info]: {:?} panel becomes key window!", app_name);
+    });
+
+    handler.window_did_resign_key(|_notification| {
+        println!("[info]: panel resigned from key window!");
+    });
+
+    // panel.set_level(PanelLevel::ModalPanel.value());
+    // panel.set_collection_behavior(
+    //     CollectionBehavior::new()
+    //         .full_screen_auxiliary()
+    //         .can_join_all_spaces()
+    //         .into(),
+    // );
+
+    // panel.set_floating_panel(true);
+    panel.set_event_handler(Some(handler.as_ref()));
+    // panel.close();
+    // let _ = window.close();
+    // panel.hide();
+
+    let _ = show_panel(
+        app_handle.clone(),
+        "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
+    );
+
+    let _ = hide_panel(app_handle.clone());
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+enum CgEvent {
+    #[serde(rename = "handlerEventTextSelection")]
+    HandlerEventTextSelection { text_selected: String },
+
+    #[serde(rename = "tauri_notification")]
+    TauriNotification { data: TauriNotifyData },
+}
+
+#[derive(Debug, Deserialize)]
+struct TauriNotifyData {
+    message: String,
+}
+
+pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
+    loop {
+        println!("connecting to cgevent ws: {}", ws_url);
+        match connect_async(ws_url).await {
+            Ok((ws_stream, _response)) => {
+                println!("ws connected");
+                let (mut write, mut read) = ws_stream.split();
+
+                while let Some(msg_result) = read.next().await {
+                    match msg_result {
+                        Ok(WsMessage::Text(text)) => {
+                            match serde_json::from_str::<CgEvent>(&text) {
+                                Ok(event) => match event {
+                                    CgEvent::HandlerEventTextSelection { text_selected } => {
+                                        let app_clone = app_handle.clone();
+                                        // Dispatch to main thread to safely touch webview window maps
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            app_clone
+                                                .emit_to("main", "cgevent-select", text_selected)
+                                                .ok();
+                                        });
+                                    }
+                                    // ========= SAFE DISPATCH tauri_notification =========
+                                    CgEvent::TauriNotification { data } => {
+                                        println!("receive tauri_notification: {}", data.message);
+
+                                        let app_clone = app_handle.clone();
+                                        // CRITICAL FIX: Safe execution jump directly back onto macOS Thread 0
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            if let Err(e) =
+                                                show_notification(app_clone, data.message)
+                                            {
+                                                eprintln!(
+                                                    "show_notification main thread call err: {}",
+                                                    e
+                                                );
+                                            }
+                                        });
+                                    }
+                                },
+                                Err(e) => eprintln!("json parse error: {} raw={}", e, text),
+                            }
+                        }
+                        Ok(WsMessage::Close(_)) => {
+                            println!("ws close");
+                            break;
+                        }
+                        Ok(WsMessage::Binary(_)) => {}
+                        Ok(WsMessage::Ping(ping)) => {
+                            let _ = write.send(WsMessage::Pong(ping)).await;
+                        }
+                        Ok(WsMessage::Pong(_)) => {}
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("ws read error: {}", e);
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("ws connect failed: {}", e);
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(2000)).await;
+    }
+}
+
+
+#[tokio::main]
+async fn main() {
+    let ws_endpoint = "ws://127.0.0.1:5959/ws/fstdict/helper";
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
@@ -251,6 +408,13 @@ fn main() {
         .setup(|app| {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            // ========== 后台spawn websocket客户端，不阻塞setup ==========
+            let app_handle = app.handle().clone();
+            let ws_url = ws_endpoint.to_string();
+            tokio::spawn(async move {
+                start_cgevent_ws_client(&ws_url, app_handle).await;
+            });
+
             let quit_item = MenuItem::with_id(app, "quit", "Exit FstDict", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&quit_item])?;
 
@@ -258,8 +422,6 @@ fn main() {
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("FstDict Helper")
                 .menu(&tray_menu)
-                // ADDED: Prevent the menu from automatically opening on a regular Left-Click
-                // This preserves Left-Click for your toggle UI and keeps Right-Click for the context menu.
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app_handle, event| {
                     if event.id.as_ref() == "quit" {
@@ -267,7 +429,6 @@ fn main() {
                     }
                 })
                 .on_tray_icon_event(|tray_handle, event| {
-                    // 2. MODIFIED: Explicitly filter out Left-Clicks only
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
@@ -275,27 +436,10 @@ fn main() {
                     } = event
                     {
                         let app_handle = tray_handle.app_handle();
-
                         if let Ok(panel) = app_handle.get_webview_panel("main") {
                             panel.show_and_make_key();
                         }
-                        // if let Ok(panel) = app_handle.get_webview_panel("float-search") {
-                        //     if let Some(window) = app_handle.get_webview_window("main") {
-                        //         if window.is_visible().unwrap_or(false) {
-                        //             panel.hide();
-                        //         } else {
-                        //             panel.show_and_make_key();
-                        //         }
-                        //     }
-                        // } else {
-                        //     let _ = show_panel(
-                        //         app_handle.clone(),
-                        //         "tauri://localhost/#/dict/95?env=selection_float_search".to_string()
-                        //     );
-                        // }
                     }
-                    // Right-clicks and two-finger clicks are ignored here,
-                    // allowing macOS to cleanly fall back and render your context .menu() layout.
                 })
                 .build(app)?;
 
@@ -304,55 +448,4 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("helper app failed to start");
-}
-
-fn init(app_handle: &AppHandle) -> Result<(), String> {
-    let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
-    let _ = window.set_always_on_top(true);
-    let url = "tauri://localhost/#/dict/39?env=floating_tauri".to_string();
-    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
-    let _ = window.navigate(parsed);
-
-    let panel = window.to_panel::<FloatSearchPanel>().unwrap();
-    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
-    let handle = app_handle.to_owned();
-
-    handler.window_did_become_key(move |_notification| {
-        let app_name = handle.package_info().name.to_owned();
-        println!("[info]: {:?} panel becomes key window!", app_name);
-    });
-
-    handler.window_did_resign_key(|_notification| {
-        println!("[info]: panel resigned from key window!");
-    });
-
-    panel.set_level(PanelLevel::ModalPanel.value());
-    panel.set_collection_behavior(
-        CollectionBehavior::new()
-            .full_screen_auxiliary()
-            .can_join_all_spaces()
-            .into(),
-    );
-
-    panel.set_floating_panel(true);
-    panel.set_event_handler(Some(handler.as_ref()));
-    panel.hide();
-    // Convert your raw coordinates into a Tauri LogicalPosition wrapper
-    // let coordinates = LogicalPosition::new(0.0, 0.0);
-
-    // Pass the coordinates wrapped inside the Position enum structure
-    // panel
-    //     .to_window()
-    //     .unwrap()
-    //     .set_position(Position::Logical(coordinates))
-    //     .unwrap();
-    // panel.show_and_make_key();
-
-    let _ = show_panel(
-        app_handle.clone(),
-        "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
-    );
-
-    // let _ = hide_panel(app_handle.clone());
-    Ok(())
 }
