@@ -1,12 +1,9 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
-use chrono::Local;
-use colored::*;
-use env_logger::{Builder, Env};
-use fstdict_common::WindowState;
+use fstdict_common::logger::init_logging;
+use fstdict_common::window_state::WindowState;
 use log::{debug, error, info, warn, Level, LevelFilter};
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::path::PathBuf;
 #[cfg(dev)]
 use std::process::{Child, Command, Stdio};
@@ -17,92 +14,6 @@ use tauri::{
     App, AppHandle, DragDropEvent, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, Window,
     WindowEvent,
 };
-
-/// Initialize logging: colored console + daily rotated file output.
-/// Must be called after the Tauri app is created so we can use app_log_dir().
-pub fn init_logging(log_dir: &std::path::Path) {
-    let env = Env::default().filter_or("RUST_LOG", "info");
-    let mut builder = Builder::from_env(env);
-
-    // Silence noisy third-party crates
-    builder
-        .filter_module("reqwest", LevelFilter::Warn)
-        .filter_module("hyper", LevelFilter::Warn)
-        .filter_module("hyper_util", LevelFilter::Warn)
-        .filter_module("tauri_plugin_updater", LevelFilter::Warn);
-
-    let _ = fs::create_dir_all(log_dir);
-    println!("Log directory: {:?}", log_dir);
-
-    // Custom formatter matching Python server style
-    let log_dir = log_dir.to_path_buf();
-    builder.format(move |buf, record| {
-        let now = Local::now();
-        let time_str = now.format("%Y-%m-%d %H:%M:%S").to_string();
-        let level = record.level();
-        let level_str = format!("{:>8}", level.as_str());
-
-        let thread_id = format!("{:?}", std::thread::current().id());
-        let thread_short = thread_id.replace("ThreadId(", "").replace(')', "");
-
-        let file_loc = match (record.file(), record.line()) {
-            (Some(file), Some(line)) => {
-                let filename = file.rsplit('/').next().unwrap_or(file);
-                format!("{}:{}", filename, line)
-            }
-            _ => "-".to_string(),
-        };
-
-        // ── Colored console output ──
-        let colored_level = match level {
-            Level::Error => level_str.red().bold(),
-            Level::Warn => level_str.yellow().bold(),
-            Level::Info => level_str.green(),
-            Level::Debug => level_str.cyan(),
-            Level::Trace => level_str.white().dimmed(),
-        };
-
-        let console_line = format!(
-            "{} [{}] [thread {}] [{}] {}",
-            time_str.dimmed(),
-            colored_level,
-            thread_short,
-            file_loc.purple(),
-            record.args()
-        );
-        let _ = writeln!(buf, "{}", console_line);
-
-        // ── Plain file output (no ANSI codes, daily rotation) ──
-        if let Ok(mut file) = daily_log_file(&log_dir) {
-            let file_line = format!(
-                "{} [{}] [thread {}] [{}] {}",
-                time_str,
-                level_str,
-                thread_short,
-                file_loc,
-                record.args()
-            );
-            let _ = writeln!(file, "{}", file_line);
-            let _ = file.flush();
-        }
-
-        Ok(())
-    });
-
-    let _ = builder.try_init();
-}
-
-/// Get or create the daily log file handle
-fn daily_log_file(log_dir: &PathBuf) -> std::io::Result<fs::File> {
-    let today = Local::now().format("%Y-%m-%d").to_string();
-    let log_file = log_dir.join(format!("fstdict-app-{}.log", today));
-
-    OpenOptions::new()
-        .create(true)
-        .append(true)
-        .write(true)
-        .open(log_file)
-}
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -625,7 +536,7 @@ pub fn run() {
                 .path()
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
-            init_logging(&log_dir);
+            init_logging(&log_dir, "fstdict-main".to_string());
 
             // Ensure app data directory exists
             let app_data_dir = app.path().app_data_dir()?;

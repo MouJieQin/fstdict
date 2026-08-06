@@ -8,13 +8,14 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow,
+    App, AppHandle, Emitter, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow,
 };
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
 };
 
+use fstdict_common::window_state::WindowState;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
@@ -309,6 +310,120 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// fn window_setup(app: &mut App) -> Result<(), tauri::Error> {
+//     let app_handle = app.handle().clone();
+//     let config_filename = "helper-main-window-state.json";
+//     let state = WindowState::load(&app_handle, config_filename);
+
+//     #[cfg(not(dev))]
+//     let main_url = "tauri://localhost/#/dict/1";
+
+//     #[cfg(dev)]
+//     let main_url = "http://localhost:9595/#/dict/1";
+
+//     #[cfg(target_os = "macos")]
+//     let mut win_builder =
+//         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
+//             .title("main")
+//             .hidden_title(true)
+//             .inner_size(state.width, state.height)
+//             .accept_first_mouse(true)
+//             .zoom_hotkeys_enabled(true)
+//             .title_bar_style(tauri::TitleBarStyle::Overlay);
+
+//     #[cfg(not(target_os = "macos"))]
+//     let mut win_builder =
+//         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
+//             .title("main")
+//             .inner_size(state.width, state.height)
+//             .accept_first_mouse(true);
+
+//     // Correct coordinate matching boundary check
+//     if let (Some(x), Some(y)) = (state.x, state.y) {
+//         if WindowState::is_position_visible(&app_handle, x, y, state.width, state.height) {
+//             win_builder = win_builder.position(x, y);
+//             log::info!("Restoring main window position to ({}, {})", x, y);
+//         } else {
+//             win_builder = win_builder.center();
+//             log::warn!(
+//                 "Saved main window position ({}, {}) is off-screen. Centering instead.",
+//                 x,
+//                 y
+//             );
+//         }
+//     } else {
+//         win_builder = win_builder.center();
+//         log::info!("No saved main window position. Centering window.");
+//     }
+
+//     let main_win = win_builder.build()?;
+
+//     if state.maximized {
+//         let _ = main_win.maximize();
+//     }
+//     // main_win.show().unwrap_or_else(|e| {
+//     //     error!("Failed to show main window: {}", e);
+//     // });
+
+//     // ===== Guard to suppress background events during initialization framework setup =====
+//     let is_ready = Arc::new(AtomicBool::new(false));
+
+//     // ===== Tokio Thread-Safe Debouncer Implementation =====
+//     let task_id = Arc::new(Mutex::new(0u64));
+//     const DEBOUNCE_MS: u64 = 350;
+//     // Use a single cohesive event controller to avoid reference move duplication
+//     let trigger_save = {
+//         let w = main_win.clone();
+//         let ah = app_handle.clone();
+//         let is_ready_clone = Arc::clone(&is_ready);
+//         move || {
+//             // Refuse hooks if window structure creation sequencing hasn't finished
+//             if !is_ready_clone.load(Ordering::Relaxed) {
+//                 return;
+//             }
+
+//             let task_id_clone = Arc::clone(&task_id);
+//             let w_clone = w.clone();
+//             let ah_clone = ah.clone();
+
+//             tauri::async_runtime::spawn(async move {
+//                 let current_id = {
+//                     let mut guard = task_id_clone.lock().unwrap();
+//                     *guard += 1;
+//                     *guard
+//                 };
+
+//                 tokio::time::sleep(Duration::from_millis(DEBOUNCE_MS)).await;
+
+//                 let latest_id = {
+//                     let guard = task_id_clone.lock().unwrap();
+//                     *guard
+//                 };
+//                 if current_id == latest_id {
+//                     let current_state = WindowState::from_window(&w_clone);
+//                     current_state.save(&ah_clone, config_filename);
+//                 }
+//             });
+//         }
+//     };
+
+//     main_win.on_window_event(move |event| match event {
+//         WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+//             trigger_save();
+//         }
+//         _ => {}
+//     });
+
+//     // Allow the layout thread to settle, then arm the tracker to safely accept events
+//     let is_ready_arm = Arc::clone(&is_ready);
+//     tauri::async_runtime::spawn(async move {
+//         tokio::time::sleep(Duration::from_millis(500)).await;
+//         is_ready_arm.store(true, Ordering::Relaxed);
+//     });
+
+//     Ok(())
+// }
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 enum CgEvent {
@@ -391,7 +506,6 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
         tokio::time::sleep(Duration::from_millis(2000)).await;
     }
 }
-
 
 #[tokio::main]
 async fn main() {

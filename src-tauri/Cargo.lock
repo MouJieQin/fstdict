@@ -1199,10 +1199,7 @@ dependencies = [
 name = "fstdict"
 version = "0.0.19"
 dependencies = [
- "chrono",
- "colored",
  "dirs 5.0.1",
- "env_logger",
  "fstdict_common",
  "libc",
  "log",
@@ -1236,6 +1233,10 @@ dependencies = [
 name = "fstdict_common"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "colored",
+ "env_logger",
+ "log",
  "serde",
  "serde_json",
  "tauri",
