@@ -219,47 +219,6 @@ fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
         panel.show();
         return Ok(());
     }
-
-    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
-    let panel = PanelBuilder::<_, FloatSearchPanel>::new(&app, "selection-float-search")
-        .url(WebviewUrl::External(parsed))
-        .with_window(
-            |window| {
-                window
-                    .hidden_title(true)
-                    .title_bar_style(tauri::TitleBarStyle::Overlay)
-                    .accept_first_mouse(true)
-                    .always_on_top(true)
-                    .minimizable(false)
-            }, // .theme(Some(Theme::Dark))
-        )
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let handle = app.to_owned();
-    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
-    handler.window_did_become_key(move |_notification| {
-        let app_name = handle.package_info().name.to_owned();
-        println!("[info]: {:?} panel becomes key window!", app_name);
-    });
-
-    // let panel_clone = panel.clone();
-    handler.window_did_resign_key(move |_notification| {
-        // panel_clone.hide();
-        println!("[info]: panel resigned from key window!");
-    });
-
-    panel.set_floating_panel(true);
-    // panel.set_hides_on_deactivate(true);
-    panel.set_level(PanelLevel::ModalPanel.value());
-    panel.set_collection_behavior(
-        CollectionBehavior::new()
-            .full_screen_auxiliary()
-            .can_join_all_spaces()
-            .into(),
-    );
-    // panel.set_hides_on_deactivate(true);
-    panel.set_event_handler(Some(handler.as_ref()));
     Ok(())
 }
 
@@ -313,20 +272,25 @@ fn init(app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
+fn window_setup(
+    app: &mut App,
+    label: &str,
+    config_filename: String,
+    url: &str,
+) -> Result<(), tauri::Error> {
     let app_handle = app.handle().clone();
-    let config_filename = "helper-main-window-state.json";
-    let state = WindowState::load(&app_handle, config_filename);
 
-    let main_url = "tauri://localhost/#/dict/39?env=floating_tauri";
-    let mut win_builder =
-        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
-            .title("main")
-            .hidden_title(true)
-            .inner_size(state.width, state.height)
-            .accept_first_mouse(true)
-            .zoom_hotkeys_enabled(true)
-            .title_bar_style(tauri::TitleBarStyle::Overlay);
+    // FIX: Convert the config filename into a thread-safe atomic reference counted slice
+    let shared_config_name: Arc<str> = Arc::from(config_filename);
+
+    let state = WindowState::load(&app_handle, &shared_config_name);
+
+    let mut win_builder = WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App(url.into()))
+        .hidden_title(true)
+        .inner_size(state.width, state.height)
+        .accept_first_mouse(true)
+        .zoom_hotkeys_enabled(true)
+        .title_bar_style(tauri::TitleBarStyle::Overlay);
 
     // Correct coordinate matching boundary check
     if let (Some(x), Some(y)) = (state.x, state.y) {
@@ -336,29 +300,35 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
         } else {
             win_builder = win_builder.center();
             log::warn!(
-                "Saved main window position ({}, {}) is off-screen. Centering instead.",
+                "Saved {} window position ({}, {}) is off-screen. Centering instead.",
+                label,
                 x,
                 y
             );
         }
     } else {
         win_builder = win_builder.center();
-        log::info!("No saved main window position. Centering window.");
+        log::info!("No saved {} window position. Centering window.", label);
     }
 
-    let main_win = win_builder.build()?;
-    let _ = main_win.hide();
+    let win = win_builder.build()?;
+    let _ = win.hide();
+
     // ===== Guard to suppress background events during initialization framework setup =====
     let is_ready = Arc::new(AtomicBool::new(false));
 
     // ===== Tokio Thread-Safe Debouncer Implementation =====
     let task_id = Arc::new(Mutex::new(0u64));
     const DEBOUNCE_MS: u64 = 350;
+
     // Use a single cohesive event controller to avoid reference move duplication
     let trigger_save = {
-        let w = main_win.clone();
+        let w = win.clone();
         let ah = app_handle.clone();
         let is_ready_clone = Arc::clone(&is_ready);
+        // Clone for the outer closure environment
+        let config_clone = Arc::clone(&shared_config_name);
+
         move || {
             // Refuse hooks if window structure creation sequencing hasn't finished
             if !is_ready_clone.load(Ordering::Relaxed) {
@@ -368,6 +338,8 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
             let task_id_clone = Arc::clone(&task_id);
             let w_clone = w.clone();
             let ah_clone = ah.clone();
+            // FIX: Clone again so the spawned async thread gets its own owned pointer allocation handle
+            let async_config_target = Arc::clone(&config_clone);
 
             tauri::async_runtime::spawn(async move {
                 let current_id = {
@@ -384,13 +356,14 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
                 };
                 if current_id == latest_id {
                     let current_state = WindowState::from_window(&w_clone);
-                    current_state.save(&ah_clone, config_filename);
+                    // Pass by dereferencing the Arc string slice cleanly
+                    current_state.save(&ah_clone, &async_config_target);
                 }
             });
         }
     };
 
-    main_win.on_window_event(move |event| match event {
+    win.on_window_event(move |event| match event {
         WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
             trigger_save();
         }
@@ -405,10 +378,9 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
     });
 
     // Convert the window to panel
-    let panel = main_win.to_panel::<FloatSearchPanel>().unwrap();
+    let panel = win.to_panel::<FloatSearchPanel>().unwrap();
     let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
     let handle = app_handle.to_owned();
-    // panel.set_released_when_closed(false);
 
     handler.window_did_become_key(move |_notification| {
         let app_name = handle.package_info().name.to_owned();
@@ -436,10 +408,15 @@ fn main_window_setup(app: &mut App) -> Result<(), tauri::Error> {
 #[serde(tag = "type")]
 enum CgEvent {
     #[serde(rename = "handlerEventTextSelection")]
-    HandlerEventTextSelection { text_selected: String },
+    HandlerEventTextSelection { data: TextSelectedData },
 
     #[serde(rename = "tauri_notification")]
     TauriNotification { data: TauriNotifyData },
+}
+
+#[derive(Debug, Deserialize)]
+struct TextSelectedData {
+    text_selected: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -460,13 +437,19 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
                         Ok(WsMessage::Text(text)) => {
                             match serde_json::from_str::<CgEvent>(&text) {
                                 Ok(event) => match event {
-                                    CgEvent::HandlerEventTextSelection { text_selected } => {
+                                    CgEvent::HandlerEventTextSelection { data } => {
                                         let app_clone = app_handle.clone();
                                         // Dispatch to main thread to safely touch webview window maps
                                         let _ = app_handle.run_on_main_thread(move || {
-                                            app_clone
-                                                .emit_to("main", "cgevent-select", text_selected)
-                                                .ok();
+                                            let _ = show_panel(app_clone, "".to_string());
+                                            println!("data.text_selected:{}", data.text_selected);
+                                            // app_clone
+                                            //     .emit_to(
+                                            //         "main",
+                                            //         "cgevent-select",
+                                            //         data.text_selected,
+                                            //     )
+                                            //     .ok();
                                         });
                                     }
                                     // ========= SAFE DISPATCH tauri_notification =========
@@ -550,7 +533,18 @@ async fn main() {
                 start_cgevent_ws_client(&ws_url, app_handle).await;
             });
 
-            main_window_setup(app)?;
+            window_setup(
+                app,
+                "main",
+                "helper-main-window-state.json".to_string(),
+                "tauri://localhost/#/dict/39?env=floating_tauri",
+            )?;
+            window_setup(
+                app,
+                "selection-float-search",
+                "helper-selection-window-state.json".to_string(),
+                "tauri://localhost/#/dict/95?env=selection_float_search",
+            )?;
 
             let quit_item = MenuItem::with_id(app, "quit", "Exit FstDict", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&quit_item])?;

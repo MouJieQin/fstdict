@@ -120,6 +120,12 @@ class MessageHandler:
                         await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
                     logger.info(f"globalKeyboardShortCut:{msg}")
                 elif cg_event_type == "handlerEventTextSelection":
+                    tmsg = {"type": "handlerEventTextSelection",
+                            "data": {
+                                "text_selected": message["data"]["text_selected"]
+                            }}
+                    if Utils.fstdict_helper_websocket:
+                        await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                     smsg["data"] = message["data"]
                     await SessionManager.broadcast_all(json.dumps(smsg))
                     text_selected = message["data"]["text_selected"]
