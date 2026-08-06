@@ -1218,6 +1218,7 @@ version = "0.0.19"
 dependencies = [
  "fstdict_common",
  "futures-util",
+ "log",
  "serde",
  "serde_json",
  "tauri",

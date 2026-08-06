@@ -2,7 +2,7 @@
 
 use fstdict_common::logger::init_logging;
 use fstdict_common::window_state::WindowState;
-use log::{debug, error, info, warn, Level, LevelFilter};
+use log::{debug, error, info, warn};
 use std::fs;
 use std::path::PathBuf;
 #[cfg(dev)]

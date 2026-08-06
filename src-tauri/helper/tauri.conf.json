@@ -7,16 +7,6 @@
     "frontendDist": "../../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "",
-        "width": 900,
-        "height": 500,
-        "dragDropEnabled": true,
-        "titleBarStyle": "Overlay",
-        "acceptFirstMouse": true
-      }
-    ],
     "withGlobalTauri": true,
     "security": {
       "csp": null
