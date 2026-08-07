@@ -184,9 +184,9 @@ async def fstdict_helper_websocket_endpoint(websocket: WebSocket):
         while True:
             text = await websocket.receive_text()
             logger.info(f"/ws/fstdict/helper WebSocket收到消息: {text}")
-            # await MessageHandler.handle_fstdict_helper_message(
-            #     websocket, text
-            # )
+            await MessageHandler.handle_fstdict_helper_message(
+                websocket, text
+            )
     except WebSocketDisconnect:
         logger.info("/ws/fstdict/helper WebSocket断开连接")
     except Exception as e:

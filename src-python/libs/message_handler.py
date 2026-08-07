@@ -83,12 +83,12 @@ class MessageHandler:
 
     @staticmethod
     async def handle_cgevent_message(ws: ClientConnection, data: str):
-        """处理iWin消息"""
         try:
             message = json.loads(data)
             type = message["type"]
             if type == "CGEvent":
-                smsg = {"type": "cgevent"}
+                smsg = {"type": "cgevent",
+                        "data": {}}
                 cg_event_type = message["data"]["type"]
                 if cg_event_type == "globalKeyboardShortCut":
                     msg = message["data"]["msg"]
@@ -130,8 +130,43 @@ class MessageHandler:
                     await SessionManager.broadcast_all(json.dumps(smsg))
                     text_selected = message["data"]["text_selected"]
                     logger.info(f"text_selected:{text_selected}")
+                elif cg_event_type == "kCGEventLeftMouseDown":
+                    tmsg = {"type": "kCGEventLeftMouseDown"
+                            }
+                    if Utils.fstdict_helper_websocket:
+                        await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                 else:
                     logger.warning(f"unknow cgevent type: {cg_event_type}")
+            else:
+                logger.warning(f"未知的cgevent命令类型: {type}")
+        except Exception as e:
+            logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
+
+    @staticmethod
+    async def handle_fstdict_helper_message(
+        websocket: WebSocket, data: str
+    ):
+        try:
+            message = json.loads(data)
+            type = message["type"]
+            if type == "register_request":
+                cg_event_type = message["data"]["event"]
+                window = message["data"]["window"]
+                if cg_event_type == "kCGEventLeftMouseDown":
+                    if cg_event_type not in Utils.cgevent_register_map:
+                        Utils.cgevent_register_map[cg_event_type] = []
+                    if not Utils.cgevent_register_map[cg_event_type]:
+                        await Utils.cgevent_ws_client.send_register_request("kCGEventLeftMouseDown")
+                    if window not in Utils.cgevent_register_map[cg_event_type]:
+                        Utils.cgevent_register_map[cg_event_type].append(window)
+            elif type == "unregister_request":
+                cg_event_type = message["data"]["event"]
+                window = message["data"]["window"]
+                if cg_event_type in Utils.cgevent_register_map:
+                    if window in Utils.cgevent_register_map[cg_event_type]:
+                        Utils.cgevent_register_map[cg_event_type].remove(window)
+                    if not Utils.cgevent_register_map[cg_event_type]:
+                        await Utils.cgevent_ws_client.send_unregister_request("kCGEventLeftMouseDown")
             else:
                 logger.warning(f"未知的cgevent命令类型: {type}")
         except Exception as e:

@@ -8,7 +8,7 @@ use fstdict_common::logger::init_logging;
 use fstdict_common::window_state::WindowState;
 use futures_util::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -208,6 +208,65 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
     Ok(())
 }
 
+pub fn hide_window_if_need(app: &AppHandle, label: &str) -> bool {
+    let Some(win) = app.get_webview_window(label) else {
+        return true;
+    };
+    if !win.is_visible().unwrap_or(false) || win.is_minimized().unwrap_or(false) {
+        return true;
+    }
+    if !is_cursor_over_window(app, label) {
+        let _ = win.hide();
+        return true;
+    }
+    return false;
+}
+
+/// Determines whether the mouse cursor is currently positioned inside the bounds
+/// of the specified webview window.
+pub fn is_cursor_over_window(app: &AppHandle, label: &str) -> bool {
+    // 1. Fetch the target webview window handle from Tauri
+    let Some(win) = app.get_webview_window(label) else {
+        log::warn!("Window with label '{}' not found.", label);
+        return false;
+    };
+
+    // 2. Optimization Guard: If the window is hidden or minimized, the cursor cannot be over it
+    if !win.is_visible().unwrap_or(false) || win.is_minimized().unwrap_or(false) {
+        return false;
+    }
+
+    // 3. Fetch the current PHYSICAL mouse coordinates (as confirmed by your snippet)
+    let Ok(cursor_physical) = app.cursor_position() else {
+        log::error!("Failed to retrieve cursor position from system.");
+        return false;
+    };
+
+    // 4. Fetch the window's raw physical position and size metrics
+    // outer_position includes the window window frame title bar/shadow constraints
+    let Ok(physical_pos) = win.outer_position() else {
+        return false;
+    };
+    // inner_size tracks the active clickable viewport content body space
+    let Ok(physical_size) = win.inner_size() else {
+        return false;
+    };
+
+    // 5. Setup physical math bounding box coordinates
+    let min_x = physical_pos.x as f64;
+    let max_x = (physical_pos.x + physical_size.width as i32) as f64;
+
+    // Note: On macOS desktop coordinates, Y increases downwards from the main screen's top-left corner
+    let min_y = physical_pos.y as f64;
+    let max_y = (physical_pos.y + physical_size.height as i32) as f64;
+
+    // 6. Direct physical pixel comparison check
+    cursor_physical.x >= min_x
+        && cursor_physical.x <= max_x
+        && cursor_physical.y >= min_y
+        && cursor_physical.y <= max_y
+}
+
 #[tauri::command]
 fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
     return show_notification(app, message);
@@ -216,7 +275,9 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
 #[tauri::command]
 fn show_panel(app: AppHandle, _url: String) -> Result<(), String> {
     println!("Receive show_panel");
-
+    if is_cursor_over_window(&app, "selection-float-search") {
+        return Ok(());
+    }
     if let Some(w) = app.get_webview_window("selection-float-search") {
         // 1. Fetch PHYSICAL mouse coordinates based on your source code snippet
         if let Ok(mouse_physical) = app.cursor_position() {
@@ -315,7 +376,7 @@ fn show_panel(app: AppHandle, _url: String) -> Result<(), String> {
 #[tauri::command]
 fn hide_panel(app: tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("selection-float-search") {
-        let _ = w.close();
+        let _ = w.hide();
     }
 }
 
@@ -456,11 +517,14 @@ fn window_setup(
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 enum CgEvent {
+    #[serde(rename = "tauri_notification")]
+    TauriNotification { data: TauriNotifyData },
+
     #[serde(rename = "handlerEventTextSelection")]
     HandlerEventTextSelection { data: TextSelectedData },
 
-    #[serde(rename = "tauri_notification")]
-    TauriNotification { data: TauriNotifyData },
+    #[serde(rename = "kCGEventLeftMouseDown")]
+    kCGEventLeftMouseDown {},
 }
 
 #[derive(Debug, Deserialize)]
@@ -471,6 +535,18 @@ struct TextSelectedData {
 #[derive(Debug, Deserialize)]
 struct TauriNotifyData {
     message: String,
+}
+
+#[derive(Debug, Serialize)]
+struct RegisterRequest {
+    #[serde(rename = "type")]
+    request_type: String,
+    data: RegisterData,
+}
+
+#[derive(Debug, Serialize)]
+struct RegisterData {
+    event: String,
 }
 
 pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
@@ -486,21 +562,6 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
                         Ok(WsMessage::Text(text)) => {
                             match serde_json::from_str::<CgEvent>(&text) {
                                 Ok(event) => match event {
-                                    CgEvent::HandlerEventTextSelection { data } => {
-                                        let app_clone = app_handle.clone();
-                                        // Dispatch to main thread to safely touch webview window maps
-                                        let _ = app_handle.run_on_main_thread(move || {
-                                            let _ = show_panel(app_clone, "".to_string());
-                                            println!("data.text_selected:{}", data.text_selected);
-                                            // app_clone
-                                            //     .emit_to(
-                                            //         "main",
-                                            //         "cgevent-select",
-                                            //         data.text_selected,
-                                            //     )
-                                            //     .ok();
-                                        });
-                                    }
                                     // ========= SAFE DISPATCH tauri_notification =========
                                     CgEvent::TauriNotification { data } => {
                                         println!("receive tauri_notification: {}", data.message);
@@ -517,6 +578,65 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
                                                 );
                                             }
                                         });
+                                    }
+                                    CgEvent::HandlerEventTextSelection { data } => {
+                                        let app_clone = app_handle.clone();
+                                        // Dispatch to main thread to safely touch webview window maps
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            let _ = show_panel(app_clone, "".to_string());
+                                            println!("data.text_selected:{}", data.text_selected);
+                                        });
+                                        let text_str = serde_json::json!({
+                                            "type": "register_request",
+                                            "data": { "event": "kCGEventLeftMouseDown",
+                                            "window":"selection-float-search"
+                                        }
+                                        })
+                                        .to_string();
+
+                                        // `.into()` handles the String -> Utf8Bytes translation implicitly
+                                        let _ = write.send(WsMessage::Text(text_str.into())).await;
+                                    }
+                                    CgEvent::kCGEventLeftMouseDown {} => {
+                                        let app_clone = app_handle.clone();
+                                        // 1. Create a thread-safe single-use (oneshot) communication channel
+                                        let (tx, rx) = tokio::sync::oneshot::channel::<bool>();
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            println!("kCGEventLeftMouseDown");
+                                            // Execute your window evaluation function inside the AppKit loop context
+                                            let result = hide_window_if_need(
+                                                &app_clone,
+                                                "selection-float-search",
+                                            );
+
+                                            // Send the return value back across the channel to the background listener
+                                            // .send() will return an error if the background thread was dropped prematurely
+                                            let _ = tx.send(result);
+                                        });
+
+                                        // 3. Since this workspace runs inside a tokio async loop environment,
+                                        // we can cleanly wait for the main thread to reply without blocking the socket execution
+                                        match rx.await {
+                                            Ok(was_hidden) => {
+                                                println!("Main thread completed task. Window hidden status: {}", was_hidden);
+                                                if was_hidden {
+                                                    let text_str = serde_json::json!({
+                                                        "type": "unregister_request",
+                                                        "data": { "event": "kCGEventLeftMouseDown",
+                                                        "window":"selection-float-search"
+                                                    }
+                                                    })
+                                                    .to_string();
+                                                    let _ = write
+                                                        .send(WsMessage::Text(text_str.into()))
+                                                        .await;
+                                                }
+                                            }
+                                            Err(e) => {
+                                                eprintln!("Failed to get return value from main thread: {:?}", e);
+                                            }
+                                        }
+                                        // `.into()` handles the String -> Utf8Bytes translation implicitly
                                     }
                                 },
                                 Err(e) => eprintln!("json parse error: {} raw={}", e, text),
