@@ -81,7 +81,7 @@ async def download(path: str):
 
     # ========== 音频文件：调用ffmpeg转码mp3流式输出 ==========
     ffmpeg_bin = Utils.FFMPEG_PATH
-    # ffmpeg 参数：本地文件输入 → libmp3lame → 管道输出mp3
+    # 1. Prepare base command arguments
     cmd = [
         ffmpeg_bin,
         "-y",
@@ -91,14 +91,20 @@ async def download(path: str):
         "-f", "mp3",
         "pipe:1"
     ]
+    # 2. Configure Windows-specific process creation flags to suppress console windows
+    popen_kwargs = {
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.PIPE,
+        "stdin": subprocess.DEVNULL
+    }
+    if sys.platform == "win32":
+        # 0x08000000 tells the Win32 subsystem to spawn the process completely hidden
+        popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
     try:
         async with ffmpeg_semaphore:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL
-            )
+            # **kwargs safely unpacks the creationflags parameter only on Windows machines
+            proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore
+
     except Exception as e:
         logger.error(f"ffmpeg start failed: {e}")
         return FileResponse(
