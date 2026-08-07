@@ -214,13 +214,101 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn show_panel(app: tauri::AppHandle, url: String) -> Result<(), String> {
+fn show_panel(app: AppHandle, _url: String) -> Result<(), String> {
     println!("Receive show_panel");
-    if let Ok(panel) = app.get_webview_panel("selection-float-search") {
-        println!(" show()");
-        panel.show();
+
+    if let Some(w) = app.get_webview_window("selection-float-search") {
+        // 1. Fetch PHYSICAL mouse coordinates based on your source code snippet
+        if let Ok(mouse_physical) = app.cursor_position() {
+            let monitors = app.available_monitors().unwrap_or_default();
+
+            // 2 & 3. Find the monitor that physically contains the physical mouse cursor
+            let mut target_monitor = monitors.first().cloned();
+            for monitor in &monitors {
+                let m_pos = monitor.position();
+                let m_size = monitor.size();
+
+                if mouse_physical.x >= m_pos.x as f64
+                    && mouse_physical.x <= (m_pos.x + m_size.width as i32) as f64
+                    && mouse_physical.y >= m_pos.y as f64
+                    && mouse_physical.y <= (m_pos.y + m_size.height as i32) as f64
+                {
+                    target_monitor = Some(monitor.clone());
+                    break;
+                }
+            }
+
+            if let Some(monitor) = target_monitor {
+                let scale_factor = monitor.scale_factor();
+
+                // 4. Transform physical screen bounds into logical workspace units
+                let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
+                let screen_size = monitor.size().to_logical::<f64>(scale_factor);
+
+                // FIX: Explicitly convert the physical mouse coordinates to logical coordinates
+                let mouse_logical_x = mouse_physical.x / scale_factor;
+                let mouse_logical_y = mouse_physical.y / scale_factor;
+
+                // 5. Get window logical dimensions using the target scale factor
+                let win_physical_size = w.inner_size().unwrap_or_default();
+                let win_width = win_physical_size.width as f64 / scale_factor;
+                let win_height = win_physical_size.height as f64 / scale_factor;
+
+                // 6. FRIENDLY PLACEMENT MECHANISM
+                let mut x;
+                let mut y;
+                let cursor_padding = 12.0; // Visual spacing between mouse tip and window border
+
+                // --- Dynamic Horizontal Placement ---
+                let monitor_center_x = screen_pos.x + (screen_size.width / 2.0);
+                if mouse_logical_x > monitor_center_x {
+                    // Cursor is on the RIGHT half of the monitor -> Spawn panel safely to the LEFT
+                    x = mouse_logical_x - win_width - cursor_padding;
+                } else {
+                    // Cursor is on the LEFT half of the monitor -> Spawn panel safely to the RIGHT
+                    x = mouse_logical_x + cursor_padding;
+                }
+
+                // --- Dynamic Vertical Placement ---
+                let monitor_center_y = screen_pos.y + (screen_size.height / 2.0);
+                if mouse_logical_y > monitor_center_y {
+                    // Cursor is on the BOTTOM half of the monitor -> Spawn panel safely ABOVE
+                    y = mouse_logical_y - win_height - cursor_padding;
+                } else {
+                    // Cursor is on the TOP half of the monitor -> Spawn panel safely BELOW
+                    y = mouse_logical_y + cursor_padding;
+                }
+
+                // ===================== Hard Safety Boundary Clamp Fallbacks =====================
+                let outer_margin = 8.0; // Screen border safety padding
+
+                // Clamp Horizontal Edges
+                if x + win_width > screen_pos.x + screen_size.width - outer_margin {
+                    x = screen_pos.x + screen_size.width - win_width - outer_margin;
+                }
+                if x < screen_pos.x + outer_margin {
+                    x = screen_pos.x + outer_margin;
+                }
+
+                // Clamp Vertical Edges
+                if y + win_height > screen_pos.y + screen_size.height - outer_margin {
+                    y = screen_pos.y + screen_size.height - win_height - outer_margin;
+                }
+                if y < screen_pos.y + outer_margin {
+                    y = screen_pos.y + outer_margin;
+                }
+
+                // 7. Update Window Position safely using the computed Logical Coordinates
+                let _ = w.set_position(Position::Logical(LogicalPosition::new(x, y)));
+            }
+        }
+
+        // Show the panel on screen
+        // panel.show();
+        let _ = w.show();
         return Ok(());
     }
+
     Ok(())
 }
 
@@ -229,49 +317,6 @@ fn hide_panel(app: tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("selection-float-search") {
         let _ = w.close();
     }
-}
-
-fn init(app_handle: &AppHandle) -> Result<(), String> {
-    let window: WebviewWindow = app_handle.get_webview_window("main").unwrap();
-    let url = "tauri://localhost/#/dict/39?env=floating_tauri".to_string();
-    let parsed = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
-    let _ = window.navigate(parsed);
-
-    let panel = window.to_panel::<FloatSearchPanel>().unwrap();
-    let handler: Retained<MyPanelEventHandler> = MyPanelEventHandler::new();
-    let handle = app_handle.to_owned();
-    // panel.set_released_when_closed(false);
-
-    handler.window_did_become_key(move |_notification| {
-        let app_name = handle.package_info().name.to_owned();
-        println!("[info]: {:?} panel becomes key window!", app_name);
-    });
-
-    handler.window_did_resign_key(|_notification| {
-        println!("[info]: panel resigned from key window!");
-    });
-
-    // panel.set_level(PanelLevel::ModalPanel.value());
-    // panel.set_collection_behavior(
-    //     CollectionBehavior::new()
-    //         .full_screen_auxiliary()
-    //         .can_join_all_spaces()
-    //         .into(),
-    // );
-
-    // panel.set_floating_panel(true);
-    panel.set_event_handler(Some(handler.as_ref()));
-    // panel.close();
-    // let _ = window.close();
-    // panel.hide();
-
-    // let _ = show_panel(
-    //     app_handle.clone(),
-    //     "tauri://localhost/#/dict/95?env=selection_float_search".to_string(),
-    // );
-
-    // let _ = hide_panel(app_handle.clone());
-    Ok(())
 }
 
 fn window_setup(
@@ -402,7 +447,7 @@ fn window_setup(
             .can_join_all_spaces()
             .into(),
     );
-
+    // panel.set_hides_on_deactivate(true);
     panel.set_floating_panel(true);
     panel.set_event_handler(Some(handler.as_ref()));
     Ok(())

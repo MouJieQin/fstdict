@@ -482,8 +482,8 @@ const handleCgevent = async (data: any) => {
     const type = data.type
     if (type === 'handlerEventTextSelection') {
         redirectWord.value = data.text_selected
-        invoke("show_panel")
-        await popupPanelNearCursor()
+        // invoke("show_panel")
+        // await popupPanelNearCursor()
     }
 }
 

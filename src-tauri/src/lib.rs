@@ -5,7 +5,6 @@ use fstdict_common::window_state::WindowState;
 use log::{debug, error, info, warn};
 use std::fs;
 use std::path::PathBuf;
-#[cfg(dev)]
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
