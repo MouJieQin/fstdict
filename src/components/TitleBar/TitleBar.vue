@@ -406,7 +406,7 @@ const favoriteWords = computed(() => {
 })
 
 const showPinButton = computed(() => {
-    return props.env === '' || props.env === 'iwin'
+    return props.env === '' || props.env === 'selection_float_search' || props.env === 'iwin'
 })
 
 const handlePinClick = () => {

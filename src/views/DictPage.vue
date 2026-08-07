@@ -258,16 +258,6 @@ const setupWebSocket = () => {
     }
 }
 
-// const connectCgevent = async () => {
-//     try {
-//         const res = await axios.get('http://127.0.0.1:5959/api/connectcgevent')
-//         console.log(res.data)
-//     } catch (err) {
-//         console.error('请求失败', err)
-//     }
-// }
-
-
 // Clean-up holder variable
 let unlistenTextSelectedMessage: any = null;
 

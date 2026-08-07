@@ -16,8 +16,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    App, AppHandle, Emitter, LogicalPosition, Manager, Position, Theme, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder, WindowEvent,
+    App, AppHandle, Emitter, LogicalPosition, Manager, Position, State, Theme, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
@@ -59,6 +59,9 @@ tauri_panel! {
         window_did_resign_key(notification: &NSNotification) -> ()
     })
 }
+
+// 1. Define the type wrapper you will register with Tauri
+pub struct SelectionWindowPinState(pub AtomicBool);
 
 // Use a global or state-managed counter to manage debouncing tasks across commands safely.
 // You can also add this to your app state via `.manage(NotificationState::default())`.
@@ -209,6 +212,7 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
 }
 
 pub fn hide_window_if_need(app: &AppHandle, label: &str) -> bool {
+            // ====== CHECK THE PINNED STATE LAYER ======
     let Some(win) = app.get_webview_window(label) else {
         return true;
     };
@@ -270,6 +274,13 @@ pub fn is_cursor_over_window(app: &AppHandle, label: &str) -> bool {
 #[tauri::command]
 fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
     return show_notification(app, message);
+}
+
+// 2. Command to let the Vue frontend update the state directly
+#[tauri::command]
+fn set_selction_window_pinned(state: State<'_, SelectionWindowPinState>, pinned: bool) {
+    state.0.store(pinned, Ordering::SeqCst);
+    println!("[info]: Window pin status updated to: {}", pinned);
 }
 
 #[tauri::command]
@@ -683,6 +694,7 @@ async fn main() {
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
             show_panel,
+            set_selction_window_pinned,
             hide_panel,
             trigger_notification
         ])
