@@ -127,7 +127,7 @@ class MessageHandler:
                     if Utils.fstdict_helper_websocket:
                         await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                     smsg["data"] = message["data"]
-                    await SessionManager.broadcast_all(json.dumps(smsg))
+                    # await SessionManager.broadcast_all(json.dumps(smsg))
                     text_selected = message["data"]["text_selected"]
                     logger.info(f"text_selected:{text_selected}")
                 elif cg_event_type == "kCGEventLeftMouseDown":

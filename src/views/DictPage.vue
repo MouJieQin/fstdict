@@ -125,6 +125,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import { popupPanelNearCursor } from '@/common/window-controll'
+import { listen } from '@tauri-apps/api/event'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import WordOptions from '@/components/WordOptions.vue'
 import DictIframe from '@/components/DictIframe.vue';
@@ -266,17 +267,37 @@ const setupWebSocket = () => {
 //     }
 // }
 
+
+// Clean-up holder variable
+let unlistenTextSelectedMessage: any = null;
+
+const tauriListenerSetup = async () => {
+    try {
+        console.log("tauri setup")
+        // 1. Listen for "update-message" event emitted from Rust [3]
+        unlistenTextSelectedMessage = await listen('cgevent-select', (event) => {
+            // event.payload contains your string data ("已启用选词浮窗") [3, 4]
+            console.log('Received message from Rust:', event.payload);
+            redirectWord.value = event.payload as string;
+        });
+
+    } catch (error) {
+        console.error('Failed to bind Tauri event listeners:', error);
+    }
+}
+
+
 const initDictPage = async () => {
     if (envFromRoute.value === 'anki') {
         document.body.classList.add('anki-mode')
     } else {
         document.body.classList.remove('anki-mode')
     }
+    if (envFromRoute.value === 'selection_float_search') {
+        await tauriListenerSetup()
+    }
     console.log("Current env:", envFromRoute.value)
     setupWebSocket()
-    // if (envFromRoute.value === 'floating_tauri') {
-    //     await connectCgevent()
-    // }
     window.addEventListener('resize', handleResize)
     showPopoverWordOptions.value = window.innerWidth < 700
 }
@@ -294,12 +315,13 @@ watch(
 )
 
 // 初始化
-onMounted(() => {
-    initDictPage()
+onMounted(async () => {
+    await initDictPage()
 })
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
+    if (unlistenTextSelectedMessage) unlistenTextSelectedMessage();
 })
 
 router.beforeEach(async (to, from) => {

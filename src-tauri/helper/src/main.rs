@@ -582,9 +582,16 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
                                     CgEvent::HandlerEventTextSelection { data } => {
                                         let app_clone = app_handle.clone();
                                         // Dispatch to main thread to safely touch webview window maps
+                                        app_clone
+                                            .emit_to(
+                                                "selection-float-search",
+                                                "cgevent-select",
+                                                data.text_selected,
+                                            )
+                                            .ok();
                                         let _ = app_handle.run_on_main_thread(move || {
                                             let _ = show_panel(app_clone, "".to_string());
-                                            println!("data.text_selected:{}", data.text_selected);
+                                            // println!("data.text_selected:{}", data.text_selected);
                                         });
                                         let text_str = serde_json::json!({
                                             "type": "register_request",
