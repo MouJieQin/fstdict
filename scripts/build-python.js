@@ -1,9 +1,9 @@
 import { execSync } from "node:child_process";
 import { cpSync, rmSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { platform, arch } from "node:process"; // process.arch is safer than os.arch()
+import { platform, arch } from "node:process";
 
-// === 1. FFmpeg 核心版本配置 (使用 /download/ 确保拿到真实直链) ===
+// === 1. FFmpeg 核心版本配置 ===
 const FFMPEG_VERSION_TAG = "v8.1.2-build3";
 const REPO_URL = `https://github.com/MouJieQin/fstdict-ffmpeg/releases/download/${FFMPEG_VERSION_TAG}`;
 
@@ -18,26 +18,43 @@ const sep = platform === "win32" ? ";" : ":";
 
 console.log("\n═══ Building Python sidecar ═══\n");
 
-// === 2. 检查、下载并解压对应平台的 FFmpeg 二进制文件 ===
+// === 2. 交叉编译架构识别核心机制 (基于编译目标而非宿主机环境) ===
+const sysPlatform = platform;
+const rustTarget = process.env.TAURI_TARGET || "";
+
+// 默认采用当前主机的架构属性
+let targetArch = arch;
+
+// ✨ 修复核心：如果当前在 MacOS 且检测到显式指定的跨平台 Target 编译参数，强制纠正目标架构
+if (sysPlatform === "darwin") {
+    if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
+        targetArch = "x86_64";
+    } else if (
+        rustTarget.includes("aarch64") ||
+        process.argv.includes("aarch64") ||
+        rustTarget.includes("arm64")
+    ) {
+        targetArch = "arm64";
+    }
+}
+
+// === 3. 检查、下载并解压对应平台的 FFmpeg 二进制文件 ===
 const ffmpegDir = join(pythonDir, "ffmpeg");
-// 运行时的期望名称 (与 Python 代码中的调用保持一致)
 const ffmpegExecutableName =
-    platform === "win32" ? "fstdict-ffmpeg.exe" : "fstdict-ffmpeg";
+    sysPlatform === "win32" ? "fstdict-ffmpeg.exe" : "fstdict-ffmpeg";
 const ffmpegLocalPath = join(ffmpegDir, ffmpegExecutableName);
 
 if (!existsSync(ffmpegLocalPath)) {
     console.log(
-        `  ⚠ Local FFmpeg binary not found at ${ffmpegLocalPath}. Starting download...`,
+        `  ⚠ Local FFmpeg binary not found at ${ffmpegLocalPath}. Target Arch: [${targetArch}]. Starting download...`,
     );
 
     let archiveName = "";
-    let innerFileName = ""; // 解压后原本包含的文件名
-
-    const sysPlatform = platform;
-    const sysArch = arch; // 直接读取字符串，避免全局 arch() 冲突
+    let innerFileName = "";
 
     if (sysPlatform === "darwin") {
-        if (sysArch === "arm64") {
+        // ✨ 使用纠正后的 targetArch 代替原本的机器宿主 sysArch
+        if (targetArch === "arm64") {
             archiveName = "ffmpeg-macos-arm64.tar.gz";
             innerFileName = "ffmpeg-macos-arm64";
         } else {
@@ -69,12 +86,10 @@ if (!existsSync(ffmpegLocalPath)) {
 
         console.log(`  Extracting ${archiveName} ...`);
         if (archiveName.endsWith(".tar.gz")) {
-            // 解压到指定的临时存放文件夹
             execSync(`tar -xzf "${archivePath}" -C "${ffmpegDir}"`, {
                 stdio: "inherit",
             });
 
-            // 修复：读取你在 Release 包中实际保留的特定平台专属名称并重命名
             const genericUnpackedFile = join(ffmpegDir, innerFileName);
             if (existsSync(genericUnpackedFile)) {
                 renameSync(genericUnpackedFile, ffmpegLocalPath);
@@ -85,20 +100,17 @@ if (!existsSync(ffmpegLocalPath)) {
                 { stdio: "inherit" },
             );
 
-            // 修复：针对 Windows 解压出的特定的平台名 "ffmpeg-windows-x86_64.exe" 转换为期望名称
             const genericUnpackedExe = join(ffmpegDir, innerFileName);
             if (existsSync(genericUnpackedExe)) {
                 renameSync(genericUnpackedExe, ffmpegLocalPath);
             }
         }
 
-        // 清理临时下载的压缩包
         if (existsSync(archivePath)) {
             rmSync(archivePath);
         }
 
-        // 赋予非 Windows 系统可执行权限，确保侧载正常
-        if (platform !== "win32") {
+        if (sysPlatform !== "win32") {
             execSync(`chmod +x "${ffmpegLocalPath}"`);
         }
 
@@ -114,37 +126,31 @@ if (!existsSync(ffmpegLocalPath)) {
     );
 }
 
-// 3. Clean old static directory
+// 4. Clean old static directory
 if (existsSync(staticDir)) {
     rmSync(staticDir, { recursive: true });
 }
 
-// 4. Copy Vue build output to Python static/
+// 5. Copy Vue build output to Python static/
 cpSync(vueDist, staticDir, { recursive: true });
 console.log("  ✓ Vue dist → src-python/static");
 
-// 5. Run PyInstaller
+// 6. Run PyInstaller
 console.log("  Running PyInstaller...");
 const addDataStatic = `static${sep}static`;
 const addDataConfig = `config.json${sep}.`;
 const addDataCgeventConfig = `cgevent_config.json${sep}.`;
-
-// 映射整个 ffmpeg 文件夹，这样 PyInstaller 会在解压时保持内部的 fstdict-ffmpeg 路径
 const addDataFfmpeg = `ffmpeg${sep}ffmpeg`;
 
 let commandPrefix = "";
 let targetArchFlag = "";
-const isMac = platform === "darwin";
-const rustTarget = process.env.TAURI_TARGET || "";
+const isMac = sysPlatform === "darwin";
 
 if (isMac) {
-    if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
+    if (targetArch === "x86_64") {
         commandPrefix = "arch -x86_64 ";
         targetArchFlag = " --target-arch x86_64";
-    } else if (
-        rustTarget.includes("aarch64") ||
-        process.argv.includes("aarch64")
-    ) {
+    } else if (targetArch === "arm64") {
         targetArchFlag = " --target-arch arm64";
     }
 }
@@ -156,12 +162,12 @@ execSync(
     { cwd: pythonDir, stdio: "inherit" },
 );
 
-// 6. Clean old sidecar in Tauri
+// 7. Clean old sidecar in Tauri
 if (existsSync(sidecarTargetDir)) {
     rmSync(sidecarTargetDir, { recursive: true });
 }
 
-// 7. Copy PyInstaller output to sidecars/
+// 8. Copy PyInstaller output to sidecars/
 cpSync(pyDistDir, sidecarTargetDir, { recursive: true });
 console.log(`  ✓ Sidecar → src-tauri/sidecars/fstdict-server/`);
 
