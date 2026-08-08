@@ -313,6 +313,7 @@ fn set_selction_window_pinned(state: State<'_, SelectionWindowPinState>, pinned:
         "type": if pinned {"unregister_request"} else {"register_request"},
         "data": {
             "event": "kCGEventLeftMouseDown",
+            "window": "selection-float-search"
         }
     });
 
@@ -412,12 +413,7 @@ fn set_window_position_near_cursor(app: &AppHandle, w: &WebviewWindow) -> Result
     Ok(())
 }
 
-#[tauri::command]
-fn show_panel(app: AppHandle, _url: String) -> Result<(), String> {
-    println!("Receive show_panel");
-    if is_cursor_over_window(&app, "selection-float-search") {
-        return Ok(());
-    }
+fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("selection-float-search") {
         if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
             // Load the atomic boolean value cleanly across thread boundaries
@@ -651,15 +647,18 @@ pub async fn start_cgevent_ws_client(
                                     CgEvent::HandlerEventTextSelection { data } => {
                                         let app_clone = app_handle.clone();
                                         // Dispatch to main thread to safely touch webview window maps
-                                        app_clone
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            if is_cursor_over_window(&app_clone, "selection-float-search") {
+                                                return;
+                                            }
+                                            let _ = show_selection_panel(&app_clone);
+                                            app_clone
                                             .emit_to(
                                                 "selection-float-search",
                                                 "cgevent-select",
                                                 data.text_selected,
                                             )
                                             .ok();
-                                        let _ = app_handle.run_on_main_thread(move || {
-                                            let _ = show_panel(app_clone, "".to_string());
                                             // println!("data.text_selected:{}", data.text_selected);
                                         });
                                         let text_str = serde_json::json!({
@@ -752,7 +751,6 @@ async fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
-            show_panel,
             set_selction_window_pinned,
             hide_panel,
             trigger_notification
