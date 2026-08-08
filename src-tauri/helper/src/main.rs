@@ -23,6 +23,8 @@ use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
     TrackingAreaOptions, WebviewWindowExt,
 };
+use tokio::sync::mpsc;
+use tokio_tungstenite::tungstenite::Utf8Bytes;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
 // 1. Ensure you import MouseButton and MouseButtonState along with TrayIconEvent
 use tauri::menu::{Menu, MenuItem};
@@ -61,7 +63,11 @@ tauri_panel! {
 }
 
 // 1. Define the type wrapper you will register with Tauri
-pub struct SelectionWindowPinState(pub AtomicBool);
+// pub struct SelectionWindowPinState(pub AtomicBool);
+pub struct SelectionWindowPinState {
+    pub is_pinned: AtomicBool,
+    pub ws_sender: mpsc::Sender<String>, // Thread-safe channel sender
+}
 
 // Use a global or state-managed counter to manage debouncing tasks across commands safely.
 // You can also add this to your app state via `.manage(NotificationState::default())`.
@@ -212,18 +218,37 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
 }
 
 pub fn hide_window_if_need(app: &AppHandle, label: &str) -> bool {
-            // ====== CHECK THE PINNED STATE LAYER ======
+    // 1. Fetch the globally managed window pin state from Tauri's registry map safely
+    if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
+        // Load the atomic boolean value cleanly across thread boundaries
+        let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
+
+        if is_pinned {
+            println!(
+                "[info]: Window '{}' is pinned. Skipping hide evaluation.",
+                label
+            );
+            return false; // Return false to indicate the window should remain untouched
+        }
+    }
+
+    // 2. Fetch the target webview window handle
     let Some(win) = app.get_webview_window(label) else {
         return true;
     };
+
+    // 3. Optimization Guard: If the window is already hidden or minimized, report true
     if !win.is_visible().unwrap_or(false) || win.is_minimized().unwrap_or(false) {
         return true;
     }
+
+    // 4. If the cursor is completely outside the panel boundary box, hide it
     if !is_cursor_over_window(app, label) {
         let _ = win.hide();
         return true;
     }
-    return false;
+
+    false
 }
 
 /// Determines whether the mouse cursor is currently positioned inside the bounds
@@ -279,8 +304,112 @@ fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
 // 2. Command to let the Vue frontend update the state directly
 #[tauri::command]
 fn set_selction_window_pinned(state: State<'_, SelectionWindowPinState>, pinned: bool) {
-    state.0.store(pinned, Ordering::SeqCst);
+    // 1. Update the local state atomic flag
+    state.is_pinned.store(pinned, Ordering::SeqCst);
     println!("[info]: Window pin status updated to: {}", pinned);
+
+    // 2. Construct the matching target registration payload dictionary request
+    let payload = serde_json::json!({
+        "type": if pinned {"unregister_request"} else {"register_request"},
+        "data": {
+            "event": "kCGEventLeftMouseDown",
+        }
+    });
+
+    // 3. Serialize and push down the channel tube queue
+    let json_string = payload.to_string();
+
+    // try_send handles cross-thread transmission instantaneously without needing an async block layout
+    if let Err(e) = state.ws_sender.try_send(json_string) {
+        eprintln!("Failed to schedule outbound WS pin message: {:?}", e);
+    }
+}
+
+fn set_window_position_near_cursor(app: &AppHandle, w: &WebviewWindow) -> Result<(), String> {
+    if let Ok(mouse_physical) = app.cursor_position() {
+        let monitors = app.available_monitors().unwrap_or_default();
+
+        // 2 & 3. Find the monitor that physically contains the physical mouse cursor
+        let mut target_monitor = monitors.first().cloned();
+        for monitor in &monitors {
+            let m_pos = monitor.position();
+            let m_size = monitor.size();
+
+            if mouse_physical.x >= m_pos.x as f64
+                && mouse_physical.x <= (m_pos.x + m_size.width as i32) as f64
+                && mouse_physical.y >= m_pos.y as f64
+                && mouse_physical.y <= (m_pos.y + m_size.height as i32) as f64
+            {
+                target_monitor = Some(monitor.clone());
+                break;
+            }
+        }
+
+        if let Some(monitor) = target_monitor {
+            let scale_factor = monitor.scale_factor();
+
+            // 4. Transform physical screen bounds into logical workspace units
+            let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
+            let screen_size = monitor.size().to_logical::<f64>(scale_factor);
+
+            // FIX: Explicitly convert the physical mouse coordinates to logical coordinates
+            let mouse_logical_x = mouse_physical.x / scale_factor;
+            let mouse_logical_y = mouse_physical.y / scale_factor;
+
+            // 5. Get window logical dimensions using the target scale factor
+            let win_physical_size = w.inner_size().unwrap_or_default();
+            let win_width = win_physical_size.width as f64 / scale_factor;
+            let win_height = win_physical_size.height as f64 / scale_factor;
+
+            // 6. FRIENDLY PLACEMENT MECHANISM
+            let mut x;
+            let mut y;
+            let cursor_padding = 12.0; // Visual spacing between mouse tip and window border
+
+            // --- Dynamic Horizontal Placement ---
+            let monitor_center_x = screen_pos.x + (screen_size.width / 2.0);
+            if mouse_logical_x > monitor_center_x {
+                // Cursor is on the RIGHT half of the monitor -> Spawn panel safely to the LEFT
+                x = mouse_logical_x - win_width - cursor_padding;
+            } else {
+                // Cursor is on the LEFT half of the monitor -> Spawn panel safely to the RIGHT
+                x = mouse_logical_x + cursor_padding;
+            }
+
+            // --- Dynamic Vertical Placement ---
+            let monitor_center_y = screen_pos.y + (screen_size.height / 2.0);
+            if mouse_logical_y > monitor_center_y {
+                // Cursor is on the BOTTOM half of the monitor -> Spawn panel safely ABOVE
+                y = mouse_logical_y - win_height - cursor_padding;
+            } else {
+                // Cursor is on the TOP half of the monitor -> Spawn panel safely BELOW
+                y = mouse_logical_y + cursor_padding;
+            }
+
+            // ===================== Hard Safety Boundary Clamp Fallbacks =====================
+            let outer_margin = 8.0; // Screen border safety padding
+
+            // Clamp Horizontal Edges
+            if x + win_width > screen_pos.x + screen_size.width - outer_margin {
+                x = screen_pos.x + screen_size.width - win_width - outer_margin;
+            }
+            if x < screen_pos.x + outer_margin {
+                x = screen_pos.x + outer_margin;
+            }
+
+            // Clamp Vertical Edges
+            if y + win_height > screen_pos.y + screen_size.height - outer_margin {
+                y = screen_pos.y + screen_size.height - win_height - outer_margin;
+            }
+            if y < screen_pos.y + outer_margin {
+                y = screen_pos.y + outer_margin;
+            }
+
+            // 7. Update Window Position safely using the computed Logical Coordinates
+            let _ = w.set_position(Position::Logical(LogicalPosition::new(x, y)));
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -290,97 +419,18 @@ fn show_panel(app: AppHandle, _url: String) -> Result<(), String> {
         return Ok(());
     }
     if let Some(w) = app.get_webview_window("selection-float-search") {
-        // 1. Fetch PHYSICAL mouse coordinates based on your source code snippet
-        if let Ok(mouse_physical) = app.cursor_position() {
-            let monitors = app.available_monitors().unwrap_or_default();
-
-            // 2 & 3. Find the monitor that physically contains the physical mouse cursor
-            let mut target_monitor = monitors.first().cloned();
-            for monitor in &monitors {
-                let m_pos = monitor.position();
-                let m_size = monitor.size();
-
-                if mouse_physical.x >= m_pos.x as f64
-                    && mouse_physical.x <= (m_pos.x + m_size.width as i32) as f64
-                    && mouse_physical.y >= m_pos.y as f64
-                    && mouse_physical.y <= (m_pos.y + m_size.height as i32) as f64
-                {
-                    target_monitor = Some(monitor.clone());
-                    break;
-                }
-            }
-
-            if let Some(monitor) = target_monitor {
-                let scale_factor = monitor.scale_factor();
-
-                // 4. Transform physical screen bounds into logical workspace units
-                let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
-                let screen_size = monitor.size().to_logical::<f64>(scale_factor);
-
-                // FIX: Explicitly convert the physical mouse coordinates to logical coordinates
-                let mouse_logical_x = mouse_physical.x / scale_factor;
-                let mouse_logical_y = mouse_physical.y / scale_factor;
-
-                // 5. Get window logical dimensions using the target scale factor
-                let win_physical_size = w.inner_size().unwrap_or_default();
-                let win_width = win_physical_size.width as f64 / scale_factor;
-                let win_height = win_physical_size.height as f64 / scale_factor;
-
-                // 6. FRIENDLY PLACEMENT MECHANISM
-                let mut x;
-                let mut y;
-                let cursor_padding = 12.0; // Visual spacing between mouse tip and window border
-
-                // --- Dynamic Horizontal Placement ---
-                let monitor_center_x = screen_pos.x + (screen_size.width / 2.0);
-                if mouse_logical_x > monitor_center_x {
-                    // Cursor is on the RIGHT half of the monitor -> Spawn panel safely to the LEFT
-                    x = mouse_logical_x - win_width - cursor_padding;
-                } else {
-                    // Cursor is on the LEFT half of the monitor -> Spawn panel safely to the RIGHT
-                    x = mouse_logical_x + cursor_padding;
-                }
-
-                // --- Dynamic Vertical Placement ---
-                let monitor_center_y = screen_pos.y + (screen_size.height / 2.0);
-                if mouse_logical_y > monitor_center_y {
-                    // Cursor is on the BOTTOM half of the monitor -> Spawn panel safely ABOVE
-                    y = mouse_logical_y - win_height - cursor_padding;
-                } else {
-                    // Cursor is on the TOP half of the monitor -> Spawn panel safely BELOW
-                    y = mouse_logical_y + cursor_padding;
-                }
-
-                // ===================== Hard Safety Boundary Clamp Fallbacks =====================
-                let outer_margin = 8.0; // Screen border safety padding
-
-                // Clamp Horizontal Edges
-                if x + win_width > screen_pos.x + screen_size.width - outer_margin {
-                    x = screen_pos.x + screen_size.width - win_width - outer_margin;
-                }
-                if x < screen_pos.x + outer_margin {
-                    x = screen_pos.x + outer_margin;
-                }
-
-                // Clamp Vertical Edges
-                if y + win_height > screen_pos.y + screen_size.height - outer_margin {
-                    y = screen_pos.y + screen_size.height - win_height - outer_margin;
-                }
-                if y < screen_pos.y + outer_margin {
-                    y = screen_pos.y + outer_margin;
-                }
-
-                // 7. Update Window Position safely using the computed Logical Coordinates
-                let _ = w.set_position(Position::Logical(LogicalPosition::new(x, y)));
+        if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
+            // Load the atomic boolean value cleanly across thread boundaries
+            let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
+            if is_pinned {
+                let _ = w.show();
+                return Ok(());
             }
         }
-
-        // Show the panel on screen
-        // panel.show();
+        let _ = set_window_position_near_cursor(&app, &w);
         let _ = w.show();
         return Ok(());
     }
-
     Ok(())
 }
 
@@ -560,18 +610,26 @@ struct RegisterData {
     event: String,
 }
 
-pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
+pub async fn start_cgevent_ws_client(
+    ws_url: &str,
+    app_handle: AppHandle,
+    mut outbound_rx: mpsc::Receiver<String>,
+) {
     loop {
         println!("connecting to cgevent ws: {}", ws_url);
         match connect_async(ws_url).await {
             Ok((ws_stream, _response)) => {
                 println!("ws connected");
                 let (mut write, mut read) = ws_stream.split();
-
-                while let Some(msg_result) = read.next().await {
-                    match msg_result {
-                        Ok(WsMessage::Text(text)) => {
-                            match serde_json::from_str::<CgEvent>(&text) {
+                // Inner select event loop block
+                loop {
+                    tokio::select! {
+                        // ── Branch A: Handle incoming network messages from C++ server ──
+                        msg_result = read.next() => {
+                            match msg_result {
+                                Some(Ok(WsMessage::Text(text))) => {
+                                    // ... [Your existing JSON parse parsing logic handles selections here] ...
+                                                             match serde_json::from_str::<CgEvent>(&text) {
                                 Ok(event) => match event {
                                     // ========= SAFE DISPATCH tauri_notification =========
                                     CgEvent::TauriNotification { data } => {
@@ -654,25 +712,26 @@ pub async fn start_cgevent_ws_client(ws_url: &str, app_handle: AppHandle) {
                                                 eprintln!("Failed to get return value from main thread: {:?}", e);
                                             }
                                         }
-                                        // `.into()` handles the String -> Utf8Bytes translation implicitly
                                     }
                                 },
                                 Err(e) => eprintln!("json parse error: {} raw={}", e, text),
                             }
+                                }
+                                Some(Ok(WsMessage::Close(_))) => { println!("ws close"); break; }
+                                Some(Err(e)) => { eprintln!("ws read error: {}", e); break; }
+                                None => break,
+                                _ => {}
+                            }
                         }
-                        Ok(WsMessage::Close(_)) => {
-                            println!("ws close");
-                            break;
-                        }
-                        Ok(WsMessage::Binary(_)) => {}
-                        Ok(WsMessage::Ping(ping)) => {
-                            let _ = write.send(WsMessage::Pong(ping)).await;
-                        }
-                        Ok(WsMessage::Pong(_)) => {}
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!("ws read error: {}", e);
-                            break;
+
+                        // ── Branch B: Handle outbound messages sent from Tauri Commands ──
+                        Some(outbound_json) = outbound_rx.recv() => {
+                            // Convert String down into Utf8Bytes for newer Tungstenite builds safely
+                            let utf8_payload = Utf8Bytes::from(outbound_json);
+                            if let Err(e) = write.send(WsMessage::Text(utf8_payload)).await {
+                                eprintln!("Failed to transmit outbound JSON payload: {}", e);
+                                break; // Break loop to trigger reconnection if write fails
+                            }
                         }
                     }
                 }
@@ -715,11 +774,27 @@ async fn main() {
             init_logging(&log_dir, "fstdict-helper".to_string());
 
             // ========== 后台spawn websocket客户端，不阻塞setup ==========
+            // 1. Create a bounded channel queue (size 32 provides plenty of headroom)
+            let (tx, rx) = mpsc::channel::<String>(32);
+
+            // 2. Initialize and handle your managed state payload injection
+            app.manage(SelectionWindowPinState {
+                is_pinned: AtomicBool::new(false),
+                ws_sender: tx,
+            });
+
+            // 3. Hand the receiver over to your background client task
             let app_handle = app.handle().clone();
             let ws_url = ws_endpoint.to_string();
             tokio::spawn(async move {
-                start_cgevent_ws_client(&ws_url, app_handle).await;
+                start_cgevent_ws_client(&ws_url, app_handle, rx).await;
             });
+
+            // let app_handle = app.handle().clone();
+            // let ws_url = ws_endpoint.to_string();
+            // tokio::spawn(async move {
+            //     start_cgevent_ws_client(&ws_url, app_handle).await;
+            // });
 
             window_setup(
                 app,

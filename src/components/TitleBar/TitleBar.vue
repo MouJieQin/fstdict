@@ -149,6 +149,7 @@ import { ElMessageBox } from 'element-plus'
 import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig, DictInfo } from '@/common/type-interface'
 import { useRouter } from 'vue-router'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { invoke } from '@tauri-apps/api/core'; // Tauri v2 core invoke module
 
 const props = defineProps({
     webSocket: {
@@ -415,7 +416,7 @@ const handlePinClick = () => {
         localSessionConfig.pin.is_pinned = !props.isPinned
         props.webSocket?.sendSessionConfig(localSessionConfig)
     }
-    else if (props.env === 'iwin') {
+    else if (props.env === 'selection_float_search' || props.env === 'iwin') {
         props.webSocket?.sendFloatingWindowPinClick(props.sessionId, !props.isPinned)
     }
 }
@@ -426,24 +427,18 @@ const handleFavorClick = () => {
 
 const pinSetup = async () => {
     if (props.isPinned) {
-        if (tauriAppWindow.value) {
-            try {
-                await tauriAppWindow.value.setAlwaysOnTop(true);
-                console.log("setAlwaysOnTop 置顶设置生效");
-            } catch (err) {
-                // 设置失败：权限不足、平台不支持、窗口状态非法、系统策略拦截
-                console.error("置顶失败：", err);
-            }
-            try {
-                // await tauriAppWindow.value.setVisibleOnAllWorkspaces(true);
-                console.log("setVisibleOnAllWorkspaces 置顶设置生效");
-            } catch (err) {
-                // 设置失败：权限不足、平台不支持、窗口状态非法、系统策略拦截
-                console.error("setVisibleOnAllWorkspaces 置顶失败：", err);
-            }
+        if (props.env === 'selection_float_search') {
+            await invoke('set_selction_window_pinned', { pinned: props.isPinned });
+        }
+        else if (tauriAppWindow.value) {
+            await tauriAppWindow.value.setAlwaysOnTop(true);
         }
     } else {
-        if (tauriAppWindow.value) {
+        if (props.env === 'selection_float_search') {
+            await invoke('set_selction_window_pinned', { pinned: props.isPinned });
+
+        }
+        else if (tauriAppWindow.value) {
             await tauriAppWindow.value.setAlwaysOnTop(false)
         }
     }
