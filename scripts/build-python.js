@@ -1,5 +1,12 @@
 import { execSync } from "node:child_process";
-import { cpSync, rmSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import {
+    cpSync,
+    rmSync,
+    existsSync,
+    mkdirSync,
+    renameSync,
+    symlinkSync,
+} from "node:fs";
 import { resolve, join } from "node:path";
 import { platform, arch } from "node:process";
 
@@ -25,7 +32,7 @@ const rustTarget = process.env.TAURI_TARGET || "";
 // 默认采用当前主机的架构属性
 let targetArch = arch;
 
-// ✨ 修复核心：如果当前在 MacOS 且检测到显式指定的跨平台 Target 编译参数，强制纠正目标架构
+// 如果当前在 MacOS 且检测到显式指定的跨平台 Target 编译参数，强制纠正目标架构
 if (sysPlatform === "darwin") {
     if (rustTarget.includes("x86_64") || process.argv.includes("x86_64")) {
         targetArch = "x86_64";
@@ -53,7 +60,6 @@ if (!existsSync(ffmpegLocalPath)) {
     let innerFileName = "";
 
     if (sysPlatform === "darwin") {
-        // ✨ 使用纠正后的 targetArch 代替原本的机器宿主 sysArch
         if (targetArch === "arm64") {
             archiveName = "ffmpeg-macos-arm64.tar.gz";
             innerFileName = "ffmpeg-macos-arm64";
@@ -95,6 +101,7 @@ if (!existsSync(ffmpegLocalPath)) {
                 renameSync(genericUnpackedFile, ffmpegLocalPath);
             }
         } else if (archiveName.endsWith(".zip")) {
+            // 如果你的 windows 构建仍在使用 tar 打包 zip，可以用 tar -xzf 替换 powershell
             execSync(
                 `powershell -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${ffmpegDir}' -Force"`,
                 { stdio: "inherit" },
@@ -155,19 +162,63 @@ if (isMac) {
     }
 }
 
+// ✨ 优化：增加 --exclude-module _tkinter 清除 _tcl_data 和 _tk_data
 execSync(
     `${commandPrefix}pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
+        `--exclude-module _tkinter ` +
         `--add-data "${addDataStatic}" --add-data "${addDataConfig}" --add-data "${addDataCgeventConfig}" --add-data "${addDataFfmpeg}"${targetArchFlag} ` +
         `fstdict-server.py`,
     { cwd: pythonDir, stdio: "inherit" },
 );
 
-// 7. Clean old sidecar in Tauri
+// ✨ 7. macOS 专属优化：清除 GitHub Actions 重复打包产生的硬拷贝二进制文件，还原为相对软链接 (Symlinks)
+if (isMac) {
+    console.log("  Optimizing macOS PyInstaller size (Restoring Symlinks)...");
+    const internalDir = join(pyDistDir, "_internal");
+    const realPythonBinary = join(
+        internalDir,
+        "Python.framework",
+        "Versions",
+        "3.11",
+        "Python",
+    );
+
+    if (existsSync(realPythonBinary)) {
+        const rootPython = join(internalDir, "Python");
+        const frameworkPython = join(internalDir, "Python.framework", "Python");
+        const currentVersionPython = join(
+            internalDir,
+            "Python.framework",
+            "Versions",
+            "Current",
+        );
+
+        // 删除冗余实体副本，写入标准的 UNIX 相对路径软链结构
+        if (existsSync(rootPython)) {
+            rmSync(rootPython, { force: true });
+            symlinkSync("./Python.framework/Versions/3.11/Python", rootPython);
+        }
+        if (existsSync(frameworkPython)) {
+            rmSync(frameworkPython, { force: true });
+            symlinkSync("./Versions/3.11/Python", frameworkPython);
+        }
+        if (existsSync(currentVersionPython)) {
+            rmSync(currentVersionPython, { force: true });
+            symlinkSync("./3.11", currentVersionPython);
+        }
+        console.log(
+            "  ✓ Successfully replaced binary duplicates with relative symlinks.",
+        );
+    }
+}
+
+// 8. Clean old sidecar in Tauri
 if (existsSync(sidecarTargetDir)) {
     rmSync(sidecarTargetDir, { recursive: true });
 }
 
-// 8. Copy PyInstaller output to sidecars/
+// 9. Copy PyInstaller output to sidecars/
+// cpSync 在复制时，会默认完整保留并在目标目录中重新创建上述生成的 relative symlinks
 cpSync(pyDistDir, sidecarTargetDir, { recursive: true });
 console.log(`  ✓ Sidecar → src-tauri/sidecars/fstdict-server/`);
 

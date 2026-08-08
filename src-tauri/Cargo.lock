@@ -1197,7 +1197,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict"
-version = "0.0.20"
+version = "0.0.21"
 dependencies = [
  "dirs 5.0.1",
  "fstdict_common",
@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict-helper"
-version = "0.0.20"
+version = "0.0.21"
 dependencies = [
  "fstdict_common",
  "futures-util",
