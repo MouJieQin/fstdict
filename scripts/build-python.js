@@ -1,12 +1,5 @@
 import { execSync } from "node:child_process";
-import {
-    cpSync,
-    rmSync,
-    existsSync,
-    mkdirSync,
-    renameSync,
-    symlinkSync,
-} from "node:fs";
+import { cpSync, rmSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { platform, arch } from "node:process";
 
@@ -170,47 +163,6 @@ execSync(
         `fstdict-server.py`,
     { cwd: pythonDir, stdio: "inherit" },
 );
-
-// ✨ 7. macOS 专属优化：清除 GitHub Actions 重复打包产生的硬拷贝二进制文件，还原为相对软链接 (Symlinks)
-if (isMac) {
-    console.log("  Optimizing macOS PyInstaller size (Restoring Symlinks)...");
-    const internalDir = join(pyDistDir, "_internal");
-    const realPythonBinary = join(
-        internalDir,
-        "Python.framework",
-        "Versions",
-        "3.11",
-        "Python",
-    );
-
-    if (existsSync(realPythonBinary)) {
-        const rootPython = join(internalDir, "Python");
-        const frameworkPython = join(internalDir, "Python.framework", "Python");
-        const currentVersionPython = join(
-            internalDir,
-            "Python.framework",
-            "Versions",
-            "Current",
-        );
-
-        // 删除冗余实体副本，写入标准的 UNIX 相对路径软链结构
-        if (existsSync(rootPython)) {
-            rmSync(rootPython, { force: true });
-            symlinkSync("./Python.framework/Versions/3.11/Python", rootPython);
-        }
-        if (existsSync(frameworkPython)) {
-            rmSync(frameworkPython, { force: true });
-            symlinkSync("./Versions/3.11/Python", frameworkPython);
-        }
-        if (existsSync(currentVersionPython)) {
-            rmSync(currentVersionPython, { force: true });
-            symlinkSync("./3.11", currentVersionPython);
-        }
-        console.log(
-            "  ✓ Successfully replaced binary duplicates with relative symlinks.",
-        );
-    }
-}
 
 // 8. Clean old sidecar in Tauri
 if (existsSync(sidecarTargetDir)) {
