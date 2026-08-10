@@ -260,6 +260,7 @@ const setupWebSocket = () => {
 
 // Clean-up holder variable
 let unlistenTextSelectedMessage: any = null;
+let unlistenOcrResultMessage: any = null;
 
 const tauriListenerSetup = async () => {
     try {
@@ -276,6 +277,17 @@ const tauriListenerSetup = async () => {
     }
 }
 
+const helperMainListenerSetup = async () => {
+    try {
+        unlistenOcrResultMessage = await listen('cgevent-ocr', (event) => {
+            console.log('Received message from Rust:', event.payload);
+            redirectWord.value = event.payload as string;
+        });
+    } catch (error) {
+        console.error('Failed to bind Tauri event listeners:', error);
+    }
+}
+
 
 const initDictPage = async () => {
     if (envFromRoute.value === 'anki') {
@@ -285,6 +297,9 @@ const initDictPage = async () => {
     }
     if (envFromRoute.value === 'selection_float_search') {
         await tauriListenerSetup()
+    }
+    if (envFromRoute.value === 'helper_main_tauri') {
+        await helperMainListenerSetup()
     }
     console.log("Current env:", envFromRoute.value)
     setupWebSocket()
@@ -312,6 +327,7 @@ onMounted(async () => {
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
     if (unlistenTextSelectedMessage) unlistenTextSelectedMessage();
+    if (unlistenOcrResultMessage) unlistenOcrResultMessage();
 })
 
 router.beforeEach(async (to, from) => {

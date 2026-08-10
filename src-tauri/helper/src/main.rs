@@ -69,13 +69,18 @@ pub struct SelectionWindowPinState {
     pub ws_sender: mpsc::Sender<String>, // Thread-safe channel sender
 }
 
+pub struct MainWindowPinState {
+    pub is_pinned: AtomicBool,
+    pub ws_sender: mpsc::Sender<String>, // Thread-safe channel sender
+}
+
 // Use a global or state-managed counter to manage debouncing tasks across commands safely.
 // You can also add this to your app state via `.manage(NotificationState::default())`.
 
 static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
 static PANEL_IS_CREATING: AtomicBool = AtomicBool::new(false);
 
-fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), String> {
+fn set_noti_pannel_position(app: &AppHandle, w: &WebviewWindow) -> Result<(), String> {
     // Position window at the top-right corner of the monitor with user cursor focus
     if let Ok(cursor_pos) = app.cursor_position() {
         // println!(
@@ -119,14 +124,14 @@ fn set_noti_pannel_position(app: AppHandle, w: &WebviewWindow) -> Result<(), Str
     return Ok(());
 }
 
-fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
+fn show_notification(app: &AppHandle, message: String) -> Result<(), String> {
     let task_id = CURRENT_TASK_ID.fetch_add(1, Ordering::SeqCst) + 1;
 
     // 1. REUSE PATH: Panel already exists in memory.
     if let Some(w) = app.get_webview_window("notify-layer") {
         // FIX: Force event delivery directly to this specific webview label
         let _ = w.emit_to("notify-layer", "update-message", &message);
-        let _ = set_noti_pannel_position(app, &w);
+        let _ = set_noti_pannel_position(&app, &w);
         let _ = w.show();
 
         // Start fade out timer
@@ -153,7 +158,7 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 if let Some(w) = app_clone.get_webview_window("notify-layer") {
                     let _ = w.emit_to("notify-layer", "update-message", &message);
-                    let _ = set_noti_pannel_position(app, &w);
+                    let _ = set_noti_pannel_position(&app_clone, &w);
                     let _ = w.show();
                     break;
                 }
@@ -198,7 +203,7 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
 
     let w: WebviewWindow = panel.to_window().unwrap().clone();
 
-    let _ = set_noti_pannel_position(app, &w);
+    let _ = set_noti_pannel_position(&app, &w);
     panel.show();
 
     // Fade out first-time notice after 3 seconds
@@ -219,16 +224,21 @@ fn show_notification(app: AppHandle, message: String) -> Result<(), String> {
 
 pub fn hide_window_if_need(app: &AppHandle, label: &str) -> bool {
     // 1. Fetch the globally managed window pin state from Tauri's registry map safely
-    if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
-        // Load the atomic boolean value cleanly across thread boundaries
-        let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
-
-        if is_pinned {
-            println!(
-                "[info]: Window '{}' is pinned. Skipping hide evaluation.",
-                label
-            );
-            return false; // Return false to indicate the window should remain untouched
+    if label == "helper-main" {
+        if let Some(pin_state) = app.try_state::<MainWindowPinState>() {
+            // Load the atomic boolean value cleanly across thread boundaries
+            let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
+            if is_pinned {
+                return false; // Return false to indicate the window should remain untouched
+            }
+        }
+    } else {
+        if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
+            // Load the atomic boolean value cleanly across thread boundaries
+            let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
+            if is_pinned {
+                return false; // Return false to indicate the window should remain untouched
+            }
         }
     }
 
@@ -298,7 +308,7 @@ pub fn is_cursor_over_window(app: &AppHandle, label: &str) -> bool {
 
 #[tauri::command]
 fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
-    return show_notification(app, message);
+    return show_notification(&app, message);
 }
 
 // 2. Command to let the Vue frontend update the state directly
@@ -314,6 +324,30 @@ fn set_selction_window_pinned(state: State<'_, SelectionWindowPinState>, pinned:
         "data": {
             "event": "kCGEventLeftMouseDown",
             "window": "selection-float-search"
+        }
+    });
+
+    // 3. Serialize and push down the channel tube queue
+    let json_string = payload.to_string();
+
+    // try_send handles cross-thread transmission instantaneously without needing an async block layout
+    if let Err(e) = state.ws_sender.try_send(json_string) {
+        eprintln!("Failed to schedule outbound WS pin message: {:?}", e);
+    }
+}
+
+#[tauri::command]
+fn set_main_window_pinned(state: State<'_, MainWindowPinState>, pinned: bool) {
+    // 1. Update the local state atomic flag
+    state.is_pinned.store(pinned, Ordering::SeqCst);
+    println!("[info]: Window pin status updated to: {}", pinned);
+
+    // 2. Construct the matching target registration payload dictionary request
+    let payload = serde_json::json!({
+        "type": if pinned {"unregister_request"} else {"register_request"},
+        "data": {
+            "event": "kCGEventLeftMouseDown",
+            "window": "helper-main"
         }
     });
 
@@ -416,6 +450,23 @@ fn set_window_position_near_cursor(app: &AppHandle, w: &WebviewWindow) -> Result
 fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("selection-float-search") {
         if let Some(pin_state) = app.try_state::<SelectionWindowPinState>() {
+            // Load the atomic boolean value cleanly across thread boundaries
+            let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
+            if is_pinned {
+                let _ = w.show();
+                return Ok(());
+            }
+        }
+        let _ = set_window_position_near_cursor(&app, &w);
+        let _ = w.show();
+        return Ok(());
+    }
+    Ok(())
+}
+
+fn show_main_panel(app: &AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("helper-main") {
+        if let Some(pin_state) = app.try_state::<MainWindowPinState>() {
             // Load the atomic boolean value cleanly across thread boundaries
             let is_pinned = pin_state.is_pinned.load(Ordering::SeqCst);
             if is_pinned {
@@ -577,6 +628,9 @@ enum CgEvent {
     #[serde(rename = "tauri_notification")]
     TauriNotification { data: TauriNotifyData },
 
+    #[serde(rename = "ocr_result")]
+    OcrResult { data: OcrResult },
+
     #[serde(rename = "handlerEventTextSelection")]
     HandlerEventTextSelection { data: TextSelectedData },
 
@@ -587,6 +641,11 @@ enum CgEvent {
 #[derive(Debug, Deserialize)]
 struct TextSelectedData {
     text_selected: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct OcrResult {
+    ocr_txt: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -609,6 +668,7 @@ struct RegisterData {
 pub async fn start_cgevent_ws_client(
     ws_url: &str,
     app_handle: AppHandle,
+    mut outbound_main_rx: mpsc::Receiver<String>,
     mut outbound_rx: mpsc::Receiver<String>,
 ) {
     loop {
@@ -625,7 +685,7 @@ pub async fn start_cgevent_ws_client(
                             match msg_result {
                                 Some(Ok(WsMessage::Text(text))) => {
                                     // ... [Your existing JSON parse parsing logic handles selections here] ...
-                                                             match serde_json::from_str::<CgEvent>(&text) {
+                                match serde_json::from_str::<CgEvent>(&text) {
                                 Ok(event) => match event {
                                     // ========= SAFE DISPATCH tauri_notification =========
                                     CgEvent::TauriNotification { data } => {
@@ -635,7 +695,7 @@ pub async fn start_cgevent_ws_client(
                                         // CRITICAL FIX: Safe execution jump directly back onto macOS Thread 0
                                         let _ = app_handle.run_on_main_thread(move || {
                                             if let Err(e) =
-                                                show_notification(app_clone, data.message)
+                                                show_notification(&app_clone, data.message)
                                             {
                                                 eprintln!(
                                                     "show_notification main thread call err: {}",
@@ -643,6 +703,46 @@ pub async fn start_cgevent_ws_client(
                                                 );
                                             }
                                         });
+                                    }
+                                    CgEvent::OcrResult { data } => {
+                                        let app_clone = app_handle.clone();
+                                        // Dispatch to main thread to safely touch webview window maps
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            if data.ocr_txt.is_empty(){
+                                                if let Err(e) =
+                                                show_notification(&app_clone, "未识别到有效结果".into())
+                                            {
+                                                eprintln!(
+                                                    "show_notification main thread call err: {}",
+                                                    e
+                                                );
+                                            }
+                                            return;
+                                            }
+
+                                            if is_cursor_over_window(&app_clone, "helper-main") {
+                                                return;
+                                            }
+                                            let _ = show_main_panel(&app_clone);
+                                            app_clone
+                                            .emit_to(
+                                                "helper-main",
+                                                "cgevent-ocr",
+                                                data.ocr_txt,
+                                            )
+                                            .ok();
+                                            // println!("data.text_selected:{}", data.text_selected);
+                                        });
+                                        let text_str = serde_json::json!({
+                                            "type": "register_request",
+                                            "data": { "event": "kCGEventLeftMouseDown",
+                                            "window":"helper-main"
+                                        }
+                                        })
+                                        .to_string();
+
+                                        // `.into()` handles the String -> Utf8Bytes translation implicitly
+                                        let _ = write.send(WsMessage::Text(text_str.into())).await;
                                     }
                                     CgEvent::HandlerEventTextSelection { data } => {
                                         let app_clone = app_handle.clone();
@@ -687,8 +787,8 @@ pub async fn start_cgevent_ws_client(
                                             // Send the return value back across the channel to the background listener
                                             // .send() will return an error if the background thread was dropped prematurely
                                             let _ = tx.send(result);
-                                        });
 
+                                        });
                                         // 3. Since this workspace runs inside a tokio async loop environment,
                                         // we can cleanly wait for the main thread to reply without blocking the socket execution
                                         match rx.await {
@@ -699,6 +799,44 @@ pub async fn start_cgevent_ws_client(
                                                         "type": "unregister_request",
                                                         "data": { "event": "kCGEventLeftMouseDown",
                                                         "window":"selection-float-search"
+                                                    }
+                                                    })
+                                                    .to_string();
+                                                    let _ = write
+                                                        .send(WsMessage::Text(text_str.into()))
+                                                        .await;
+                                                }
+                                            }
+                                            Err(e) => {
+                                                eprintln!("Failed to get return value from main thread: {:?}", e);
+                                            }
+                                        }
+                                        let app_main_clone = app_handle.clone();
+                                        // 1. Create a thread-safe single-use (oneshot) communication channel
+                                        let (main_tx, main_rx) = tokio::sync::oneshot::channel::<bool>();
+                                        let _ = app_handle.run_on_main_thread(move || {
+                                            println!("kCGEventLeftMouseDown");
+                                            // Execute your window evaluation function inside the AppKit loop context
+                                            let result = hide_window_if_need(
+                                                &app_main_clone,
+                                                "helper-main",
+                                            );
+
+                                            // Send the return value back across the channel to the background listener
+                                            // .send() will return an error if the background thread was dropped prematurely
+                                            let _ = main_tx.send(result);
+
+                                        });
+                                        // 3. Since this workspace runs inside a tokio async loop environment,
+                                        // we can cleanly wait for the main thread to reply without blocking the socket execution
+                                        match main_rx.await {
+                                            Ok(was_hidden) => {
+                                                println!("Main thread completed task. Window hidden status: {}", was_hidden);
+                                                if was_hidden {
+                                                    let text_str = serde_json::json!({
+                                                        "type": "unregister_request",
+                                                        "data": { "event": "kCGEventLeftMouseDown",
+                                                        "window":"helper-main"
                                                     }
                                                     })
                                                     .to_string();
@@ -724,6 +862,15 @@ pub async fn start_cgevent_ws_client(
                         }
 
                         // ── Branch B: Handle outbound messages sent from Tauri Commands ──
+                        Some(outbound_main_json) = outbound_main_rx.recv() => {
+                            // Convert String down into Utf8Bytes for newer Tungstenite builds safely
+                            let utf8_payload = Utf8Bytes::from(outbound_main_json);
+                            if let Err(e) = write.send(WsMessage::Text(utf8_payload)).await {
+                                eprintln!("Failed to transmit outbound JSON payload: {}", e);
+                                break; // Break loop to trigger reconnection if write fails
+                            }
+                        }
+                                                // ── Branch B: Handle outbound messages sent from Tauri Commands ──
                         Some(outbound_json) = outbound_rx.recv() => {
                             // Convert String down into Utf8Bytes for newer Tungstenite builds safely
                             let utf8_payload = Utf8Bytes::from(outbound_json);
@@ -752,6 +899,7 @@ async fn main() {
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
             set_selction_window_pinned,
+            set_main_window_pinned,
             hide_panel,
             trigger_notification
         ])
@@ -774,6 +922,7 @@ async fn main() {
             // ========== 后台spawn websocket客户端，不阻塞setup ==========
             // 1. Create a bounded channel queue (size 32 provides plenty of headroom)
             let (tx, rx) = mpsc::channel::<String>(32);
+            let (main_tx, main_rx) = mpsc::channel::<String>(32);
 
             // 2. Initialize and handle your managed state payload injection
             app.manage(SelectionWindowPinState {
@@ -781,24 +930,23 @@ async fn main() {
                 ws_sender: tx,
             });
 
+            app.manage(MainWindowPinState {
+                is_pinned: AtomicBool::new(false),
+                ws_sender: main_tx,
+            });
+
             // 3. Hand the receiver over to your background client task
             let app_handle = app.handle().clone();
             let ws_url = ws_endpoint.to_string();
             tokio::spawn(async move {
-                start_cgevent_ws_client(&ws_url, app_handle, rx).await;
+                start_cgevent_ws_client(&ws_url, app_handle, main_rx, rx).await;
             });
-
-            // let app_handle = app.handle().clone();
-            // let ws_url = ws_endpoint.to_string();
-            // tokio::spawn(async move {
-            //     start_cgevent_ws_client(&ws_url, app_handle).await;
-            // });
 
             window_setup(
                 app,
-                "main",
+                "helper-main",
                 "helper-main-window-state.json".to_string(),
-                "tauri://localhost/#/dict/39?env=floating_tauri",
+                "tauri://localhost/#/dict/39?env=helper_main_tauri",
             )?;
             window_setup(
                 app,
@@ -828,11 +976,8 @@ async fn main() {
                     } = event
                     {
                         let app_handle = tray_handle.app_handle();
-                        // if let Ok(panel) = app_handle.get_webview_panel("main") {
-                        //     panel.show_and_make_key();
-                        // }
 
-                        if let Some(w) = app_handle.get_webview_window("main") {
+                        if let Some(w) = app_handle.get_webview_window("helper-main") {
                             let _ = w.show();
                         }
                     }

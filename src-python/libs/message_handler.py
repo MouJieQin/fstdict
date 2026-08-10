@@ -9,9 +9,11 @@ from libs.common import Utils
 from libs.session_manager import SessionManager
 from libs.fstdict_searcher import FstDictSearcher
 from libs.anki.anki_manager import AnkiManager
+from libs.ocr_engine import OcrEngine
 
 fstdict_searcher = FstDictSearcher()
 anki_manager = AnkiManager()
+ocr_engine = OcrEngine("en")
 
 
 class MessageHandler:
@@ -92,6 +94,7 @@ class MessageHandler:
                 cg_event_type = message["data"]["type"]
                 if cg_event_type == "globalKeyboardShortCut":
                     msg = message["data"]["msg"]
+                    logger.info(f"globalKeyboardShortCut:{msg}")
                     if msg["type"] == "toggle_selection":
                         enabled = Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"]
                         enabled = not enabled
@@ -115,10 +118,17 @@ class MessageHandler:
                                 Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
                             logger.info("已禁用选词浮窗")
                             smsg["data"]["message"] = "已禁用选词浮窗"
-                    # await SessionManager.broadcast_all(json.dumps(smsg))
-                    if Utils.fstdict_helper_websocket:
-                        await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
-                    logger.info(f"globalKeyboardShortCut:{msg}")
+                        if Utils.fstdict_helper_websocket:
+                            await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
+                    elif msg["type"] == "start_ocr":
+                        ocr_txt = ocr_engine.ocr()
+                        logger.info(f"ocr result:{ocr_txt}")
+                        tmsg = {"type": "ocr_result",
+                                "data": {
+                                    "ocr_txt": ocr_txt
+                                }}
+                        if Utils.fstdict_helper_websocket:
+                            await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                 elif cg_event_type == "handlerEventTextSelection":
                     tmsg = {"type": "handlerEventTextSelection",
                             "data": {

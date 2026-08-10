@@ -36,6 +36,7 @@ class UtilsBase:
     DATA_PATH = FSTDICT_STORAGE_PATH + "/data"
     FSTDICT_DATABASE_PATH = DATA_PATH + "/fstdict.db"
     DICT_DATABASE_PATH = DATA_PATH + "/dict.db"
+    IMA_PATH_FOR_OCR = APP_CACHE_PATH + "/screenshot_for_ocr.png"
 
     fstd_engine = fstd.FstdxSearcher()
 

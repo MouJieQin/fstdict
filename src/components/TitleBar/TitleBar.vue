@@ -407,7 +407,7 @@ const favoriteWords = computed(() => {
 })
 
 const showPinButton = computed(() => {
-    return props.env === '' || props.env === 'selection_float_search' || props.env === 'iwin'
+    return props.env === '' || props.env === 'selection_float_search' || props.env === 'helper_main_tauri' || props.env === 'iwin'
 })
 
 const handlePinClick = () => {
@@ -416,7 +416,7 @@ const handlePinClick = () => {
         localSessionConfig.pin.is_pinned = !props.isPinned
         props.webSocket?.sendSessionConfig(localSessionConfig)
     }
-    else if (props.env === 'selection_float_search' || props.env === 'iwin') {
+    else if (props.env === 'selection_float_search' || props.env === 'helper_main_tauri' || props.env === 'iwin') {
         props.webSocket?.sendFloatingWindowPinClick(props.sessionId, !props.isPinned)
     }
 }
@@ -426,21 +426,14 @@ const handleFavorClick = () => {
 }
 
 const pinSetup = async () => {
-    if (props.isPinned) {
-        if (props.env === 'selection_float_search') {
-            await invoke('set_selction_window_pinned', { pinned: props.isPinned });
-        }
-        else if (tauriAppWindow.value) {
-            await tauriAppWindow.value.setAlwaysOnTop(true);
-        }
-    } else {
-        if (props.env === 'selection_float_search') {
-            await invoke('set_selction_window_pinned', { pinned: props.isPinned });
-
-        }
-        else if (tauriAppWindow.value) {
-            await tauriAppWindow.value.setAlwaysOnTop(false)
-        }
+    if (props.env === 'selection_float_search') {
+        await invoke('set_selction_window_pinned', { pinned: props.isPinned });
+    }
+    else if (props.env === 'helper_main_tauri') {
+        await invoke('set_main_window_pinned', { pinned: props.isPinned });
+    }
+    else if (tauriAppWindow.value) {
+        await tauriAppWindow.value.setAlwaysOnTop(props.isPinned);
     }
 }
 

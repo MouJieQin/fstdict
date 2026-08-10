@@ -1,6 +1,6 @@
 {
-    "app":{
-        "selection_float_search":{
+    "app": {
+        "selection_float_search": {
             "enabled": false,
             "width": 600,
             "height": 500,
@@ -25,6 +25,17 @@
             ],
             "msg": {
                 "type": "toggle_selection"
+            }
+        },
+        "ocr": {
+            "description": "start ocr",
+            "keys": [
+                "option",
+                "shift",
+                "o"
+            ],
+            "msg": {
+                "type": "start_ocr"
             }
         }
     }
