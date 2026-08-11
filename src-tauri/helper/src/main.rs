@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    App, AppHandle, Emitter, LogicalPosition, Manager, Position, State, Theme, WebviewUrl,
+    App, AppHandle, Emitter, LogicalPosition, Manager, Monitor, Position, State, Theme, WebviewUrl,
     WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 use tauri_nspanel::{
@@ -80,13 +80,28 @@ pub struct MainWindowPinState {
 static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
 static PANEL_IS_CREATING: AtomicBool = AtomicBool::new(false);
 
+fn set_noti_pannel_pos_on_monitor(w: &WebviewWindow, monitor: &Monitor) {
+    let scale = monitor.scale_factor();
+    let screen_pos = monitor.position().to_logical::<f64>(scale);
+    let screen_size = monitor.size().to_logical::<f64>(scale);
+
+    let panel_width = 360.0;
+    let edge_padding = 24.0;
+    let top_padding = 40.0;
+
+    // 3. 换算目标屏幕逻辑坐标系下的右上角悬浮坐标
+    let target_x = screen_pos.x + screen_size.width - panel_width - edge_padding;
+    let target_y = screen_pos.y + top_padding;
+
+    // 4. 安全地移动 notification panel 窗口到指定逻辑坐标位置
+    let _ = w.set_position(Position::Logical(LogicalPosition::new(target_x, target_y)));
+}
+
 fn set_noti_pannel_position(app: &AppHandle, w: &WebviewWindow) -> Result<(), String> {
-    // Position window at the top-right corner of the monitor with user cursor focus
     if let Ok(cursor_pos) = app.cursor_position() {
-        // println!(
-        //     "[info]: Cursor position: ({}, {})",
-        //     cursor_pos.x, cursor_pos.y
-        // );
+        let x = cursor_pos.x;
+        let y = cursor_pos.y;
+        info!("Cursor position:({x},{y})");
         if let Some(monitor) = app
             .available_monitors()
             .unwrap_or_default()
@@ -94,34 +109,38 @@ fn set_noti_pannel_position(app: &AppHandle, w: &WebviewWindow) -> Result<(), St
             .find(|m| {
                 let m_pos = m.position();
                 let m_size = m.size();
-                // println!(
-                //     "m_pos:({}, {}), m_size:({}, {})",
-                //     m_pos.x, m_pos.y, m_size.width, m_size.height
-                // );
-                cursor_pos.x >= m_pos.x as f64
-                    && cursor_pos.x <= (m_pos.x as f64 + m_size.width as f64)
-                    && cursor_pos.y >= m_pos.y as f64
-                    && cursor_pos.y <= (m_pos.y as f64 + m_size.height as f64)
+                let x1 = m_pos.x as f64;
+                let x2 = x1 + m_size.width as f64;
+                let y1 = m_pos.y as f64;
+                let y2 = y1 + m_size.height as f64;
+                info!("monitor:({x1},{x2},{y1},{y2})");
+                cursor_pos.x >= x1 && cursor_pos.x <= x2 && cursor_pos.y >= y1 && cursor_pos.y <= y2
             })
         {
-            let scale = monitor.scale_factor();
-            let screen_pos = monitor.position().to_logical::<f64>(scale);
-            let screen_size = monitor.size().to_logical::<f64>(scale);
-
-            let panel_width = 360.0;
-            let edge_padding = 24.0;
-            let top_padding = 40.0;
-
-            let target_x = screen_pos.x + screen_size.width - panel_width - edge_padding;
-            let target_y = screen_pos.y + top_padding;
-
-            // Set layout position coordinates safely
-            let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
-                target_x, target_y,
-            )));
+            set_noti_pannel_pos_on_monitor(w, &monitor);
+        } else {
+            info!("Cannot find the monitor where cursor is on.");
+            if let Ok(Some(primary_monitor)) = app.primary_monitor() {
+                set_noti_pannel_pos_on_monitor(w, &primary_monitor);
+            }
         }
+        // match app.monitor_from_point(x, y) {
+        //     Ok(Some(monitor)) => {
+        //         info!("Found the monitor where cursor is on.");
+        //         set_noti_pannel_pos_on_monitor(app, w, &monitor);
+        //     }
+        //     Ok(None) => {
+        //         info!("Cannot find the monitor where cursor is on.");
+        //         if let Ok(Some(primary_monitor)) = app.primary_monitor() {
+        //             set_noti_pannel_pos_on_monitor(app, w, &primary_monitor);
+        //         }
+        //     }
+        //     Err(err) => {
+        //         error!("Error finding the monitor where cursor is on:{err}");
+        //     }
+        // }
     }
-    return Ok(());
+    Ok(())
 }
 
 fn show_notification(app: &AppHandle, message: String) -> Result<(), String> {
