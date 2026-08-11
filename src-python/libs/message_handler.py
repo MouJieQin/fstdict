@@ -1,5 +1,6 @@
 import json
-import asyncio
+import urllib.request
+import threading
 from typing import Dict
 from websockets.asyncio.client import ClientConnection
 from fastapi import WebSocket
@@ -181,12 +182,12 @@ class MessageHandler:
                     if not Utils.cgevent_register_map[cg_event_type]:
                         await Utils.cgevent_ws_client.send_unregister_request("kCGEventLeftMouseDown")
             elif type == "connect_cgevent_server":
-                if Utils.cgevent_ws_client.is_connected():
-                    logger.info("There is a connection to the cgevent server.")
-                if Utils.cgevent_ws_client.is_connecting():
-                    logger.info("Try to connect to cgevent server.")
-                asyncio.create_task(Utils.cgevent_ws_client.connect())
-                logger.info("Try to connect to cgevent server.")
+                def connect_cgevent():
+                    url = "http://127.0.0.1:5959/api/connectcgevent"
+                    resp = urllib.request.urlopen(url)
+                    logger.info(json.loads(resp.read()))
+                connect_thread = threading.Thread(target=connect_cgevent, daemon=True)
+                connect_thread.start()
             else:
                 logger.warning(f"未知的cgevent命令类型: {type}")
         except Exception as e:
