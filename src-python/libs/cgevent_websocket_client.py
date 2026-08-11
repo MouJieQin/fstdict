@@ -21,6 +21,9 @@ class CgeventWsClient:
         # websockets >=11.0 uses 'open' property to check connection status
         return self.ws is not None
 
+    def is_connecting(self):
+        return self._retry_count != 0
+
     def set_do_not_retry(self):
         self._do_not_retry = True
 

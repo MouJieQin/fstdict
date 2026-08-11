@@ -164,6 +164,8 @@ async def connectiwin():
 async def connectcgevent():
     if Utils.cgevent_ws_client.is_connected():
         return {"status": "connected"}
+    if Utils.cgevent_ws_client.is_connecting():
+        return {"status": "connecting"}
     # 🔥 关键：用 create_task 后台启动，不阻塞接口
     asyncio.create_task(Utils.cgevent_ws_client.connect())
     return {"status": "connecting"}

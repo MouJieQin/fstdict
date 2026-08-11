@@ -677,6 +677,13 @@ pub async fn start_cgevent_ws_client(
             Ok((ws_stream, _response)) => {
                 println!("ws connected");
                 let (mut write, mut read) = ws_stream.split();
+                let connect_str = serde_json::json!({
+                    "type": "connect_cgevent_server",
+                    "data": {}
+                })
+                .to_string();
+                // `.into()` handles the String -> Utf8Bytes translation implicitly
+                let _ = write.send(WsMessage::Text(connect_str.into())).await;
                 // Inner select event loop block
                 loop {
                     tokio::select! {
@@ -720,10 +727,9 @@ pub async fn start_cgevent_ws_client(
                                             return;
                                             }
 
-                                            if is_cursor_over_window(&app_clone, "helper-main") {
-                                                return;
+                                            if ! is_cursor_over_window(&app_clone, "helper-main") {
+                                                let _ = show_main_panel(&app_clone);
                                             }
-                                            let _ = show_main_panel(&app_clone);
                                             app_clone
                                             .emit_to(
                                                 "helper-main",
