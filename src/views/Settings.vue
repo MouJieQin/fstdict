@@ -81,6 +81,16 @@
                 </div>
 
                 <div class="config-class">
+                    <p class="config-class-title">OCR</p>
+                    <el-select v-if="localSessionConfig.ocr_lang_type" v-model="localSessionConfig.ocr_lang_type"
+                        filterable placeholder="Select Default OCR language type"
+                        style="margin-left: 20px;max-width: 240px;">
+                        <el-option v-for="(_, lang) in localSystemConfig.ocr.lang_types" :key="lang" :label="lang"
+                            :value="lang" />
+                    </el-select>
+                </div>
+
+                <div class="config-class">
                     <p class="config-class-title">Helper</p>
                     <p class="config-class-desc">
                         helper accessibility
@@ -215,6 +225,10 @@ watch(() => localSessionConfig.value.default_folder.id, () => {
     props.webSocket?.sendSessionConfig(localSessionConfig.value)
 })
 
+watch(() => localSessionConfig.value.ocr_lang_type, () => {
+    props.webSocket?.sendSessionConfig(localSessionConfig.value)
+})
+
 watch(() => props.ankiProgress, (newVal) => {
     ankiProgresses.value = JSON.parse(JSON.stringify(newVal))
 }, { deep: true })
@@ -314,6 +328,10 @@ const defaultFolderOptions = computed(() => {
         name: item.name,
     }))
 })
+
+// const defaultOcrLangOptions=computed(()=>{
+//     return 
+// })
 
 const disableDeleteButton = computed(() => {
     return multipleSelection.value.length === 0

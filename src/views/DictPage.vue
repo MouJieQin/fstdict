@@ -232,6 +232,12 @@ const setupDicsSettingsInfo = () => {
     refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
 }
 
+const setupOcrLangType = () => {
+    if (!sessionConfig.value?.ocr_lang_type) {
+        sessionConfig.value.ocr_lang_type = 'English'
+    }
+}
+
 const handleSystemConfig = (data: any) => {
     systemConfigStore.setSystemConfig(data.system_config)
     setupDicsSettingsInfo()
@@ -239,12 +245,20 @@ const handleSystemConfig = (data: any) => {
 
 const handleSessionsNameId = (data: any) => {
     sessionsNameId.value = data.sessions_name_id
-    if (isTauriEnv && sessionId.value === 1) {
-        const sessionId = systemConfigStore.systemConfig.app.session.id
-        if (sessionId != 1) {
-            redirectSession(sessionId)
+    console.log("front,systemConfigStore.systemConfig.ocr.session.id:", systemConfigStore.systemConfig.ocr.session.id)
+    if (envFromRoute.value === "") {
+        const id = systemConfigStore.systemConfig.app.session.id
+        if (id != sessionId.value) {
+            redirectSession(id)
+        }
+    } else if (envFromRoute.value === "helper_main_tauri") {
+        const id = systemConfigStore.systemConfig.ocr.session.id
+        console.log("systemConfigStore.systemConfig.ocr.session.id:", systemConfigStore.systemConfig.ocr.session.id)
+        if (id != sessionId.value) {
+            redirectSession(id)
         }
     }
+
 }
 
 // 初始化WebSocket
@@ -480,6 +494,7 @@ const handleCreateSession = (data: any) => {
 const handleSessionConfig = (message: any) => {
     sessionConfig.value = message.data.config
     setupDicsSettingsInfo()
+    setupOcrLangType()
     if (message.data.is_right_after_connection) {
         if (envFromRoute.value === 'iwin') {
             webSocket.value?.sendFloatingWindowPinClick(sessionId.value, sessionConfig.value?.pin?.is_pinned || false)

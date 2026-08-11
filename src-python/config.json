@@ -1,6 +1,18 @@
 {
+    "schema_version": "0.0.1",
     "appearance": {
         "theme": "auto"
+    },
+    "ocr": {
+        "session": {
+            "id": 1
+        },
+        "lang_types": {
+            "English": "ch",
+            "中文": "ch",
+            "日本語": "ch",
+            "한국어": "korean"
+        }
     },
     "app": {
         "session": {

@@ -45,6 +45,7 @@ export interface SessionConfig {
     dict_setting_option_name: string;
     default_folder: SessiondefaultFolder;
     default_search_method: SessionDefaultSearchMethod;
+    ocr_lang_type:string;
     pin?: SessionPin;
 }
 export interface FolderInfo {

@@ -333,8 +333,13 @@ const handRemoveSession = () => {
 const redirectSession = (sessionId: number) => {
     const systemConfigStore = useSystemConfigStore();
     let localSystemConfig = JSON.parse(JSON.stringify(systemConfigStore.systemConfig))
-    localSystemConfig.app.session.id = sessionId
-    props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
+    if (props.env === '') {
+        localSystemConfig.app.session.id = sessionId
+        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
+    } else if (props.env === "helper_main_tauri") {
+        localSystemConfig.ocr.session.id = sessionId
+        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
+    }
     router.push({
         path: `/dict/${sessionId}`,
         query: { env: props.env }

@@ -13,7 +13,7 @@ from libs.ocr_engine import OcrEngine
 
 fstdict_searcher = FstDictSearcher()
 anki_manager = AnkiManager()
-ocr_engine = OcrEngine("en")
+ocr_engine = OcrEngine()
 
 
 class MessageHandler:
@@ -121,6 +121,8 @@ class MessageHandler:
                         if Utils.fstdict_helper_websocket:
                             await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
                     elif msg["type"] == "start_ocr":
+                        if ocr_engine.is_ocring():
+                            return
                         ocr_txt = ocr_engine.ocr()
                         logger.info(f"ocr result:{ocr_txt}")
                         tmsg = {"type": "ocr_result",

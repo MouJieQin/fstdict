@@ -1,19 +1,23 @@
 from rapidocr import EngineType, LangDet, LangRec, ModelType, OCRVersion, RapidOCR
 import sys
 import subprocess
-from libs.config import UtilsBase
+from libs.common import Utils
 from libs.log_config import logger
 
 
 class OcrEngine:
-    def __init__(self, lang_type: str):
-        self._rec_lang_type = ""
-        self.set_langage_type(lang_type)
+    def __init__(self):
+        self._rec_lang_type = "ch"
+        self._is_ocring = False
+        self._set_lang_type_imple(self._rec_lang_type)
 
-    def set_langage_type(self, lang_type: str):
+    def set_language_type(self, lang_type: str):
         if self._rec_lang_type == lang_type:
             return
         self._rec_lang_type = lang_type
+        self._set_lang_type_imple(lang_type)
+
+    def _set_lang_type_imple(self, lang_type: str):
         if lang_type == "korean":
             self._engine = RapidOCR(
                 params={
@@ -48,7 +52,7 @@ class OcrEngine:
                 }
             )
 
-    def ocr_img(self, img: str) -> str:
+    def _ocr_img(self, img: str) -> str:
         txt: str = ""
         result = self._engine(img)
         for line in result.to_json():  # type: ignore
@@ -59,13 +63,31 @@ class OcrEngine:
         return txt
 
     def _ocr_on_macos(self) -> str:
-        screenshot_path = UtilsBase.IMA_PATH_FOR_OCR
+        screenshot_path = Utils.IMA_PATH_FOR_OCR
         ret = subprocess.run(["screencapture", "-i", "-o", "-t", "png", screenshot_path], check=True)
         if ret.returncode != 0:
             return ""
-        return self.ocr_img(screenshot_path)
+        return self._ocr_img(screenshot_path)
+
+    def _get_ocr_session_id(self):
+        return Utils.CONFIG["ocr"]["session"]["id"]
+
+    def _get_ocr_lang_type(self):
+        session_id = self._get_ocr_session_id()
+        config = Utils.db.get_session_config(session_id)
+        if not config:
+            return self._rec_lang_type
+        lang = config.get("ocr_lang_type", self._rec_lang_type)
+        return Utils.CONFIG["ocr"]["lang_types"].get(lang, "ch")
+
+    def is_ocring(self):
+        return self._is_ocring
 
     def ocr(self) -> str:
+        if self._is_ocring:
+            return ""
+        self._is_ocring = True
+        self.set_language_type(self._get_ocr_lang_type())
         try:
             if sys.platform == "darwin":
                 return self._ocr_on_macos()
@@ -76,3 +98,5 @@ class OcrEngine:
         except Exception as e:
             logger.exception(f"OCR:{e}")
             return ""
+        finally:
+            self._is_ocring = False

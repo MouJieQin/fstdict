@@ -306,11 +306,11 @@ def main():
         logger.info("✅ Frontend:     http://127.0.0.1:9595")
         logger.info("✅ API server:   http://127.0.0.1:5959")
 
-        connect_cgevent()
+        # connect_cgevent()
         # API 服务放主线程（阻塞运行，程序主循环在这里）
         run_api_server()
     else:
-        connect_cgevent()
+        # connect_cgevent()
         run_api_server()
 
 

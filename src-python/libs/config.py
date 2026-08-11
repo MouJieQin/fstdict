@@ -160,7 +160,6 @@ class UtilsBase:
                     new_dict_names.append(dict_name)
             for name in new_dict_names:
                 dict_set_options.append({"name": name,
-                                        #  "cover_url": f"http://localhost:5959/api/download?path={quote(UtilsBase.DICT_INFO[name]['cover'])}",
                                          "is_enabled": False})
             for item in old_dict_set_option:
                 name = item["name"]
