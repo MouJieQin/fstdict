@@ -98,25 +98,29 @@ fn set_noti_pannel_pos_on_monitor(w: &WebviewWindow, monitor: &Monitor) {
 }
 
 fn monitor_from_point(app: &AppHandle) -> Result<Option<Monitor>, tauri::Error> {
-    let cursor_pos = app.cursor_position()?;
+    let Some(primary_monitor) = app.primary_monitor()? else {
+        return Ok(None);
+    };
+    let prim_scale_factor = primary_monitor.scale_factor();
+    let cursor_pos = app.cursor_position()?.to_logical::<f64>(prim_scale_factor);
+
     let x = cursor_pos.x;
     let y = cursor_pos.y;
     info!("Cursor position:({x},{y})");
+    return app.monitor_from_point(x, y);
 
-    let monitors = app.available_monitors()?;
-    let margin = 2.0;
-
-    let found_monitor = monitors.into_iter().find(|m| {
-        let m_pos = m.position();
-        let m_size = m.size();
-        let x1 = m_pos.x as f64 - margin;
-        let x2 = (m_pos.x as f64 + m_size.width as f64) + margin;
-        let y1 = m_pos.y as f64 - margin;
-        let y2 = (m_pos.y as f64 + m_size.height as f64) + margin;
-        info!("monitor rect: x1={x1}, x2={x2}, y1={y1}, y2={y2}");
-        cursor_pos.x >= x1 && cursor_pos.x <= x2 && cursor_pos.y >= y1 && cursor_pos.y <= y2
-    });
-    Ok(found_monitor)
+    // let monitors = app.available_monitors()?;
+    // let found_monitor = monitors.into_iter().find(|m| {
+    //     let m_pos = m.position();
+    //     let m_size = m.size();
+    //     let x1 = m_pos.x as f64;
+    //     let x2 = (m_pos.x as f64 + m_size.width as f64);
+    //     let y1 = m_pos.y as f64;
+    //     let y2 = (m_pos.y as f64 + m_size.height as f64);
+    //     info!("monitor rect: x1={x1}, x2={x2}, y1={y1}, y2={y2}");
+    //     cursor_pos.x >= x1 && cursor_pos.x <= x2 && cursor_pos.y >= y1 && cursor_pos.y <= y2
+    // });
+    // Ok(found_monitor)
 }
 
 fn set_noti_pannel_position(app: &AppHandle, w: &WebviewWindow) -> Result<(), String> {
@@ -382,14 +386,20 @@ fn set_window_pos_near_cursor_imple(
     let mouse_physical = app.cursor_position()?;
 
     let scale_factor = monitor.scale_factor();
+    let mut prim_scale_factor = monitor.scale_factor();
+    if let Some(primary_monitor) = app.primary_monitor()? {
+        prim_scale_factor = primary_monitor.scale_factor();
+    } else {
+    }
+    info!("scale_factor:{scale_factor}");
 
     // 4. Transform physical screen bounds into logical workspace units
     let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
     let screen_size = monitor.size().to_logical::<f64>(scale_factor);
 
     // FIX: Explicitly convert the physical mouse coordinates to logical coordinates
-    let mouse_logical_x = mouse_physical.x / scale_factor;
-    let mouse_logical_y = mouse_physical.y / scale_factor;
+    let mouse_logical_x = mouse_physical.x / prim_scale_factor;
+    let mouse_logical_y = mouse_physical.y / prim_scale_factor;
 
     // 5. Get window logical dimensions using the target scale factor
     let win_physical_size = w.inner_size().unwrap_or_default();
