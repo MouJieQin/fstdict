@@ -432,7 +432,7 @@ const handleFavorClick = () => {
 
 const pinSetup = async () => {
     if (props.env === 'selection_float_search') {
-        await invoke('set_selction_window_pinned', { pinned: props.isPinned });
+        await invoke('set_selection_window_pinned', { pinned: props.isPinned });
     }
     else if (props.env === 'helper_main_tauri') {
         await invoke('set_main_window_pinned', { pinned: props.isPinned });

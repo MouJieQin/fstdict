@@ -1,0 +1,99 @@
+use std::str::FromStr;
+use std::time::Duration;
+
+use enigo::Keyboard;
+use log::info;
+use tauri::{App, AppHandle, Runtime};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
+
+use super::double_copy::handle_double_copy;
+
+/// Registers all global system shortcuts.
+pub fn register_global_shortcuts(app: &App) {
+    // Screenshot / OCR trigger
+    let screenshot = Shortcut::from_str("alt+shift+s").expect("Invalid shortcut string");
+    app.global_shortcut()
+        .register(screenshot)
+        .expect("Failed to register screenshot shortcut");
+
+    // Copy key interception (platform-specific)
+    #[cfg(target_os = "macos")]
+    {
+        let copy_shortcut = Shortcut::from_str("super+c").expect("Invalid shortcut string");
+        let _ = app.global_shortcut().register(copy_shortcut);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let copy_shortcut = Shortcut::from_str("control+c").expect("Invalid shortcut string");
+        let _ = app.global_shortcut().register(copy_shortcut);
+    }
+}
+
+/// Top-level dispatcher for global shortcut events.
+pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
+    use tauri_plugin_global_shortcut::ShortcutState;
+
+    if event.state() != ShortcutState::Pressed {
+        return;
+    }
+
+    let shortcut_str = shortcut.to_string();
+    info!("Global shortcut triggered: {}", shortcut_str);
+
+    match shortcut_str.as_str() {
+        s if s == "super+KeyC" || s == "control+KeyC" => {
+            passthrough_native_copy(app.clone(), *shortcut);
+            handle_double_copy(app);
+        }
+        "shift+alt+KeyS" => {
+            handle_screenshot_trigger(app);
+        }
+        _ => {}
+    }
+}
+
+/// Temporarily releases the copy shortcut, simulates a native copy keypress,
+/// then re-registers the shortcut. This lets the foreground app receive the
+/// copy event normally while we still detect the double-press pattern.
+fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
+    tauri::async_runtime::spawn(async move {
+        let gs = app.global_shortcut();
+        let _ = gs.unregister(shortcut);
+
+        // Brief delay to let the unregister propagate
+        tokio::time::sleep(Duration::from_millis(5)).await;
+
+        // Simulate physical keypress on the main thread (required on macOS)
+        let _ = app.run_on_main_thread(move || {
+            let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
+
+            #[cfg(target_os = "macos")]
+            {
+                let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
+                let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
+                let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Release);
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = enigo.key(enigo::Key::Control, enigo::Direction::Press);
+                let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
+                let _ = enigo.key(enigo::Key::Control, enigo::Direction::Release);
+            }
+        });
+
+        // Allow the target app time to process the copy and update the clipboard
+        tokio::time::sleep(Duration::from_millis(20)).await;
+
+        // Re-register the shortcut interceptor
+        let _ = gs.register(shortcut);
+    });
+}
+
+fn handle_screenshot_trigger(app: &AppHandle) {
+    if let Ok(text) = app.clipboard().read_text() {
+        info!("Clipboard text on screenshot trigger: {}", text);
+    }
+}
