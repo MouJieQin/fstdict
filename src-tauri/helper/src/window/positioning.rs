@@ -35,22 +35,38 @@ pub fn is_cursor_over_window(app: &AppHandle, label: &str) -> bool {
         return false;
     };
 
+    let Ok(Some(primary_monitor)) = app.primary_monitor() else {
+        return true;
+    };
+
+    // Use primary monitor scale for cursor conversion (system global coordinate space)
+    let cursor_scale = primary_monitor.scale_factor();
+    let mouse_x = cursor_physical.x / cursor_scale;
+    let mouse_y = cursor_physical.y / cursor_scale;
+
+    let Ok(Some(monitor)) = monitor_from_cursor(app) else {
+        return true;
+    };
+
+    let scale = monitor.scale_factor();
     let Ok(physical_pos) = win.outer_position() else {
-        return false;
+        return true;
     };
+    let win_logical_pos = physical_pos.to_logical::<f64>(scale);
     let Ok(physical_size) = win.inner_size() else {
-        return false;
+        return true;
     };
+    let win_logical_size = physical_size.to_logical::<f64>(scale);
 
-    let min_x = physical_pos.x as f64;
-    let max_x = (physical_pos.x + physical_size.width as i32) as f64;
-    let min_y = physical_pos.y as f64;
-    let max_y = (physical_pos.y + physical_size.height as i32) as f64;
+    let min_x = win_logical_pos.x as f64;
+    let max_x = win_logical_pos.x + win_logical_size.width;
+    let min_y = win_logical_pos.y as f64;
+    let max_y = win_logical_pos.y + win_logical_size.height;
 
-    cursor_physical.x >= min_x
-        && cursor_physical.x <= max_x
-        && cursor_physical.y >= min_y
-        && cursor_physical.y <= max_y
+    debug!("cursor_physical:{},{}", mouse_x, mouse_y);
+    debug!("win:{},{},{},{}", min_x, max_x, min_y, max_y);
+
+    mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y
 }
 
 /// Positions a window near the cursor, keeping it fully on-screen.
