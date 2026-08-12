@@ -13,11 +13,11 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{
-    App, AppHandle, Emitter, LogicalPosition, Manager, Monitor, PhysicalPosition, Position, State,
-    Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
+    App, AppHandle, Emitter, LogicalPosition, Manager, Monitor, PhysicalPosition, Position,
+    Runtime, State, Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask,
@@ -27,7 +27,11 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as WsMessage};
 // 1. Ensure you import MouseButton and MouseButtonState along with TrayIconEvent
+use enigo::{Enigo, Key, Keyboard, Settings};
+use std::str::FromStr;
 use tauri::menu::{Menu, MenuItem};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt,ShortcutEvent, Modifiers, Shortcut};
 
 tauri_panel! {
     panel!(FloatSearchPanel {
@@ -923,13 +927,144 @@ pub async fn start_cgevent_ws_client(
     }
 }
 
+struct DoubleCopyTracker {
+    last_pressed: Mutex<Option<Instant>>,
+}
+
+// 核心修复：安全实现跨线程安全分流投递，解决 macOS 的主线程断言闪退问题
+fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
+    // 1. 利用异步运行时抛出，使快捷键闭包得以及时退出释放独占写锁（防止 Deadlock）
+    tauri::async_runtime::spawn(async move {
+        let global_shortcut = app.global_shortcut();
+
+        // 暂时卸载对快捷键的独占拦截
+        let _ = global_shortcut.unregister(shortcut);
+
+        // 给系统预留微秒级的系统中断调度切换空间
+        tokio::time::sleep(Duration::from_millis(5)).await;
+
+        // 2. ✨ 关键修复：将 enigo 的物理按键模拟强制回派送给操作系统的 Main UI 线程执行
+        // 这完美修复了 macOS 限制非主线程访问 HIToolbox 键盘映射导致的 illegal hardware instruction 崩溃
+        let app_clone = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            let mut enigo = Enigo::new(&Settings::default()).unwrap();
+
+            #[cfg(target_os = "macos")]
+            {
+                // Hold Cmd -> Click C -> Release Cmd
+                let _ = enigo.key(Key::Meta, enigo::Direction::Press);
+                let _ = enigo.key(Key::Unicode('c'), enigo::Direction::Click);
+                let _ = enigo.key(Key::Meta, enigo::Direction::Release);
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                // Hold Ctrl -> Click C -> Release Ctrl
+                let _ = enigo.key(Key::Control, enigo::Direction::Press);
+                let _ = enigo.key(Key::Unicode('c'), enigo::Direction::Click);
+                let _ = enigo.key(Key::Control, enigo::Direction::Release);
+            }
+        });
+
+        // 给宿主应用程序（如 Chrome, Word）留出物理时间来执行文本选中并填充至系统剪贴板
+        tokio::time::sleep(Duration::from_millis(20)).await;
+
+        // 3. 释放完成后，立即重新加回全局热键拦截器
+        let _ = global_shortcut.register(shortcut);
+    });
+}
+
+fn regsiter_global_shortcut(app: &App) {
+    // 3. 使用 FromStr 将字符串直接转换为可以被注册的 Shortcut 结构体
+    let screenshot_shortcut = Shortcut::from_str("alt+shift+s").unwrap();
+
+    // 安全注册到操作系统的系统全局快捷键链表中
+    app.global_shortcut().register(screenshot_shortcut).unwrap();
+
+    // 依据底层不同显示服务器，分别注册拦截的底层按键字符
+    // 在 Tauri 内部，macOS 上的 Command 键被抽象序列化映射为 "super" 字符
+    #[cfg(target_os = "macos")]
+    {
+        let mac_shortcut = Shortcut::from_str("super+c").unwrap();
+        let _ = app.global_shortcut().register(mac_shortcut);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let win_linux_shortcut = Shortcut::from_str("control+c").unwrap();
+        let _ = app.global_shortcut().register(win_linux_shortcut);
+    }
+}
+
+fn global_shortcut_event_handler(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
+    if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+        // 1. 获取触发快捷键的标准字符串表现形式
+        let shortcut_string = shortcut.to_string();
+        println!("Global Hotkey Triggered: {}", shortcut_string);
+
+        // 匹配跨平台的复制快捷键形式 (Mac下为 cmd+c, Win/Linux下为 ctrl+c)
+        if shortcut_string == "super+KeyC" || shortcut_string == "control+KeyC" {
+            passthrough_native_copy(app.clone(), *shortcut);
+
+            let tracker = app.state::<DoubleCopyTracker>();
+            let mut last_pressed_lock = tracker.last_pressed.lock().unwrap();
+
+            let now = Instant::now();
+
+            if let Some(last_time) = *last_pressed_lock {
+                // ✨ 核心逻辑：计算两次按下的物理时间差
+                // 400 毫秒是检测连击双击操作的黄金时间阈值参数区间
+                if now.duration_since(last_time) < Duration::from_millis(400) {
+                    println!("💥 Double-Press Detected: Cmd/Ctrl + C twice quickly!");
+
+                    let clipboard = app.clipboard();
+                    if let Ok(text) = clipboard.read_text() {
+                        println!("Rust grabbed text from clipboard on boot: {}", text);
+                    }
+
+                    // 触发后端目标业务，或发送 IPC 通知给 Vue 前端组件渲染
+                    // let _ = app.emit("double-copy-triggered", ());
+
+                    // 触发后重置计时器状态，防止第三次连按再次被误判为双击
+                    *last_pressed_lock = None;
+                    return;
+                }
+            }
+
+            // 更新本次点击的时间点到全局缓存中
+            *last_pressed_lock = Some(now);
+        }
+
+        // 2. 直接使用易读的字符串分支进行逻辑分流匹配
+        if shortcut_string == "shift+alt+KeyS" {
+            // Optional: Example of reading clipboard contents natively in Rust on startup
+            let clipboard = app.clipboard();
+            if let Ok(text) = clipboard.read_text() {
+                println!("Rust grabbed text from clipboard on boot: {}", text);
+            }
+            // let _ = app.emit("trigger-screenshot", ());
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let ws_endpoint = "ws://127.0.0.1:5959/ws/fstdict/helper";
 
     tauri::Builder::default()
+        .manage(DoubleCopyTracker {
+            last_pressed: Mutex::new(None),
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    global_shortcut_event_handler(app, shortcut, event);
+                })
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             set_selction_window_pinned,
             set_main_window_pinned,
@@ -951,6 +1086,8 @@ async fn main() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir, "fstdict-helper".to_string());
+
+            regsiter_global_shortcut(app);
 
             // ========== 后台spawn websocket客户端，不阻塞setup ==========
             // 1. Create a bounded channel queue (size 32 provides plenty of headroom)
