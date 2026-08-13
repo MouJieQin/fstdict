@@ -10,6 +10,7 @@ use fstdict_common::logger::init_logging;
 use log::{debug, error, info, warn};
 use tauri::{Manager, RunEvent};
 
+#[cfg(target_os = "macos")]
 use app_state::{CGEventHelperProcess, HelperProcess, PythonServer};
 use sidecar::python::start_python_sidecar;
 use window::main_window::setup_main_window;

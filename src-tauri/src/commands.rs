@@ -1,6 +1,7 @@
 use tauri::AppHandle;
 use tauri::Manager;
 
+#[cfg(target_os = "macos")]
 use crate::app_state::{HelperProcess, CGEventHelperProcess};
 
 /// Basic greeting command for testing IPC connectivity.
