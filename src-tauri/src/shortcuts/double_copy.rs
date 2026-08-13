@@ -1,10 +1,11 @@
 use std::time::{Duration, Instant};
 
-use log::info;
+use log::{error, info};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::app_state::DoubleCopyTracker;
+use fstdict_common::window::notification::show_notification;
 
 /// Maximum interval between two copy presses to count as a double-press (ms).
 const DOUBLE_PRESS_THRESHOLD_MS: u64 = 400;
@@ -21,6 +22,9 @@ pub fn handle_double_copy(app: &AppHandle) {
 
             if let Ok(text) = app.clipboard().read_text() {
                 info!("Clipboard content: {}", text);
+                if let Err(e) = show_notification(app, text.into()) {
+                    error!("show_notification error: {}", e);
+                }
             }
 
             // Reset to prevent triple-press from triggering again

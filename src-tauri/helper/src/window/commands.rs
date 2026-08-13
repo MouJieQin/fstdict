@@ -1,9 +1,9 @@
 use log::info;
 use tauri::{AppHandle, Manager, State};
 
+use crate::app_state::{MainWindowPinState, SelectionWindowPinState};
 use fstdict_common::window::notification::show_notification;
 use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
-use crate::app_state::{MainWindowPinState, SelectionWindowPinState};
 
 /// Tauri command: update the pin state of the selection search panel.
 #[tauri::command]
@@ -65,7 +65,7 @@ pub fn hide_panel(app: AppHandle) {
 
 /// Tauri command: trigger a notification banner from the frontend.
 #[tauri::command]
-pub fn trigger_notification(app: AppHandle, message: String) -> Result<(), String> {
+pub fn trigger_notification(app: AppHandle, message: String) -> Result<(), tauri::Error> {
     show_notification(&app, message)
 }
 

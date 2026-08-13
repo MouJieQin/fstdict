@@ -1,18 +1,18 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
+use super::positioning::{monitor_from_cursor, position_notification_panel};
 use log::{error, info};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
-use tauri_nspanel::{CollectionBehavior, PanelBuilder, PanelLevel};
-
-use super::positioning::{monitor_from_cursor, position_notification_panel};
-use crate::panels::NotificationPanel;
 
 /// Globally unique task ID for debouncing notification fade-out.
 static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
 
 /// Guard flag to prevent concurrent panel creation races.
 static PANEL_CREATION_LOCK: AtomicBool = AtomicBool::new(false);
+
+pub const NOTIFICATION_INNER_WIDTH: f64 = 360.0;
+pub const NOTIFICATION_INNER_HEIGHT: f64 = 90.0;
 
 /// Notification display duration before fade-out starts (milliseconds).
 const NOTIFICATION_DISPLAY_MS: u64 = 2000;
@@ -31,7 +31,7 @@ const MAX_CREATION_POLLS: u32 = 10;
 /// If the panel already exists, it updates the message and resets the timer.
 /// If creation is already in progress on another thread, the message is delivered
 /// once the panel becomes available.
-pub fn show_notification(app: &AppHandle, message: String) -> Result<(), String> {
+pub fn show_notification(app: &AppHandle, message: String) -> Result<(), tauri::Error> {
     let task_id = CURRENT_TASK_ID.fetch_add(1, Ordering::SeqCst) + 1;
 
     // Fast path: panel already exists
@@ -78,35 +78,16 @@ fn wait_and_deliver_message(app: &AppHandle, message: String) {
     });
 }
 
-fn create_notification_panel(app: &AppHandle, message: String, task_id: u64) -> Result<(), String> {
+fn create_notification_panel(
+    app: &AppHandle,
+    message: String,
+    task_id: u64,
+) -> Result<(), tauri::Error> {
     let encoded = urlencoding::encode(&message);
     let target_url = format!("notification.html?message={}", encoded);
 
-    // let panel = PanelBuilder::<_, NotificationPanel>::new(app, "notify-layer")
-    //     .url(WebviewUrl::App(target_url.into()))
-    //     .with_window(|window| {
-    //         window
-    //             .hidden_title(true)
-    //             .inner_size(360.0, 90.0)
-    //             .always_on_top(true)
-    //             .transparent(true)
-    //             .decorations(false)
-    //             .resizable(false)
-    //             .focusable(false)
-    //     })
-    //     .level(PanelLevel::Status)
-    //     .build()
-    //     .map_err(|e| format!("Failed to build notification panel: {:?}", e))?;
-
-    // panel.set_collection_behavior(
-    //     CollectionBehavior::new()
-    //         .full_screen_auxiliary()
-    //         .can_join_all_spaces()
-    //         .into(),
-    // );
-
     let win = WebviewWindowBuilder::new(app, "notify-layer", WebviewUrl::App(target_url.into()))
-        .inner_size(360.0, 90.0)
+        .inner_size(NOTIFICATION_INNER_WIDTH, NOTIFICATION_INNER_HEIGHT)
         .decorations(false)
         .resizable(false)
         .hidden_title(true)
@@ -114,13 +95,7 @@ fn create_notification_panel(app: &AppHandle, message: String, task_id: u64) -> 
         .transparent(true)
         .always_on_top(true)
         .visible_on_all_workspaces(true)
-        .build()
-        .unwrap();
-
-    // let win: WebviewWindow = panel
-    //     .to_window()
-    //     .expect("Notification panel must have a valid window")
-    //     .clone();
+        .build()?;
 
     let _ = set_panel_position(app, &win);
     let _ = win.show();
@@ -132,7 +107,7 @@ fn create_notification_panel(app: &AppHandle, message: String, task_id: u64) -> 
     Ok(())
 }
 
-fn set_panel_position(app: &AppHandle, win: &WebviewWindow) -> Result<(), String> {
+fn set_panel_position(app: &AppHandle, win: &WebviewWindow) -> Result<(), tauri::Error> {
     match monitor_from_cursor(app) {
         Ok(Some(monitor)) => {
             info!("Placing notification on cursor's monitor.");
@@ -146,6 +121,7 @@ fn set_panel_position(app: &AppHandle, win: &WebviewWindow) -> Result<(), String
         }
         Err(err) => {
             error!("Failed to detect cursor monitor: {}", err);
+            return Err(err);
         }
     }
     Ok(())

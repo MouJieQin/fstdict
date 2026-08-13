@@ -1,3 +1,4 @@
+use super::notification::{NOTIFICATION_INNER_WIDTH};
 use log::{debug, error, warn};
 use tauri::{AppHandle, LogicalPosition, Manager, Monitor, Position, WebviewWindow};
 
@@ -163,11 +164,10 @@ pub fn position_notification_panel(win: &WebviewWindow, monitor: &Monitor) {
     let screen_pos = monitor.position().to_logical::<f64>(scale);
     let screen_size = monitor.size().to_logical::<f64>(scale);
 
-    const PANEL_WIDTH: f64 = 360.0;
     const EDGE_PADDING: f64 = 24.0;
     const TOP_PADDING: f64 = 40.0;
 
-    let target_x = screen_pos.x + screen_size.width - PANEL_WIDTH - EDGE_PADDING;
+    let target_x = screen_pos.x + screen_size.width - NOTIFICATION_INNER_WIDTH - EDGE_PADDING;
     let target_y = screen_pos.y + TOP_PADDING;
 
     let _ = win.set_position(Position::Logical(LogicalPosition::new(target_x, target_y)));
