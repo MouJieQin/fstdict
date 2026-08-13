@@ -12,7 +12,8 @@ use super::protocol::{build_connect_message, build_event_request, InboundMessage
 use crate::window::commands::{
     hide_window_if_unpinned_and_outside, show_main_panel, show_selection_panel,
 };
-use crate::window::notification::show_notification;
+use fstdict_common::window::notification::show_notification;
+use fstdict_common::window::positioning::is_cursor_over_window;
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
 const RECONNECT_DELAY_MS: u64 = 2000;
@@ -125,7 +126,7 @@ where
                     return;
                 }
 
-                if !crate::window::positioning::is_cursor_over_window(&app_clone, "helper-main") {
+                if !is_cursor_over_window(&app_clone, "helper-main") {
                     let _ = show_main_panel(&app_clone);
                 }
 
@@ -141,10 +142,7 @@ where
         InboundMessage::TextSelection { data } => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
-                if crate::window::positioning::is_cursor_over_window(
-                    &app_clone,
-                    "selection-float-search",
-                ) {
+                if is_cursor_over_window(&app_clone, "selection-float-search") {
                     return;
                 }
 

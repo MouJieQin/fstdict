@@ -1,6 +1,4 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-
 use tokio::sync::mpsc;
 
 /// Pin state and WebSocket sender for the selection search panel.

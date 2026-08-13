@@ -1327,6 +1327,9 @@ dependencies = [
  "serde",
  "serde_json",
  "tauri",
+ "tauri-nspanel",
+ "tokio",
+ "urlencoding",
 ]
 
 [[package]]
