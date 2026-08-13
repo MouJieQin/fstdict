@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use log::{error, info};
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_nspanel::{CollectionBehavior, PanelBuilder, PanelLevel};
 
 use super::positioning::{monitor_from_cursor, position_notification_panel};
@@ -82,37 +82,48 @@ fn create_notification_panel(app: &AppHandle, message: String, task_id: u64) -> 
     let encoded = urlencoding::encode(&message);
     let target_url = format!("notification.html?message={}", encoded);
 
-    let panel = PanelBuilder::<_, NotificationPanel>::new(app, "notify-layer")
-        .url(WebviewUrl::App(target_url.into()))
-        .with_window(|window| {
-            window
-                .hidden_title(true)
-                .inner_size(360.0, 90.0)
-                .accept_first_mouse(true)
-                .always_on_top(true)
-                .transparent(true)
-                .decorations(false)
-                .resizable(false)
-                .focusable(false)
-        })
-        .level(PanelLevel::Status)
+    // let panel = PanelBuilder::<_, NotificationPanel>::new(app, "notify-layer")
+    //     .url(WebviewUrl::App(target_url.into()))
+    //     .with_window(|window| {
+    //         window
+    //             .hidden_title(true)
+    //             .inner_size(360.0, 90.0)
+    //             .always_on_top(true)
+    //             .transparent(true)
+    //             .decorations(false)
+    //             .resizable(false)
+    //             .focusable(false)
+    //     })
+    //     .level(PanelLevel::Status)
+    //     .build()
+    //     .map_err(|e| format!("Failed to build notification panel: {:?}", e))?;
+
+    // panel.set_collection_behavior(
+    //     CollectionBehavior::new()
+    //         .full_screen_auxiliary()
+    //         .can_join_all_spaces()
+    //         .into(),
+    // );
+
+    let win = WebviewWindowBuilder::new(app, "notify-layer", WebviewUrl::App(target_url.into()))
+        .inner_size(360.0, 90.0)
+        .decorations(false)
+        .resizable(false)
+        .hidden_title(true)
+        .focusable(false)
+        .transparent(true)
+        .always_on_top(true)
+        .visible_on_all_workspaces(true)
         .build()
-        .map_err(|e| format!("Failed to build notification panel: {:?}", e))?;
+        .unwrap();
 
-    panel.set_collection_behavior(
-        CollectionBehavior::new()
-            .full_screen_auxiliary()
-            .can_join_all_spaces()
-            .into(),
-    );
-
-    let win: WebviewWindow = panel
-        .to_window()
-        .expect("Notification panel must have a valid window")
-        .clone();
+    // let win: WebviewWindow = panel
+    //     .to_window()
+    //     .expect("Notification panel must have a valid window")
+    //     .clone();
 
     let _ = set_panel_position(app, &win);
-    panel.show();
+    let _ = win.show();
 
     tauri::async_runtime::spawn(async move {
         schedule_fade_out(win, task_id).await;
