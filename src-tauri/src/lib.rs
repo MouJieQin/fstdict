@@ -2,6 +2,7 @@ mod app_state;
 mod commands;
 mod shortcuts;
 mod sidecar;
+mod websocket;
 mod window;
 
 use std::fs;
@@ -15,10 +16,13 @@ use tauri::{Manager, RunEvent};
 use app_state::{CGEventHelperProcess, DoubleCopyTracker, HelperProcess, PythonServer};
 use shortcuts::global::register_global_shortcuts;
 use sidecar::python::start_python_sidecar;
+use websocket::client::start_ws_client;
 use window::main_window::setup_main_window;
 
+const WS_ENDPOINT: &str = "ws://127.0.0.1:5959/ws/fstdict/main";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -85,6 +89,12 @@ pub fn run() {
                     return Err(e);
                 }
             }
+
+            let app_handle = app.handle().clone();
+            let ws_url = WS_ENDPOINT.to_string();
+            tokio::spawn(async move {
+                start_ws_client(&ws_url, app_handle).await;
+            });
 
             // Start macOS-specific helper processes
             #[cfg(target_os = "macos")]

@@ -54,6 +54,7 @@ class UtilsBase:
     session_websockets: Dict[int, Dict[int, WebSocket]] = {}
     windows_websockets: Dict[int, WebSocket] = {}
     fstdict_helper_websocket: WebSocket | None = None
+    fstdict_main_websocket: WebSocket | None = None
     cgevent_register_map: Dict = {}
 
     @staticmethod

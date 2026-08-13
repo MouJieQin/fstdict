@@ -184,6 +184,25 @@ async def command_command(request: CommandRequest):
     return res
 
 
+@app.websocket("/ws/fstdict/main")
+async def fstdict_main_websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        Utils.fstdict_main_websocket = websocket
+        while True:
+            text = await websocket.receive_text()
+            logger.info(f"/ws/fstdict/main WebSocket收到消息: {text}")
+            await MessageHandler.handle_fstdict_main_message(
+                websocket, text
+            )
+    except WebSocketDisconnect:
+        logger.info("/ws/fstdict/main WebSocket断开连接")
+    except Exception as e:
+        logger.error(f"/ws/fstdict/main WebSocket错误: {e}", exc_info=True)
+    finally:
+        Utils.fstdict_main_websocket = None
+
+
 @app.websocket("/ws/fstdict/helper")
 async def fstdict_helper_websocket_endpoint(websocket: WebSocket):
     await websocket.accept()

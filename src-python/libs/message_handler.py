@@ -194,6 +194,43 @@ class MessageHandler:
             logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
 
     @staticmethod
+    async def handle_fstdict_main_message(
+        websocket: WebSocket, data: str
+    ):
+        try:
+            message = json.loads(data)
+            type = message["type"]
+            if type == "register_request":
+                cg_event_type = message["data"]["event"]
+                window = message["data"]["window"]
+                if cg_event_type == "kCGEventLeftMouseDown":
+                    if cg_event_type not in Utils.cgevent_register_map:
+                        Utils.cgevent_register_map[cg_event_type] = []
+                    if not Utils.cgevent_register_map[cg_event_type]:
+                        await Utils.cgevent_ws_client.send_register_request("kCGEventLeftMouseDown")
+                    if window not in Utils.cgevent_register_map[cg_event_type]:
+                        Utils.cgevent_register_map[cg_event_type].append(window)
+            elif type == "unregister_request":
+                cg_event_type = message["data"]["event"]
+                window = message["data"]["window"]
+                if cg_event_type in Utils.cgevent_register_map:
+                    if window in Utils.cgevent_register_map[cg_event_type]:
+                        Utils.cgevent_register_map[cg_event_type].remove(window)
+                    if not Utils.cgevent_register_map[cg_event_type]:
+                        await Utils.cgevent_ws_client.send_unregister_request("kCGEventLeftMouseDown")
+            elif type == "connect_cgevent_server":
+                def connect_cgevent():
+                    url = "http://127.0.0.1:5959/api/connectcgevent"
+                    resp = urllib.request.urlopen(url)
+                    logger.info(json.loads(resp.read()))
+                connect_thread = threading.Thread(target=connect_cgevent, daemon=True)
+                connect_thread.start()
+            else:
+                logger.warning(f"未知的cgevent命令类型: {type}")
+        except Exception as e:
+            logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
+
+    @staticmethod
     async def handle_session_message(
         websocket: WebSocket, session_id: int, connection_id: int, message_text: str
     ):
