@@ -1,5 +1,6 @@
 mod app_state;
 mod commands;
+mod shortcuts;
 mod sidecar;
 mod window;
 
@@ -11,7 +12,8 @@ use log::{debug, error, info, warn};
 use tauri::{Manager, RunEvent};
 
 #[cfg(target_os = "macos")]
-use app_state::{CGEventHelperProcess, HelperProcess, PythonServer};
+use app_state::{CGEventHelperProcess, DoubleCopyTracker, HelperProcess, PythonServer};
+use shortcuts::global::register_global_shortcuts;
 use sidecar::python::start_python_sidecar;
 use window::main_window::setup_main_window;
 
@@ -19,6 +21,14 @@ use window::main_window::setup_main_window;
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    shortcuts::global::handle_shortcut_event(app, shortcut, event);
+                })
+                .build(),
+        )
         // Single invoke_handler call with all commands (fixes overwrite bug)
         .invoke_handler(tauri::generate_handler![
             commands::greet,
@@ -31,6 +41,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             commands::launch_cgevent_server
         ])
+        .manage(DoubleCopyTracker::default())
         .manage(PythonServer::default());
 
     // Register macOS-only state
@@ -57,6 +68,9 @@ pub fn run() {
 
             // Create and configure main window
             setup_main_window(app)?;
+
+            // Register system-wide keyboard shortcuts
+            register_global_shortcuts(app);
 
             // Start Python backend sidecar (skipped in dev mode)
             match start_python_sidecar(app) {

@@ -1,6 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use std::time::Instant;
 
 use tokio::sync::mpsc;
 
@@ -14,11 +13,6 @@ pub struct SelectionWindowPinState {
 pub struct MainWindowPinState {
     pub is_pinned: AtomicBool,
     pub ws_sender: mpsc::Sender<String>,
-}
-
-/// Tracks timestamps for double-press detection (Cmd/Ctrl + C twice).
-pub struct DoubleCopyTracker {
-    pub last_pressed: Mutex<Option<Instant>>,
 }
 
 impl SelectionWindowPinState {
@@ -59,10 +53,3 @@ impl MainWindowPinState {
     }
 }
 
-impl Default for DoubleCopyTracker {
-    fn default() -> Self {
-        Self {
-            last_pressed: Mutex::new(None),
-        }
-    }
-}

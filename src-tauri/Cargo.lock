@@ -1281,6 +1281,7 @@ name = "fstdict"
 version = "0.0.22"
 dependencies = [
  "dirs 5.0.1",
+ "enigo",
  "fstdict_common",
  "libc",
  "log",
@@ -1289,6 +1290,8 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-global-shortcut",
  "tauri-plugin-opener",
  "tokio",
 ]
@@ -1297,7 +1300,6 @@ dependencies = [
 name = "fstdict-helper"
 version = "0.0.22"
 dependencies = [
- "enigo",
  "fstdict_common",
  "futures-util",
  "log",
@@ -1306,8 +1308,6 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-global-shortcut",
  "tauri-plugin-opener",
  "tokio",
  "tokio-tungstenite",

@@ -6,7 +6,6 @@
 
 mod app_state;
 mod panels;
-mod shortcuts;
 mod tray;
 mod websocket;
 mod window;
@@ -18,8 +17,7 @@ use fstdict_common::logger::init_logging;
 use tauri::{ActivationPolicy, Manager};
 use tokio::sync::mpsc;
 
-use app_state::{DoubleCopyTracker, MainWindowPinState, SelectionWindowPinState};
-use shortcuts::global::register_global_shortcuts;
+use app_state::{MainWindowPinState, SelectionWindowPinState};
 use tray::setup_tray;
 use websocket::client::start_cgevent_ws_client;
 use window::setup::setup_float_panels;
@@ -33,17 +31,8 @@ const WS_CHANNEL_CAPACITY: usize = 32;
 #[tokio::main]
 async fn main() {
     tauri::Builder::default()
-        .manage(DoubleCopyTracker::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, shortcut, event| {
-                    shortcuts::global::handle_shortcut_event(app, shortcut, event);
-                })
-                .build(),
-        )
         .invoke_handler(tauri::generate_handler![
             window::commands::set_selection_window_pinned,
             window::commands::set_main_window_pinned,
@@ -68,9 +57,6 @@ async fn main() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir, "fstdict-helper".to_string());
-
-            // Register system-wide keyboard shortcuts
-            register_global_shortcuts(app);
 
             // ── WebSocket client setup ──
             let (selection_tx, selection_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
