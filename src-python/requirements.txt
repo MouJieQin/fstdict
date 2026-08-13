@@ -4,5 +4,7 @@ pydantic==2.13.0
 uvicorn==0.44.0
 websockets==14.2
 colorama==0.4.6
+rapidocr==3.9.2
+onnxruntime==1.23.2
 fstd>=0.2.3
 fstdtools>=0.0.5
