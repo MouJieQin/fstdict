@@ -1,7 +1,12 @@
 pub use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tauri::{AppHandle, Manager, WebviewWindow};
 
+/// Debounce window for saving window state (milliseconds).
+const STATE_SAVE_DEBOUNCE_MS: u64 = 350;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WindowState {
@@ -104,5 +109,48 @@ impl WindowState {
             }
         }
         false
+    }
+}
+
+/// Creates a debounced closure that saves window state.
+///
+/// Multiple rapid calls within the debounce window are collapsed into a single save.
+pub fn create_debounced_saver(
+    win: WebviewWindow,
+    app_handle: AppHandle,
+    is_ready: Arc<AtomicBool>,
+    task_counter: Arc<Mutex<u64>>,
+    config_name: Arc<str>,
+) -> impl Fn() + Clone {
+    move || {
+        if !is_ready.load(Ordering::Relaxed) {
+            return;
+        }
+
+        let counter = Arc::clone(&task_counter);
+        let win_clone = win.clone();
+        let ah_clone = app_handle.clone();
+        let config = Arc::clone(&config_name);
+
+        tauri::async_runtime::spawn(async move {
+            let current_id = {
+                let mut guard = counter.lock().unwrap();
+                *guard += 1;
+                *guard
+            };
+
+            tokio::time::sleep(Duration::from_millis(STATE_SAVE_DEBOUNCE_MS)).await;
+
+            let latest_id = {
+                let guard = counter.lock().unwrap();
+                *guard
+            };
+
+            // Only save if no newer requests arrived during the wait
+            if current_id == latest_id {
+                let current_state = WindowState::from_window(&win_clone);
+                current_state.save(&ah_clone, &config);
+            }
+        });
     }
 }

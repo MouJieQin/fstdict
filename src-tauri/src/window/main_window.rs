@@ -2,9 +2,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use fstdict_common::window_state::WindowState;
+use fstdict_common::window::state::{create_debounced_saver, WindowState};
+
 use log::{info, warn};
-use tauri::{App, AppHandle, WebviewWindow, WebviewWindowBuilder, WindowEvent};
+use tauri::{App, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 /// Debounce delay for saving window position/size (milliseconds).
 const STATE_SAVE_DEBOUNCE_MS: u64 = 350;
@@ -66,11 +67,14 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
 
     // Suppress state saves during initial window layout
     let is_ready = Arc::new(AtomicBool::new(false));
+    let task_counter = Arc::new(Mutex::new(0u64));
+    let config_name: Arc<str> = Arc::from(config_file);
     let save_trigger = create_debounced_saver(
         main_win.clone(),
         app_handle.clone(),
         Arc::clone(&is_ready),
-        config_file,
+        Arc::clone(&task_counter),
+        Arc::clone(&config_name),
     );
 
     // Attach window event listeners
@@ -87,47 +91,4 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     });
 
     Ok(())
-}
-
-/// Creates a debounced closure that saves window state to disk.
-///
-/// Multiple rapid calls within the debounce window are collapsed into one write.
-fn create_debounced_saver(
-    win: WebviewWindow,
-    app_handle: AppHandle,
-    is_ready: Arc<AtomicBool>,
-    config_filename: &'static str,
-) -> impl Fn() + Clone {
-    let task_counter = Arc::new(Mutex::new(0u64));
-
-    move || {
-        if !is_ready.load(Ordering::Relaxed) {
-            return;
-        }
-
-        let counter = Arc::clone(&task_counter);
-        let win_clone = win.clone();
-        let ah_clone = app_handle.clone();
-
-        tauri::async_runtime::spawn(async move {
-            let current_id = {
-                let mut guard = counter.lock().unwrap();
-                *guard += 1;
-                *guard
-            };
-
-            tokio::time::sleep(Duration::from_millis(STATE_SAVE_DEBOUNCE_MS)).await;
-
-            let latest_id = {
-                let guard = counter.lock().unwrap();
-                *guard
-            };
-
-            // Only persist if no newer changes were queued during the wait
-            if current_id == latest_id {
-                let current_state = WindowState::from_window(&win_clone);
-                current_state.save(&ah_clone, config_filename);
-            }
-        });
-    }
 }
