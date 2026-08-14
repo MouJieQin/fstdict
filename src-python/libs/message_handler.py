@@ -86,6 +86,16 @@ class MessageHandler:
             logger.error(f"处理iWin消息时出错: {e}", exc_info=True)
 
     @staticmethod
+    async def _handle_text_selected(text: str):
+        tmsg = {"type": "handlerEventTextSelection",
+                "data": {
+                    "text_selected": text
+                }}
+        if Utils.fstdict_helper_websocket:
+            await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
+        logger.info(f"text_selected:{text}")
+
+    @staticmethod
     async def handle_cgevent_message(ws: ClientConnection, data: str):
         try:
             message = json.loads(data)
@@ -134,16 +144,8 @@ class MessageHandler:
                         if Utils.fstdict_helper_websocket:
                             await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                 elif cg_event_type == "handlerEventTextSelection":
-                    tmsg = {"type": "handlerEventTextSelection",
-                            "data": {
-                                "text_selected": message["data"]["text_selected"]
-                            }}
-                    if Utils.fstdict_helper_websocket:
-                        await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
-                    smsg["data"] = message["data"]
-                    # await SessionManager.broadcast_all(json.dumps(smsg))
                     text_selected = message["data"]["text_selected"]
-                    logger.info(f"text_selected:{text_selected}")
+                    await MessageHandler._handle_text_selected(text_selected)
                 elif cg_event_type == "kCGEventLeftMouseDown":
                     tmsg = {"type": "kCGEventLeftMouseDown"
                             }
@@ -189,9 +191,9 @@ class MessageHandler:
                 connect_thread = threading.Thread(target=connect_cgevent, daemon=True)
                 connect_thread.start()
             else:
-                logger.warning(f"未知的cgevent命令类型: {type}")
+                logger.warning(f"未知的fstdict helper命令类型: {type}")
         except Exception as e:
-            logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
+            logger.error(f"处理fstdict helper消息时出错: {e}", exc_info=True)
 
     @staticmethod
     async def handle_fstdict_main_message(
@@ -200,35 +202,13 @@ class MessageHandler:
         try:
             message = json.loads(data)
             type = message["type"]
-            if type == "register_request":
-                cg_event_type = message["data"]["event"]
-                window = message["data"]["window"]
-                if cg_event_type == "kCGEventLeftMouseDown":
-                    if cg_event_type not in Utils.cgevent_register_map:
-                        Utils.cgevent_register_map[cg_event_type] = []
-                    if not Utils.cgevent_register_map[cg_event_type]:
-                        await Utils.cgevent_ws_client.send_register_request("kCGEventLeftMouseDown")
-                    if window not in Utils.cgevent_register_map[cg_event_type]:
-                        Utils.cgevent_register_map[cg_event_type].append(window)
-            elif type == "unregister_request":
-                cg_event_type = message["data"]["event"]
-                window = message["data"]["window"]
-                if cg_event_type in Utils.cgevent_register_map:
-                    if window in Utils.cgevent_register_map[cg_event_type]:
-                        Utils.cgevent_register_map[cg_event_type].remove(window)
-                    if not Utils.cgevent_register_map[cg_event_type]:
-                        await Utils.cgevent_ws_client.send_unregister_request("kCGEventLeftMouseDown")
-            elif type == "connect_cgevent_server":
-                def connect_cgevent():
-                    url = "http://127.0.0.1:5959/api/connectcgevent"
-                    resp = urllib.request.urlopen(url)
-                    logger.info(json.loads(resp.read()))
-                connect_thread = threading.Thread(target=connect_cgevent, daemon=True)
-                connect_thread.start()
+            if type == "double_copy":
+                text_copyed = message["data"]["text"]
+                await MessageHandler._handle_text_selected(text_copyed)
             else:
-                logger.warning(f"未知的cgevent命令类型: {type}")
+                logger.warning(f"未知的fstdict main命令类型: {type}")
         except Exception as e:
-            logger.error(f"处理cgevent消息时出错: {e}", exc_info=True)
+            logger.error(f"处理fstdict main消息时出错: {e}", exc_info=True)
 
     @staticmethod
     async def handle_session_message(

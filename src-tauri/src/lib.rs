@@ -11,15 +11,20 @@ use std::path::PathBuf;
 use fstdict_common::logger::init_logging;
 use log::{debug, error, info, warn};
 use tauri::{Manager, RunEvent};
+use tokio::sync::mpsc;
 
 #[cfg(target_os = "macos")]
-use app_state::{CGEventHelperProcess, DoubleCopyTracker, HelperProcess, PythonServer};
+use app_state::{
+    CGEventHelperProcess, DoubleCopyTracker, HelperProcess, MainWindowWsSender, PythonServer,
+};
 use shortcuts::global::register_global_shortcuts;
 use sidecar::python::start_python_sidecar;
 use websocket::client::start_ws_client;
 use window::main_window::setup_main_window;
 
 const WS_ENDPOINT: &str = "ws://127.0.0.1:5959/ws/fstdict/main";
+/// Size of the bounded MPSC channel for outbound WebSocket messages.
+const WS_CHANNEL_CAPACITY: usize = 32;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
@@ -90,10 +95,13 @@ pub async fn run() {
                 }
             }
 
+            // ── WebSocket client setup ──
+            let (main_tx, main_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
+            app.manage(MainWindowWsSender::new(main_tx));
             let app_handle = app.handle().clone();
             let ws_url = WS_ENDPOINT.to_string();
             tokio::spawn(async move {
-                start_ws_client(&ws_url, app_handle).await;
+                start_ws_client(&ws_url, app_handle, main_rx).await;
             });
 
             // Start macOS-specific helper processes

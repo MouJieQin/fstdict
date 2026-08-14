@@ -1,9 +1,10 @@
 use std::str::FromStr;
 use std::time::Duration;
 
+use crate::app_state::MainWindowWsSender;
 use enigo::Keyboard;
 use log::info;
-use tauri::{App, AppHandle, Runtime};
+use tauri::{App, AppHandle, Manager, Runtime};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
 
@@ -45,7 +46,9 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
     match shortcut_str.as_str() {
         s if s == "super+KeyC" || s == "control+KeyC" => {
             passthrough_native_copy(app.clone(), *shortcut);
-            handle_double_copy(app);
+            if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
+                handle_double_copy(ws_state, app);
+            }
         }
         "shift+alt+KeyS" => {
             handle_screenshot_trigger(app);

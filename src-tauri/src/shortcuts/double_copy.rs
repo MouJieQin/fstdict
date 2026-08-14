@@ -1,17 +1,17 @@
 use std::time::{Duration, Instant};
 
+use crate::app_state::MainWindowWsSender;
 use log::{error, info};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::app_state::DoubleCopyTracker;
-use fstdict_common::window::notification::show_notification;
 
 /// Maximum interval between two copy presses to count as a double-press (ms).
 const DOUBLE_PRESS_THRESHOLD_MS: u64 = 400;
 
 /// Detects double-press of the copy shortcut and triggers lookup.
-pub fn handle_double_copy(app: &AppHandle) {
+pub fn handle_double_copy(state: State<'_, MainWindowWsSender>, app: &AppHandle) {
     let tracker = app.state::<DoubleCopyTracker>();
     let mut last_guard = tracker.last_pressed.lock().unwrap();
     let now = Instant::now();
@@ -22,8 +22,16 @@ pub fn handle_double_copy(app: &AppHandle) {
 
             if let Ok(text) = app.clipboard().read_text() {
                 info!("Clipboard content: {}", text);
-                if let Err(e) = show_notification(app, text.into()) {
-                    error!("show_notification error: {}", e);
+
+                let payload = serde_json::json!({
+                    "type": "double_copy",
+                    "data": {
+                        "text": text
+                    }
+                });
+
+                if let Err(e) = state.ws_sender.try_send(payload.to_string()) {
+                    log::error!("Failed to send pin state over WebSocket: {:?}", e);
                 }
             }
 
