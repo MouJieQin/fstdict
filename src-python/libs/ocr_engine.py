@@ -3,6 +3,7 @@ import sys
 import subprocess
 from libs.common import Utils
 from libs.log_config import logger
+import os
 
 
 class OcrEngine:
@@ -82,6 +83,38 @@ class OcrEngine:
 
     def is_ocring(self):
         return self._is_ocring
+
+    def _ocr_on_windows(self) -> str:
+        output_path = os.path.abspath(Utils.IMA_PATH_FOR_OCR)
+
+        ps_code = f"""
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Drawing
+        [System.Windows.Forms.Clipboard]::Clear()
+        explorer.exe ms-screenclip:
+        $timeout = 30
+        $elapsed = 0
+        while (-not [System.Windows.Forms.Clipboard]::ContainsImage()) {{
+            Start-Sleep -Milliseconds 200
+            $elapsed += 0.2
+            if ($elapsed -ge $timeout) {{ exit 1 }}
+        }}
+        $image = [System.Windows.Forms.Clipboard]::GetImage()
+        $image.Save('{output_path}', [System.Drawing.Imaging.ImageFormat]::Png)
+        exit 0
+        """
+
+        cmd = [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-Command", ps_code
+        ]
+
+        ret = subprocess.run(cmd, capture_output=True, text=True)
+        if ret.returncode != 0:
+            return ""
+        return self._ocr_img(output_path)
 
     def ocr(self) -> str:
         if self._is_ocring:

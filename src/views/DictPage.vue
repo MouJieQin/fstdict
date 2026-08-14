@@ -314,10 +314,10 @@ const initDictPage = async () => {
     } else {
         document.body.classList.remove('anki-mode')
     }
-    if (envFromRoute.value === 'selection_float_search') {
+    if (envFromRoute.value === 'selection_float_search' || envFromRoute.value === "") {
         await tauriListenerSetup()
     }
-    if (envFromRoute.value === 'helper_main_tauri') {
+    if (envFromRoute.value === 'helper_main_tauri' || envFromRoute.value === "") {
         await helperMainListenerSetup()
     }
     console.log("Current env:", envFromRoute.value)

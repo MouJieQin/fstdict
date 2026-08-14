@@ -1,5 +1,6 @@
 import json
 import urllib.request
+import sys
 import threading
 from typing import Dict
 from websockets.asyncio.client import ClientConnection
@@ -203,8 +204,11 @@ class MessageHandler:
                         "data": {
                             "ocr_txt": ocr_txt
                         }}
-                if Utils.fstdict_helper_websocket:
-                    await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
+                if sys.platform == "darwin":
+                    if Utils.fstdict_helper_websocket:
+                        await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
+                else:
+                    await websocket.send_text(json.dumps(tmsg))
             else:
                 logger.warning(f"未知的fstdict main命令类型: {type}")
         except Exception as e:

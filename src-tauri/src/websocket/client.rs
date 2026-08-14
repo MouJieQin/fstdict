@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use fstdict_common::window::notification::show_notification;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
 use tauri::{AppHandle, Emitter};
@@ -101,34 +102,24 @@ where
     match event {
         InboundMessage::TauriNotification { data } => {
             info!("Received notification: {}", data.message);
-            // let app_clone = app.clone();
-            // let msg = data.message;
-            // let _ = app.run_on_main_thread(move || {
-            //     if let Err(e) = show_notification(&app_clone, msg) {
-            //         error!("show_notification error: {}", e);
-            //     }
-            // });
+            let app_clone = app.clone();
+            let msg = data.message;
+            let _ = app.run_on_main_thread(move || {
+                if let Err(e) = show_notification(&app_clone, msg) {
+                    error!("show_notification error: {}", e);
+                }
+            });
         }
 
         InboundMessage::OcrResult { data } => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
                 if data.ocr_txt.is_empty() {
-                    // let _ = show_notification(&app_clone, "No valid OCR result detected".into());
+                    let _ = show_notification(&app_clone, "No valid OCR result detected".into());
                     return;
                 }
-
-                // if !crate::window::positioning::is_cursor_over_window(&app_clone, "helper-main") {
-                //     let _ = show_main_panel(&app_clone);
-                // }
-
-                let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
+                let _ = app_clone.emit_to("main", "cgevent-ocr", data.ocr_txt);
             });
-
-            // Register mouse-down listener for the main panel
-            let req =
-                build_event_request("register_request", "kCGEventLeftMouseDown", "helper-main");
-            let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
         }
     }
 }
