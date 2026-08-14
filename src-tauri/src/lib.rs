@@ -14,9 +14,8 @@ use tauri::{Manager, RunEvent};
 use tokio::sync::mpsc;
 
 #[cfg(target_os = "macos")]
-use app_state::{
-    CGEventHelperProcess, DoubleCopyTracker, HelperProcess, MainWindowWsSender, PythonServer,
-};
+use app_state::{CGEventHelperProcess, HelperProcess};
+use app_state::{DoubleCopyTracker, MainWindowWsSender, PythonServer};
 use shortcuts::global::register_global_shortcuts;
 use sidecar::python::start_python_sidecar;
 use websocket::client::start_ws_client;
