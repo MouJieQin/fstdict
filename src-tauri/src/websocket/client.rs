@@ -9,10 +9,6 @@ use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 
 use super::protocol::{build_connect_message, build_event_request, InboundMessage};
-// use crate::window::commands::{
-//     hide_window_if_unpinned_and_outside, show_main_panel, show_selection_panel,
-// };
-// use crate::window::notification::show_notification;
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
 const RECONNECT_DELAY_MS: u64 = 2000;
@@ -48,7 +44,7 @@ pub async fn start_ws_client(
                         msg = read.next() => {
                             match msg {
                                 Some(Ok(WsMessage::Text(text))) => {
-                                    // handle_inbound_message(&app_handle, &text, &mut write).await;
+                                    handle_inbound_message(&app_handle, &text, &mut write).await;
                                 }
                                 Some(Ok(WsMessage::Close(_))) => {
                                     info!("WebSocket closed by server");
@@ -105,13 +101,13 @@ where
     match event {
         InboundMessage::TauriNotification { data } => {
             info!("Received notification: {}", data.message);
-            let app_clone = app.clone();
-            let msg = data.message;
-            let _ = app.run_on_main_thread(move || {
-                // if let Err(e) = show_notification(&app_clone, msg) {
-                //     error!("show_notification error: {}", e);
-                // }
-            });
+            // let app_clone = app.clone();
+            // let msg = data.message;
+            // let _ = app.run_on_main_thread(move || {
+            //     if let Err(e) = show_notification(&app_clone, msg) {
+            //         error!("show_notification error: {}", e);
+            //     }
+            // });
         }
 
         InboundMessage::OcrResult { data } => {
@@ -134,77 +130,10 @@ where
                 build_event_request("register_request", "kCGEventLeftMouseDown", "helper-main");
             let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
         }
-
-        InboundMessage::TextSelection { data } => {
-            let app_clone = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                // if crate::window::positioning::is_cursor_over_window(
-                //     &app_clone,
-                //     "selection-float-search",
-                // ) {
-                //     return;
-                // }
-
-                // let _ = show_selection_panel(&app_clone);
-                let _ = app_clone.emit_to(
-                    "selection-float-search",
-                    "cgevent-select",
-                    data.text_selected,
-                );
-            });
-
-            // Register mouse-down listener for the selection panel
-            let req = build_event_request(
-                "register_request",
-                "kCGEventLeftMouseDown",
-                "selection-float-search",
-            );
-            let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
-        }
-
-        InboundMessage::LeftMouseDown => {
-            // handle_mouse_down(app, write).await;
-        }
     }
 }
 
-async fn handle_mouse_down<S>(app: &AppHandle, write: &mut S)
-where
-    S: SinkExt<WsMessage> + Unpin,
-    S::Error: std::fmt::Display,
-{
-    // Check selection panel
-    let app_clone = app.clone();
-    let (sel_tx, sel_rx) = tokio::sync::oneshot::channel::<bool>();
-    let _ = app.run_on_main_thread(move || {
-        // let hidden = hide_window_if_unpinned_and_outside(&app_clone, "selection-float-search");
-        // let _ = sel_tx.send(hidden);
-    });
-
-    if let Ok(true) = sel_rx.await {
-        let req = build_event_request(
-            "unregister_request",
-            "kCGEventLeftMouseDown",
-            "selection-float-search",
-        );
-        let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
-    }
-
-    // Check main panel
-    let app_main = app.clone();
-    let (main_tx, main_rx) = tokio::sync::oneshot::channel::<bool>();
-    let _ = app.run_on_main_thread(move || {
-        // let hidden = hide_window_if_unpinned_and_outside(&app_main, "helper-main");
-        // let _ = main_tx.send(hidden);
-    });
-
-    if let Ok(true) = main_rx.await {
-        let req = build_event_request("unregister_request", "kCGEventLeftMouseDown", "helper-main");
-        let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
-    }
-}
-
-/// Helper that merges two MPSC receivers into a single stream.
+/// Helper that merges MPSC receivers into a single stream.
 struct OutboundMerger {
     main: mpsc::Receiver<String>,
 }

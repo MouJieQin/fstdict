@@ -9,12 +9,6 @@ pub enum InboundMessage {
 
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
-
-    #[serde(rename = "handlerEventTextSelection")]
-    TextSelection { data: TextSelectionData },
-
-    #[serde(rename = "kCGEventLeftMouseDown")]
-    LeftMouseDown,
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,11 +19,6 @@ pub struct NotificationData {
 #[derive(Debug, Deserialize)]
 pub struct OcrResultData {
     pub ocr_txt: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TextSelectionData {
-    pub text_selected: String,
 }
 
 /// Builds a registration or unregistration request for a mouse event.

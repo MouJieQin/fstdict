@@ -31,7 +31,7 @@ pub fn handle_double_copy(state: State<'_, MainWindowWsSender>, app: &AppHandle)
                 });
 
                 if let Err(e) = state.ws_sender.try_send(payload.to_string()) {
-                    log::error!("Failed to send pin state over WebSocket: {:?}", e);
+                    error!("Failed to send pin state over WebSocket: {:?}", e);
                 }
             }
 

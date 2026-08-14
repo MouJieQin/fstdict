@@ -51,7 +51,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
             }
         }
         "shift+alt+KeyS" => {
-            handle_screenshot_trigger(app);
+            handle_toggle_selection_trigger(app);
         }
         _ => {}
     }
@@ -95,7 +95,7 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
     });
 }
 
-fn handle_screenshot_trigger(app: &AppHandle) {
+fn handle_toggle_selection_trigger(app: &AppHandle) {
     if let Ok(text) = app.clipboard().read_text() {
         info!("Clipboard text on screenshot trigger: {}", text);
     }

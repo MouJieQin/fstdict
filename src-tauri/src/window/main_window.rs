@@ -5,10 +5,7 @@ use std::time::Duration;
 use fstdict_common::window::state::{create_debounced_saver, WindowState};
 
 use log::{info, warn};
-use tauri::{App, WebviewWindow, WebviewWindowBuilder, WindowEvent};
-
-/// Debounce delay for saving window position/size (milliseconds).
-const STATE_SAVE_DEBOUNCE_MS: u64 = 350;
+use tauri::{App, WebviewWindowBuilder, WindowEvent};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
 const TRACKER_ARM_DELAY_MS: u64 = 500;
