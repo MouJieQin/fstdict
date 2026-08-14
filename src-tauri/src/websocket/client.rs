@@ -9,7 +9,7 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 
-use super::protocol::{build_connect_message, build_event_request, InboundMessage};
+use super::protocol::{build_connect_message, InboundMessage};
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
 const RECONNECT_DELAY_MS: u64 = 2000;
@@ -94,7 +94,7 @@ where
     }
 }
 
-async fn dispatch_message<S>(app: &AppHandle, event: InboundMessage, write: &mut S)
+async fn dispatch_message<S>(app: &AppHandle, event: InboundMessage, _write: &mut S)
 where
     S: SinkExt<WsMessage> + Unpin,
     S::Error: std::fmt::Display,

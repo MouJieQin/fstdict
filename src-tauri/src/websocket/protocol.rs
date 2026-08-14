@@ -21,18 +21,6 @@ pub struct OcrResultData {
     pub ocr_txt: String,
 }
 
-/// Builds a registration or unregistration request for a mouse event.
-pub fn build_event_request(request_type: &str, event: &str, window: &str) -> String {
-    serde_json::json!({
-        "type": request_type,
-        "data": {
-            "event": event,
-            "window": window
-        }
-    })
-    .to_string()
-}
-
 /// Builds the initial connection handshake message.
 pub fn build_connect_message() -> String {
     serde_json::json!({

@@ -138,6 +138,7 @@ console.log("  ✓ Vue dist → src-python/static");
 // 6. Run PyInstaller
 console.log("  Running PyInstaller...");
 const addDataStatic = `static${sep}static`;
+const addDataRapidocr = `rapidocr${sep}rapidocr`;
 const addDataConfig = `config.json${sep}.`;
 const addDataCgeventConfig = `cgevent_config.json${sep}.`;
 const addDataFfmpeg = `ffmpeg${sep}ffmpeg`;
@@ -159,7 +160,7 @@ if (isMac) {
 execSync(
     `${commandPrefix}pyinstaller --clean -y --onedir --noconsole --name fstdict-server ` +
         `--exclude-module _tkinter ` +
-        `--add-data "${addDataStatic}" --add-data "${addDataConfig}" --add-data "${addDataCgeventConfig}" --add-data "${addDataFfmpeg}"${targetArchFlag} ` +
+        `--add-data "${addDataStatic}" --add-data "${addDataRapidocr}" --add-data "${addDataConfig}" --add-data "${addDataCgeventConfig}" --add-data "${addDataFfmpeg}"${targetArchFlag} ` +
         `fstdict-server.py`,
     { cwd: pythonDir, stdio: "inherit" },
 );

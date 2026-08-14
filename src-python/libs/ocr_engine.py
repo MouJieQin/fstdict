@@ -1,4 +1,4 @@
-from rapidocr import EngineType, LangDet, LangRec, ModelType, OCRVersion, RapidOCR
+from rapidocr import EngineType, LangDet, ModelType, OCRVersion, RapidOCR
 import sys
 import subprocess
 from libs.common import Utils

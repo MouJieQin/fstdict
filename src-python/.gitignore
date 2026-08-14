@@ -12,7 +12,5 @@ static/
 
 ffmpeg/
 
-rapidocr/
-
 *.tar.gz
 *.zip
