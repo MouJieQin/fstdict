@@ -253,12 +253,17 @@ const handleSessionsNameId = (data: any) => {
         }
     } else if (envFromRoute.value === "helper_main_tauri") {
         const id = systemConfigStore.systemConfig.ocr.session.id
-        console.log("systemConfigStore.systemConfig.ocr.session.id:", systemConfigStore.systemConfig.ocr.session.id)
+        console.log("systemConfigStore.systemConfig.ocr.session.id:", id)
+        if (id != sessionId.value) {
+            redirectSession(id)
+        }
+    } else if (envFromRoute.value === "selection_float_search") {
+        const id = systemConfigStore.systemConfig.app.helper_selection.session.id
+        console.log("systemConfigStore.systemConfig.app.helper_selection.session.id:", id)
         if (id != sessionId.value) {
             redirectSession(id)
         }
     }
-
 }
 
 // 初始化WebSocket

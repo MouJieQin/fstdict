@@ -107,42 +107,6 @@ class MessageHandler:
                 if cg_event_type == "globalKeyboardShortCut":
                     msg = message["data"]["msg"]
                     logger.info(f"globalKeyboardShortCut:{msg}")
-                    if msg["type"] == "toggle_selection":
-                        enabled = Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"]
-                        enabled = not enabled
-                        Utils.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"] = enabled
-                        Utils.Config.syncCgeventConfig()
-                        smsg = {
-                            "type": "tauri_notification",
-                            "data": {}
-                        }
-                        if enabled:
-                            await Utils.cgevent_ws_client.send_register_request("handlerEventTextSelection")
-                            if "handlerEventTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("handlerEventTextSelection")
-                                Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
-                            logger.info("已启用选词浮窗")
-                            smsg["data"]["message"] = "已启用选词浮窗"
-                        else:
-                            await Utils.cgevent_ws_client.send_unregister_request("handlerEventTextSelection")
-                            if "handlerEventTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
-                                Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
-                            logger.info("已禁用选词浮窗")
-                            smsg["data"]["message"] = "已禁用选词浮窗"
-                        if Utils.fstdict_helper_websocket:
-                            await Utils.fstdict_helper_websocket.send_text(json.dumps(smsg))
-                    elif msg["type"] == "start_ocr":
-                        if ocr_engine.is_ocring():
-                            return
-                        ocr_txt = ocr_engine.ocr()
-                        logger.info(f"ocr result:{ocr_txt}")
-                        tmsg = {"type": "ocr_result",
-                                "data": {
-                                    "ocr_txt": ocr_txt
-                                }}
-                        if Utils.fstdict_helper_websocket:
-                            await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
                 elif cg_event_type == "handlerEventTextSelection":
                     text_selected = message["data"]["text_selected"]
                     await MessageHandler._handle_text_selected(text_selected)
@@ -205,6 +169,42 @@ class MessageHandler:
             if type == "double_copy":
                 text_copyed = message["data"]["text"]
                 await MessageHandler._handle_text_selected(text_copyed)
+            elif type == "toggle_selection":
+                enabled = Utils.CONFIG["app"]["helper_selection"]["enabled"]
+                enabled = not enabled
+                Utils.CONFIG["app"]["helper_selection"]["enabled"] = enabled
+                Utils.Config.syncConfig()
+                tmsg = {
+                    "type": "tauri_notification",
+                    "data": {}
+                }
+                if enabled:
+                    await Utils.cgevent_ws_client.send_register_request("handlerEventTextSelection")
+                    if "handlerEventTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                        Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("handlerEventTextSelection")
+                        Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
+                    logger.info("已启用选词浮窗")
+                    tmsg["data"]["message"] = "已启用选词浮窗"
+                else:
+                    await Utils.cgevent_ws_client.send_unregister_request("handlerEventTextSelection")
+                    if "handlerEventTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                        Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
+                        Utils.cgevent_ws_client.set_register_events_right_after_connection(Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION)
+                    logger.info("已禁用选词浮窗")
+                    tmsg["data"]["message"] = "已禁用选词浮窗"
+                if Utils.fstdict_helper_websocket:
+                    await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
+            elif type == "start_ocr":
+                if ocr_engine.is_ocring():
+                    return
+                ocr_txt = ocr_engine.ocr()
+                logger.info(f"ocr result:{ocr_txt}")
+                tmsg = {"type": "ocr_result",
+                        "data": {
+                            "ocr_txt": ocr_txt
+                        }}
+                if Utils.fstdict_helper_websocket:
+                    await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
             else:
                 logger.warning(f"未知的fstdict main命令类型: {type}")
         except Exception as e:

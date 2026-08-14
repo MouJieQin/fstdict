@@ -3,20 +3,24 @@ use std::time::Duration;
 
 use crate::app_state::MainWindowWsSender;
 use enigo::Keyboard;
-use log::info;
+use log::{error, info};
 use tauri::{App, AppHandle, Manager, Runtime};
-use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
 
 use super::double_copy::handle_double_copy;
 
-/// Registers all global system shortcuts.
-pub fn register_global_shortcuts(app: &App) {
-    // Screenshot / OCR trigger
-    let screenshot = Shortcut::from_str("alt+shift+s").expect("Invalid shortcut string");
+fn register_global_shortcut(app: &App, shortcut_keys: &str) {
+    let screenshot = Shortcut::from_str(shortcut_keys).expect("Invalid shortcut string");
     app.global_shortcut()
         .register(screenshot)
         .expect("Failed to register screenshot shortcut");
+}
+
+/// Registers all global system shortcuts.
+pub fn register_global_shortcuts(app: &App) {
+    // Screenshot / OCR trigger
+    register_global_shortcut(app, "alt+shift+s");
+    register_global_shortcut(app, "alt+shift+o");
 
     // Copy key interception (platform-specific)
     #[cfg(target_os = "macos")]
@@ -52,6 +56,9 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
         }
         "shift+alt+KeyS" => {
             handle_toggle_selection_trigger(app);
+        }
+        "shift+alt+KeyO" => {
+            handle_start_ocr_trigger(app);
         }
         _ => {}
     }
@@ -96,7 +103,28 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
 }
 
 fn handle_toggle_selection_trigger(app: &AppHandle) {
-    if let Ok(text) = app.clipboard().read_text() {
-        info!("Clipboard text on screenshot trigger: {}", text);
+    // toggle_selection
+    let payload = serde_json::json!({
+        "type": "toggle_selection",
+        "data": {}
+    });
+
+    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
+        if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
+            error!("Failed to send pin state over WebSocket: {:?}", e);
+        }
+    }
+}
+
+fn handle_start_ocr_trigger(app: &AppHandle) {
+    let payload = serde_json::json!({
+        "type": "start_ocr",
+        "data": {}
+    });
+
+    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
+        if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
+            error!("Failed to send pin state over WebSocket: {:?}", e);
+        }
     }
 }

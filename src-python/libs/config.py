@@ -269,7 +269,7 @@ def init_config():
     if diff_flag:
         UtilsBase.Config.syncCgeventConfig()
 
-    if UtilsBase.CGEVENT_CONFIG["app"]["selection_float_search"]["enabled"]:
+    if UtilsBase.CONFIG["app"]["helper_selection"]["enabled"]:
         UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
 
     UtilsBase.Config.renew_dict_set_options()

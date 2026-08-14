@@ -340,6 +340,10 @@ const redirectSession = (sessionId: number) => {
         localSystemConfig.ocr.session.id = sessionId
         props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
     }
+    else if (props.env === "selection_float_search") {
+        localSystemConfig.app.helper_selection.session.id = sessionId
+        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
+    }
     router.push({
         path: `/dict/${sessionId}`,
         query: { env: props.env }

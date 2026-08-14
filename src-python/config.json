@@ -1,5 +1,5 @@
 {
-    "schema_version": "0.0.1",
+    "schema_version": "0.0.2",
     "appearance": {
         "theme": "auto"
     },
@@ -17,6 +17,12 @@
     "app": {
         "session": {
             "id": 1
+        },
+        "helper_selection": {
+            "enabled": false,
+            "session": {
+                "id": 95
+            }
         },
         "prior_suffix": {
             "japanese": [
