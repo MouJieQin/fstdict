@@ -26,13 +26,13 @@ class UtilsBase:
     USER_CONFIG_DIR = FSTDICT_STORAGE_PATH + "/config"
     CONFIG_FILE = USER_CONFIG_DIR + "/config.json"
     CGEVENT_CONFIG_FILE = USER_CONFIG_DIR + "/cgevent_config.json"
+    DICT_CONFIG_FILE = USER_CONFIG_DIR + "/dict_config.json"
     ANKI_CONFIG_FILE = USER_CONFIG_DIR + "/anki_config.json"
     DEFAULT_CONFIG_FILE = str(BASE_DIR / "config.json")
     DEFAULT_CGEVENT_CONFIG_FILE = str(BASE_DIR / "cgevent_config.json")
+    DEFAULT_DICT_CONFIG_FILE = str(BASE_DIR / "dict_config.json")
     FFMPEG_PATH = str(BASE_DIR / "ffmpeg" / ("fstdict-ffmpeg.exe" if sys.platform.startswith("win") else "fstdict-ffmpeg"))
     DICTIONARYS_PATH = FSTDICT_STORAGE_PATH + "/dictionaries"
-    FSTD_SEARCHER_META_PATH = DICTIONARYS_PATH + "/fstd_searcher_meta.json"
-    FSTDX_INDEX_PATH = DICTIONARYS_PATH + "/fstd_indexes.fstdxidx"
     DATA_PATH = FSTDICT_STORAGE_PATH + "/data"
     FSTDICT_DATABASE_PATH = DATA_PATH + "/fstdict.db"
     DICT_DATABASE_PATH = DATA_PATH + "/dict.db"
@@ -44,8 +44,9 @@ class UtilsBase:
     CONFIG = {}
     DEFAULT_CGEVENT_CONFIG = {}
     CGEVENT_CONFIG = {}
+    DEFAULT_DICT_CONFIG = {}
+    DICT_CONFIG = {}
     REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION = ["globalKeyboardShortCut"]
-    FSTDICT_CONFIG = {}
     DICT_INFO = {}
 
     # WebSocket 连接管理
@@ -95,16 +96,22 @@ class UtilsBase:
 
     class Config:
         @staticmethod
+        def syncConfigFile(config: dict, config_file: str):
+            with open(config_file, mode="w", encoding="utf-8") as f:
+                f.write(json.dumps(config, ensure_ascii=False, indent=4))
+
+        @staticmethod
         def syncConfig():
             """同步配置文件"""
-            with open(UtilsBase.CONFIG_FILE, mode="w", encoding="utf-8") as f:
-                f.write(json.dumps(UtilsBase.CONFIG, ensure_ascii=False, indent=4))
+            UtilsBase.Config.syncConfigFile(UtilsBase.CONFIG, UtilsBase.CONFIG_FILE)
 
         @staticmethod
         def syncCgeventConfig():
-            """同步Cgevent配置文件"""
-            with open(UtilsBase.CGEVENT_CONFIG_FILE, mode="w", encoding="utf-8") as f:
-                f.write(json.dumps(UtilsBase.CGEVENT_CONFIG, ensure_ascii=False, indent=4))
+            UtilsBase.Config.syncConfigFile(UtilsBase.CGEVENT_CONFIG, UtilsBase.CGEVENT_CONFIG_FILE)
+
+        @staticmethod
+        def syncDictConfig():
+            UtilsBase.Config.syncConfigFile(UtilsBase.DICT_CONFIG, UtilsBase.DICT_CONFIG_FILE)
 
         @staticmethod
         def init_config(config: dict):
@@ -116,34 +123,39 @@ class UtilsBase:
         def init_cgevent_config(cgevent_config: dict):
             """初始化Cgevent配置目录和文件"""
             UtilsBase.CGEVENT_CONFIG = cgevent_config
-            UtilsBase.Config.syncCgeventConfig()
+            UtilsBase.Config.syncDictConfig()
+
+        @staticmethod
+        def init_dict_config(dict_config: dict):
+            UtilsBase.DICT_CONFIG = dict_config
+            UtilsBase.Config.syncDictConfig()
 
         @staticmethod
         def create_dict_set_option(option_name: str) -> bool:
-            dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            dict_set_options: dict = UtilsBase.DICT_CONFIG["dict_set_options"]
             if option_name not in dict_set_options:
                 dict_set_options[option_name] = json.loads(json.dumps(dict_set_options["default"], ensure_ascii=False))
-                UtilsBase.Config.syncConfig()
+                UtilsBase.Config.syncDictConfig()
                 return True
             return False
 
         @staticmethod
         def remove_dict_set_option(option_name: str) -> bool:
-            dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            dict_set_options: dict = UtilsBase.DICT_CONFIG["dict_set_options"]
             if option_name != 'default' and option_name in dict_set_options:
                 del dict_set_options[option_name]
-                UtilsBase.Config.syncConfig()
+                UtilsBase.Config.syncDictConfig()
                 return True
             return False
 
         @staticmethod
         def rename_dict_set_option(old_option_name: str, new_option_name: str) -> bool:
-            dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            dict_set_options: dict = UtilsBase.DICT_CONFIG["dict_set_options"]
             if old_option_name != 'default' and old_option_name in dict_set_options:
                 new_option = json.loads(json.dumps(dict_set_options[old_option_name], ensure_ascii=False))
                 del dict_set_options[old_option_name]
                 dict_set_options[new_option_name] = new_option
-                UtilsBase.Config.syncConfig()
+                UtilsBase.Config.syncDictConfig()
                 return True
             return False
 
@@ -170,11 +182,11 @@ class UtilsBase:
 
         @staticmethod
         def renew_dict_set_options():
-            old_dict_set_options: dict = UtilsBase.CONFIG["dict_set_options"]
+            old_dict_set_options: dict = UtilsBase.DICT_CONFIG["dict_set_options"]
             new_dict_set_options = {}
             for key, option in old_dict_set_options.items():
                 new_dict_set_options[key] = UtilsBase.Config._renew_dict_set_option(option)
-            UtilsBase.CONFIG["dict_set_options"] = new_dict_set_options
+            UtilsBase.DICT_CONFIG["dict_set_options"] = new_dict_set_options
 
         @staticmethod
         def checkDictInfo(file: Path):
@@ -230,6 +242,9 @@ def init_config():
     with open(UtilsBase.DEFAULT_CGEVENT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
         UtilsBase.DEFAULT_CGEVENT_CONFIG = json.load(f)
 
+    with open(UtilsBase.DEFAULT_DICT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+        UtilsBase.DEFAULT_DICT_CONFIG = json.load(f)
+
     if os.path.isfile(UtilsBase.CONFIG_FILE):
         with open(UtilsBase.CONFIG_FILE, mode="r", encoding="utf-8") as f:
             UtilsBase.CONFIG = json.load(f)
@@ -242,32 +257,67 @@ def init_config():
     else:
         UtilsBase.CGEVENT_CONFIG = {}
 
+    if os.path.isfile(UtilsBase.DICT_CONFIG_FILE):
+        with open(UtilsBase.DICT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+            UtilsBase.DICT_CONFIG = json.load(f)
+    else:
+        UtilsBase.DICT_CONFIG = {}
+
     dict_path = Path(UtilsBase.DICTIONARYS_PATH)
     for file in dict_path.iterdir():
         if file.is_dir():
             UtilsBase.Config.checkDictInfo(file)
 
-    diff_flag = False
-    # 检查配置项是否缺失，并使用默认值填充
-
     def setDefaultValIfNone(config: dict, defaultConfig: dict):
-        nonlocal diff_flag
-        for key, default_val in defaultConfig.items():
-            if key not in config:
-                diff_flag = True
-                config[key] = default_val
+        diff_flag = False
+
+        def _setDefaultValIfNone(config: dict, defaultConfig: dict):
+            nonlocal diff_flag
+            for key, default_val in defaultConfig.items():
+                if key not in config:
+                    diff_flag = True
+                    config[key] = default_val
+                else:
+                    if isinstance(default_val, dict):
+                        _setDefaultValIfNone(config[key], default_val)
+        _setDefaultValIfNone(config, defaultConfig)
+        return not diff_flag
+
+    def removeValIfExist(config: dict, keys: list[list]):
+        removed_flag = False
+
+        def _removeValIfExist(config: dict, key_str: list, index: int):
+            nonlocal removed_flag
+            key = key_str[index]
+            if index == len(key_str) - 1:
+                if key in config:
+                    removed_flag = True
+                    del config[key]
             else:
-                if isinstance(default_val, dict):
-                    setDefaultValIfNone(config[key], default_val)
+                if key in config:
+                    _removeValIfExist(config[key], key_str, index + 1)
 
-    setDefaultValIfNone(UtilsBase.CONFIG, UtilsBase.DEFAULT_CONFIG)
-    if diff_flag:
-        UtilsBase.Config.syncConfig()
+        for key_str in keys:
+            _removeValIfExist(config, key_str, 0)
+        return removed_flag
 
-    diff_flag = False
-    setDefaultValIfNone(UtilsBase.CGEVENT_CONFIG, UtilsBase.DEFAULT_CGEVENT_CONFIG)
-    if diff_flag:
-        UtilsBase.Config.syncCgeventConfig()
+    def resetConfigIfNeed(config: dict, default_config: dict, config_file: str, keys_to_remove: list[list]):
+        sync_flag = False
+        if setDefaultValIfNone(config, default_config):
+            sync_flag = True
+        if removeValIfExist(config, keys_to_remove):
+            sync_flag = True
+        if sync_flag:
+            UtilsBase.Config.syncConfigFile(config, config_file)
+
+    keys_to_remove = [["schema_version"], ["dict_set_options"]]
+    resetConfigIfNeed(UtilsBase.CONFIG, UtilsBase.DEFAULT_CONFIG, UtilsBase.CONFIG_FILE, keys_to_remove)
+
+    keys_to_remove = []
+    resetConfigIfNeed(UtilsBase.CGEVENT_CONFIG, UtilsBase.DEFAULT_CGEVENT_CONFIG, UtilsBase.CGEVENT_CONFIG_FILE, keys_to_remove)
+
+    keys_to_remove = []
+    resetConfigIfNeed(UtilsBase.DICT_CONFIG, UtilsBase.DEFAULT_DICT_CONFIG, UtilsBase.DICT_CONFIG_FILE, keys_to_remove)
 
     if UtilsBase.CONFIG["app"]["helper_selection"]["enabled"]:
         UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
@@ -275,6 +325,7 @@ def init_config():
     UtilsBase.Config.renew_dict_set_options()
     UtilsBase.Config.init_config(UtilsBase.CONFIG)
     UtilsBase.Config.init_cgevent_config(UtilsBase.CGEVENT_CONFIG)
+    UtilsBase.Config.init_dict_config(UtilsBase.DICT_CONFIG)
 
 
 init_config()

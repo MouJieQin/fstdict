@@ -242,6 +242,7 @@ class MessageHandler:
                 "cancel_anki_update": MessageHandler._handle_cancel_anki_update,
                 "update_folder": MessageHandler._handle_update_folder,
                 "update_system_config": MessageHandler._handle_update_system_config,
+                "update_dict_config": MessageHandler._handle_update_dict_config,
                 "folder_config": MessageHandler._handle_folder_config,
                 "toggle_favor": MessageHandler._handle_toggle_favor,
                 "save_word_note": MessageHandler._handle_save_word_note,
@@ -443,7 +444,7 @@ class MessageHandler:
     ):
         option_name = message["data"]["option_name"]
         Utils.Config.create_dict_set_option(option_name)
-        await SessionManager.broadcast_all_system_config()
+        await SessionManager.broadcast_all_dict_config()
 
     @staticmethod
     async def _handle_remove_dict_set_option(
@@ -523,6 +524,12 @@ class MessageHandler:
         system_config = message["data"]["system_config"]
         Utils.Config.init_config(system_config)
         await SessionManager.broadcast_all_system_config()
+
+    @staticmethod
+    async def _handle_update_dict_config(websocket: WebSocket, session_id: int, connection_id: int, message: dict):
+        dict_config = message["data"]["dict_config"]
+        Utils.Config.init_dict_config(dict_config)
+        await SessionManager.broadcast_all_dict_config()
 
     @staticmethod
     async def _handle_folder_config(

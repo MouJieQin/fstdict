@@ -13,34 +13,16 @@ export const useFolderConfigStore = defineStore('folderConfig', {
     }
 })
 
-// export const useSystemConfigStore = defineStore('systemConfig', {
-//     state: () => ({
-//         systemConfig: null as any | null,
-//         updateAppearanceTheme: null as unknown as (theme: string) => void | null,
-//         updateSystemConfig: null as unknown as (systemConfig: any) => void | null
-//     }),
-//     actions: {
-//         setAppearanceTheme(theme: string) {
-//             if (this.systemConfig && this.systemConfig.appearance.theme !== theme) {
-//                 console.log('this.systemConfig.appearance.theme:', this.systemConfig.appearance.theme)
-//                 console.log('theme:', theme)
-//                 this.systemConfig.appearance.theme = theme
-//                 this.updateSystemConfig(this.systemConfig)
-//             }
-//         },
-//         setSystemConfig(systemConfig: any) {
-//             if (!this.systemConfig) {
-//                 this.systemConfig = systemConfig
-//             }
-//         },
-//         setUpdateAppearanceTheme(updateAppearanceTheme: (theme: string) => void) {
-//             this.updateAppearanceTheme = updateAppearanceTheme
-//         },
-//         setUpdateSystemConfig(updateSystemConfig: (systemConfig: any) => void) {
-//             this.updateSystemConfig = updateSystemConfig
-//         }
-//     }
-// })
+export const useDictConfigStore = defineStore('dictConfig', {
+    state: () => ({
+        dictConfig: null as any | null,
+    }),
+    actions: {
+        setDictConfig(dictConfig: any) {
+            this.dictConfig = dictConfig
+        }
+    }
+})
 
 export const useSystemConfigStore = defineStore('systemConfig', {
     state: () => ({

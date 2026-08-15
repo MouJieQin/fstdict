@@ -237,6 +237,7 @@ async def dictionary_session_websocket_endpoint(websocket: WebSocket, clientID: 
 
     try:
         await SessionManager.broadcast_all_system_config()
+        await SessionManager.broadcast_all_dict_config()
         await SessionManager.broadcast_all_sessions_id_name()
         await SessionManager.send_session_config_to_session(
             session_id, connection_id, is_right_after_connection=True

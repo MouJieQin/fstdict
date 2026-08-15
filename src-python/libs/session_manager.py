@@ -89,7 +89,16 @@ class SessionManager:
                 "system_config": Utils.CONFIG,
             },
         }
-        # print(msg)
+        await SessionManager.broadcast_all(json.dumps(msg))
+
+    @staticmethod
+    async def broadcast_all_dict_config():
+        msg = {
+            "type": "dict_config",
+            "data": {
+                "dict_config": Utils.DICT_CONFIG,
+            },
+        }
         await SessionManager.broadcast_all(json.dumps(msg))
 
     @staticmethod

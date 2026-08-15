@@ -19,7 +19,7 @@
 
         <el-select v-model="localSessionConfig.dict_setting_option_name" filterable
           placeholder="Select dict settings option" style="margin-left: 20px;max-width: 240px;">
-          <el-option v-for="(_, name) in localSystemConfig.dict_set_options" :key="name" :label="name" :value="name" />
+          <el-option v-for="(_, name) in localDictConfig.dict_set_options" :key="name" :label="name" :value="name" />
         </el-select>
       </div>
     </div>
@@ -84,13 +84,12 @@ import { ref, onMounted, computed, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
 import { MoreFilled, Delete, Edit, Plus } from '@element-plus/icons-vue'
-import type { DictSettingInfo, DictsSettingInfo, SessionConfig, DictInfo } from '@/common/type-interface'
-import { useSystemConfigStore } from '@/stores/stores'
+import type { DictSettingInfo, DictsSettingInfo, SessionConfig } from '@/common/type-interface'
+import { useDictConfigStore } from '@/stores/stores'
 import type { PropType } from 'vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { ElNotification } from 'element-plus'
 import { BsUpload } from 'vue-icons-plus/bs'
 
 const addDictVisible = ref(false)
@@ -151,17 +150,17 @@ const emits = defineEmits<{
 
 const listRef = ref<HTMLElement | null>(null)
 const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig || {})))
-const systemConfigStore = useSystemConfigStore();
-const localSystemConfig = ref<any>(JSON.parse(JSON.stringify(systemConfigStore.systemConfig)))
-const list = ref<DictSettingInfo>(localSystemConfig.value?.dict_set_options[localSessionConfig.value?.dict_setting_option_name] || [])
+const dictConfigStore = useDictConfigStore();
+const localDictConfig = ref<any>(JSON.parse(JSON.stringify(dictConfigStore.dictConfig)))
+const list = ref<DictSettingInfo>(localDictConfig.value?.dict_set_options[localSessionConfig.value?.dict_setting_option_name] || [])
 
-watch(() => systemConfigStore.systemConfig, (newVal) => {
-  localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
+watch(() => dictConfigStore.dictConfig, (newVal) => {
+  localDictConfig.value = JSON.parse(JSON.stringify(newVal))
 }, { deep: true })
 
 watch(() => localSessionConfig.value.dict_setting_option_name, async (name) => {
-  update_system_config_if_need()
-  list.value = localSystemConfig.value?.dict_set_options[name] || []
+  update_dict_config_if_need()
+  list.value = localDictConfig.value?.dict_set_options[name] || []
   await nextTick()
   initSortable()  // 重新初始化拖拽
 })
@@ -201,8 +200,8 @@ const initSortable = () => {
 
       // 同步回配置对象
       const name = localSessionConfig.value.dict_setting_option_name
-      if (name && localSystemConfig.value?.dict_set_options?.[name]) {
-        localSystemConfig.value.dict_set_options[name] = [...list.value]
+      if (name && localDictConfig.value?.dict_set_options?.[name]) {
+        localDictConfig.value.dict_set_options[name] = [...list.value]
       }
     }
   })
@@ -244,7 +243,7 @@ const handleCreateDictSetOption = () => {
     confirmButtonText: 'OK',
     cancelButtonText: 'Cancel',
     inputValidator: (value: string) => {
-      const dict_set_options: {} = localSystemConfig.value?.dict_set_options;
+      const dict_set_options: {} = localDictConfig.value?.dict_set_options;
       if (value in dict_set_options) {
         return "该名字已存在"
       }
@@ -254,7 +253,7 @@ const handleCreateDictSetOption = () => {
     }
   })
     .then(({ value }) => {
-      update_system_config_if_need()
+      update_dict_config_if_need()
       props.webSocket?.sendCreateDictSetOption(value)
       localSessionConfig.value.dict_setting_option_name = value
       update_session_config_if_need()
@@ -269,7 +268,7 @@ const handleRenameDictSetOption = () => {
     cancelButtonText: 'Cancel',
     inputValue: localSessionConfig.value.dict_setting_option_name,
     inputValidator: (value: string) => {
-      const dict_set_options: {} = localSystemConfig.value?.dict_set_options;
+      const dict_set_options: {} = localDictConfig.value?.dict_set_options;
       if (value in dict_set_options) {
         return "该名字已存在"
       }
@@ -279,7 +278,7 @@ const handleRenameDictSetOption = () => {
     }
   })
     .then(({ value }) => {
-      update_system_config_if_need()
+      update_dict_config_if_need()
       props.webSocket?.sendRenameDictSetOption(localSessionConfig.value.dict_setting_option_name, value)
       localSessionConfig.value.dict_setting_option_name = value
       update_session_config_if_need()
@@ -310,7 +309,7 @@ const handleDeleteSelected = () => {
 const refresh_dict_info = async () => {
   // 深拷贝数据
   localSessionConfig.value = JSON.parse(JSON.stringify(props.sessionConfig || {}))
-  list.value = localSystemConfig.value?.dict_set_options[localSessionConfig.value?.dict_setting_option_name] || []
+  list.value = localDictConfig.value?.dict_set_options[localSessionConfig.value?.dict_setting_option_name] || []
 
   // 等待 DOM 渲染完成后初始化拖拽
   await nextTick()
@@ -335,15 +334,15 @@ watch(() => props.refreshDicsSettingsInfoFlag, async (newVal) => {
   await refresh_dict_info()
 })
 
-const update_system_config_if_need = () => {
-  if (JSON.stringify(localSystemConfig.value) !== JSON.stringify(systemConfigStore.systemConfig)) {
-    props.webSocket.sendUpdateSystemConfig(localSystemConfig.value)
+const update_dict_config_if_need = () => {
+  if (JSON.stringify(localDictConfig.value) !== JSON.stringify(dictConfigStore.dictConfig)) {
+    props.webSocket?.sendUpdateDictConfig(localDictConfig.value)
   }
 }
 
 const update_session_config_if_need = () => {
   if (JSON.stringify(localSessionConfig.value) !== JSON.stringify(props.sessionConfig)) {
-    props.webSocket.sendSessionConfig(localSessionConfig.value)
+    props.webSocket?.sendSessionConfig(localSessionConfig.value)
   }
 }
 
@@ -353,7 +352,7 @@ watch(() => props.dictSSDialogVisible, async (newVal) => {
     await refresh_dict_info()
   } else {
     // 关闭弹窗时保存数据
-    update_system_config_if_need()
+    update_dict_config_if_need()
     update_session_config_if_need()
   }
 }, { deep: true })

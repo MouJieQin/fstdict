@@ -124,13 +124,12 @@ import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
 import { invoke } from '@tauri-apps/api/core';
 
 import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
-import { popupPanelNearCursor } from '@/common/window-controll'
 import { listen } from '@tauri-apps/api/event'
 import Titlebar from '@/components/TitleBar/TitleBar.vue'
 import WordOptions from '@/components/WordOptions.vue'
 import DictIframe from '@/components/DictIframe.vue';
 import type { DictsInfo, SessionNameId, SessionConfig, DictsSettingInfo, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
-import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
+import { useFolderConfigStore, useDictConfigStore, useSystemConfigStore } from '@/stores/stores'
 import { getDefaultSessionConfig, getDictSettingsForLookup } from '@/common/utility'
 import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt(
@@ -145,6 +144,7 @@ const route = useRoute()
 const router = useRouter()
 
 const systemConfigStore = useSystemConfigStore()
+const dictConfigStore = useDictConfigStore()
 const folderConfigStore = useFolderConfigStore()
 const webSocket = ref<SessionWebSocketService | null>(null)
 // const bodyScrollTimeoutId = ref<number | null>(null)
@@ -224,10 +224,10 @@ const resize_wordoptions = async () => {
 }
 
 const setupDicsSettingsInfo = () => {
-    if (!sessionConfig.value?.dict_setting_option_name || !(sessionConfig.value.dict_setting_option_name in systemConfigStore.systemConfig.dict_set_options)) {
+    if (!sessionConfig.value?.dict_setting_option_name || !(sessionConfig.value.dict_setting_option_name in dictConfigStore.dictConfig.dict_set_options)) {
         sessionConfig.value.dict_setting_option_name = 'default'
     }
-    sessionDictsSettingInfo.value = systemConfigStore.systemConfig.dict_set_options[sessionConfig.value.dict_setting_option_name]
+    sessionDictsSettingInfo.value = dictConfigStore.dictConfig.dict_set_options[sessionConfig.value.dict_setting_option_name]
     setShowAddDictInfo()
     refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
 }
@@ -238,9 +238,13 @@ const setupOcrLangType = () => {
     }
 }
 
+const handleDictConfig = (data: any) => {
+    dictConfigStore.setDictConfig(data.dict_config)
+    setupDicsSettingsInfo()
+}
+
 const handleSystemConfig = (data: any) => {
     systemConfigStore.setSystemConfig(data.system_config)
-    setupDicsSettingsInfo()
 }
 
 const handleSessionsNameId = (data: any) => {
@@ -423,6 +427,9 @@ const handleWebSocketMessage = (message: any) => {
             folderConfigStore.setFolderConfig(message.data)
             console.log('folder_config:', message.data)
             break
+        case 'dict_config':
+            handleDictConfig(message.data)
+            break;
         case 'system_config':
             handleSystemConfig(message.data)
             break;

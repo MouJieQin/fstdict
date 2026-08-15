@@ -54,6 +54,15 @@ class SessionWebSocketService extends WebSocketService {
         )
     }
 
+    sendUpdateDictConfig(dictConfig: any) {
+        this._send(
+            'update_dict_config',
+            {
+                dict_config: dictConfig
+            }
+        )
+    }
+
     sendUpdateSystemConfig(systemConfig: any) {
         this._send(
             'update_system_config',
