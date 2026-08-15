@@ -57,7 +57,7 @@ class MessageHandler:
         words = Utils.db.get_folder_words_by_name(folder_name)
         for word in words:
             word["note"] = Utils.db.get_word_note(word["word"])
-            word["definition"] = Utils.dict_db.query(word["word"])
+            word["definition"] = "unknown"
         return {"success": True, "data": {"words": words}}
 
     @staticmethod
