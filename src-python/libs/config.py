@@ -34,6 +34,7 @@ class UtilsBase:
     FFMPEG_PATH = str(BASE_DIR / "ffmpeg" / ("fstdict-ffmpeg.exe" if sys.platform.startswith("win") else "fstdict-ffmpeg"))
     DICTIONARYS_PATH = FSTDICT_STORAGE_PATH + "/dictionaries"
     DATA_PATH = FSTDICT_STORAGE_PATH + "/data"
+    RAPID_OCR_MODELS_PATH = DATA_PATH + "/rapidocr/models"
     FSTDICT_DATABASE_PATH = DATA_PATH + "/fstdict.db"
     DICT_DATABASE_PATH = DATA_PATH + "/dict.db"
     IMA_PATH_FOR_OCR = APP_CACHE_PATH + "/screenshot_for_ocr.png"
@@ -235,6 +236,7 @@ def init_config():
     UtilsBase.createDirIfnotExists(UtilsBase.USER_CONFIG_DIR)
     UtilsBase.createDirIfnotExists(UtilsBase.DATA_PATH)
     UtilsBase.createDirIfnotExists(UtilsBase.DICTIONARYS_PATH)
+    UtilsBase.createDirIfnotExists(UtilsBase.RAPID_OCR_MODELS_PATH)
 
     with open(UtilsBase.DEFAULT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
         UtilsBase.DEFAULT_CONFIG = json.load(f)

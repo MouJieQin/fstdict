@@ -22,6 +22,7 @@ class OcrEngine:
         if lang_type == "korean":
             self._engine = RapidOCR(
                 params={
+                    "Global.model_root_dir": Utils.RAPID_OCR_MODELS_PATH,
                     "Det.engine_type": EngineType.ONNXRUNTIME,
                     "Det.lang_type": LangDet.CH,
                     "Det.model_type": ModelType.SMALL,
@@ -31,11 +32,14 @@ class OcrEngine:
                     "Rec.lang_type": lang_type,
                     "Rec.model_type": ModelType.MOBILE,
                     "Rec.ocr_version": OCRVersion.PPOCRV5,
+
+                    "Global.use_cls": False,
                 }
             )
         else:
             self._engine = RapidOCR(
                 params={
+                    "Global.model_root_dir": Utils.RAPID_OCR_MODELS_PATH,
                     "Det.engine_type": EngineType.ONNXRUNTIME,
                     "Det.lang_type": LangDet.CH,
                     "Det.model_type": ModelType.SMALL,
@@ -46,6 +50,7 @@ class OcrEngine:
                     "Rec.model_type": ModelType.SMALL,
                     "Rec.ocr_version": OCRVersion.PPOCRV6,
 
+                    "Global.use_cls": False,
                     # "Cls.engine_type": EngineType.ONNXRUNTIME,
                     # "Cls.lang_type": LangDet.CH,
                     # "Cls.model_type": ModelType.MOBILE,
