@@ -107,6 +107,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
+                    libfuse2 \
                     libwebkit2gtk-4.1-dev \
                     build-essential \
                     curl \
@@ -123,13 +124,9 @@ jobs:
                   args: --target ${{ matrix.rust_target }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  TAURI_TARGET: ${{ matrix.rust_target }} # <--- Pass this to your JS build script
-
-            # - name: Setup SSH Debug Session on Failure
-            #   if: failure()
-            #   uses: mxschmitt/action-tmate@v3
-            #   with:
-            #       limit-access-to-actor: false
+                  TAURI_TARGET: ${{ matrix.rust_target }}
+                  # ✨ Core Fix: Forces linuxdeploy AppImage to extract and run flawlessly without requiring FUSE
+                  APPIMAGE_EXTRACT_AND_RUN: 1
 
             # ─────────────────────────────────────────
             # 4. Upload Artifacts
