@@ -131,6 +131,7 @@ import DictIframe from '@/components/DictIframe.vue';
 import type { DictsInfo, SessionNameId, SessionConfig, DictsSettingInfo, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
 import { useFolderConfigStore, useDictConfigStore, useSystemConfigStore } from '@/stores/stores'
 import { getDefaultSessionConfig, getDictSettingsForLookup } from '@/common/utility'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt(
     {
@@ -181,16 +182,27 @@ const showPopoverWordOptions = ref(false)
 const isFloatingWindowPinned = ref<boolean>(sessionConfig.value?.pin?.is_pinned || false)
 
 watch(() => sessionConfig.value?.pin?.is_pinned, (newVal) => {
-    isFloatingWindowPinned.value = newVal
+    isFloatingWindowPinned.value = newVal || false
+})
+
+watch(() => lastSearchKeyword.value, async (val) => {
+    if (isTauriEnv()) {
+        console.log("val:", val)
+        try {
+            await getCurrentWindow().setTitle(val)
+        } catch (error) {
+            console.error("set title error:", error)
+        }
+    }
 })
 
 watch(() => viewportWidth.value, (newWidth) => {
     showPopoverWordOptions.value = newWidth < 700
 })
 
-const isTauriEnv = computed(() => {
-    return envFromRoute.value === ''
-})
+const isTauriEnv = (): boolean => {
+    return envFromRoute.value === '' || envFromRoute.value === "helper_main_tauri" || envFromRoute.value === "selection_float_search";
+}
 
 const setShowAddDictInfo = () => {
     const item = sessionDictsSettingInfo.value?.find((item: any) => item.is_enabled === true)
