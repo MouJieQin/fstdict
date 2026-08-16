@@ -41,7 +41,7 @@ body::-webkit-scrollbar-thumb {
 
 :root {
     --header-height: 50px;
-    --app-header-bg: rgba(243, 243, 242, 1);
+    --app-header-bg: rgba(236, 236, 235, 1);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 1);
 

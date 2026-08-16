@@ -26,11 +26,11 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     let mut builder =
         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
             .title("main")
-            .hidden_title(true)
+            // .hidden_title(true)
             .inner_size(state.width, state.height)
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
-            .title_bar_style(tauri::TitleBarStyle::Overlay);
+            .title_bar_style(tauri::TitleBarStyle::Transparent);
 
     #[cfg(not(target_os = "macos"))]
     let mut builder =

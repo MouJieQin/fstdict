@@ -1,13 +1,19 @@
+use crate::theme::set_app_theme;
 use tauri::AppHandle;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
-use crate::app_state::{HelperProcess, CGEventHelperProcess};
+use crate::app_state::{CGEventHelperProcess, HelperProcess};
 
 /// Basic greeting command for testing IPC connectivity.
 #[tauri::command]
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+pub fn set_theme(app_handle: AppHandle, theme: &str) {
+    set_app_theme(&app_handle, theme);
 }
 
 // ── macOS-only accessibility & launch commands ──
@@ -28,7 +34,9 @@ mod macos_impl {
         let is_trusted = accessibility::application_is_trusted_with_prompt();
         if !is_trusted {
             let _ = std::process::Command::new("open")
-                .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+                .arg(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+                )
                 .spawn();
         }
         is_trusted

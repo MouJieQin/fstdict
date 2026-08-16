@@ -2,6 +2,7 @@ mod app_state;
 mod commands;
 mod shortcuts;
 mod sidecar;
+mod theme;
 mod websocket;
 mod window;
 
@@ -40,6 +41,7 @@ pub async fn run() {
         // Single invoke_handler call with all commands (fixes overwrite bug)
         .invoke_handler(tauri::generate_handler![
             commands::greet,
+            commands::set_theme,
             #[cfg(target_os = "macos")]
             commands::check_accessibility,
             #[cfg(target_os = "macos")]
@@ -74,6 +76,8 @@ pub async fn run() {
             fs::create_dir_all(&app_data_dir)?;
             info!("Application data directory: {:?}", app_data_dir);
 
+            let app_handle = app.handle().clone();
+
             // Create and configure main window
             setup_main_window(app)?;
 
@@ -97,7 +101,6 @@ pub async fn run() {
             // ── WebSocket client setup ──
             let (main_tx, main_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
             app.manage(MainWindowWsSender::new(main_tx));
-            let app_handle = app.handle().clone();
             let ws_url = WS_ENDPOINT.to_string();
             tokio::spawn(async move {
                 start_ws_client(&ws_url, app_handle, main_rx).await;
