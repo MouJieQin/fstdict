@@ -1,18 +1,32 @@
+"""
+AnkiConnect API client.
+Provides low-level interface for communicating with Anki via AnkiConnect plugin.
+"""
 import json
 import urllib.request
+from typing import List, Dict, Optional, Tuple, Any
 
 
 class AnkiApi:
+    """Client for the AnkiConnect HTTP API."""
+
+    API_URL = "http://localhost:8765"
+    API_VERSION = 6
 
     @staticmethod
-    def invoke_anki_timeout(timeout: float | None, action: str, **params):
-        """调用 AnkiConnect API 的通用函数，超时 10 秒"""
-        request_data = json.dumps(
-            {"action": action, "version": 6, "params": params}
-        ).encode("utf-8")
+    def invoke(action: str, timeout: Optional[float] = None, **params) -> Any:
+        """
+        Generic method to call an AnkiConnect API action.
+        Raises Exception on API error.
+        """
+        request_data = json.dumps({
+            "action": action,
+            "version": AnkiApi.API_VERSION,
+            "params": params
+        }).encode("utf-8")
 
         request = urllib.request.Request(
-            "http://localhost:8765",
+            AnkiApi.API_URL,
             data=request_data,
             headers={"Content-Type": "application/json"},
         )
@@ -20,118 +34,84 @@ class AnkiApi:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             result = json.load(response)
             if result.get("error"):
-                raise Exception(f"Anki 错误：{result['error']}")
+                raise Exception(f"Anki error: {result['error']}")
             return result.get("result")
 
     @staticmethod
-    def invoke_anki(action, **params):
-        """调用 AnkiConnect API 的通用函数"""
-        return AnkiApi.invoke_anki_timeout(timeout=None, action=action, **params)
-
-    @staticmethod
-    def get_deck_cards_info(deck_name):
+    def get_deck_cards(deck_name: str) -> List[Dict]:
         """
-        获取指定卡组中所有卡片的 front、back、cardId、noteId
-        返回：列表，每个元素是字典，包含四个字段
+        Get all cards in a deck with front, back, cardId, and noteId.
+        Returns empty list if deck is empty or not found.
         """
-        # 1. 获取卡组所有卡片 ID
-        card_ids = AnkiApi.invoke_anki("findCards", query=f'deck:"{deck_name}"')
+        card_ids = AnkiApi.invoke("findCards", query=f'deck:"{deck_name}"')
         if not card_ids:
-            print(f"未找到【{deck_name}】中的卡片")
             return []
 
-        # 2. 获取卡片的详细信息（包含关联的 noteId）
-        cards_info = AnkiApi.invoke_anki("cardsInfo", cards=card_ids)
-
-        # 3. 批量获取笔记内容（front + back）
+        cards_info = AnkiApi.invoke("cardsInfo", cards=card_ids)
         note_ids = [card["note"] for card in cards_info]
-        notes_info = AnkiApi.invoke_anki("notesInfo", notes=note_ids)
+        notes_info = AnkiApi.invoke("notesInfo", notes=note_ids)
 
-        # 4. 组装结果：front + back + cardId + noteId
         result = []
         for card, note in zip(cards_info, notes_info):
-            front = note["fields"].get("Front", {}).get("value", "无正面内容")
-            back = (
-                note["fields"].get("Back", {}).get("value", "无反面内容")
-            )  # 新增获取反面
-
-            result.append(
-                {
-                    "cardId": card["cardId"],
-                    "noteId": note["noteId"],
-                    "front": front,
-                    "back": back,  # 新增返回反面
-                }
-            )
-
+            front = note["fields"].get("Front", {}).get("value", "")
+            back = note["fields"].get("Back", {}).get("value", "")
+            result.append({
+                "cardId": card["cardId"],
+                "noteId": note["noteId"],
+                "front": front,
+                "back": back,
+            })
         return result
 
     @staticmethod
-    def update_note_to_deck(
+    def upsert_note(
         deck_name: str,
-        noteId=None,
+        note_id: Optional[int] = None,
         front: str = "",
         back: str = "",
-        timeout: float | None = None,
-    ):
+        timeout: Optional[float] = None,
+    ) -> Tuple[bool, str]:
         """
-        【新增函数】智能更新/插入卡片（笔记）
-        - 有 noteId → 更新该笔记的 front/back（不改变学习记录）
-        - 无 noteId → 新建卡片到卡组
-        - 卡组不存在 → 自动创建卡组
-
-        参数：
-            deck_name: 目标卡组名
-            noteId: 笔记ID（为空则新建）
-            front: 卡片正面
-            back: 卡片反面
-        返回：
-            (成功标识, 消息/ID)
+        Create or update a note in Anki.
+        - If note_id is provided: update existing note (preserves review history)
+        - If note_id is None: create new note in the deck
+        - Creates deck automatically if it doesn't exist
+        Returns (success: bool, message: str)
         """
-        # 1. 卡组不存在则自动创建
+        # Ensure deck exists
         try:
-            existing_decks = AnkiApi.invoke_anki_timeout(
-                timeout=timeout, action="deckNames"
-            )
+            decks = AnkiApi.invoke("deckNames", timeout=timeout)
         except Exception as e:
-            return False, f"❌ 获取卡组列表失败：{str(e)}"
+            return False, f"Failed to retrieve deck list: {str(e)}"
 
-        if deck_name not in existing_decks:
+        if deck_name not in decks:
             try:
-                AnkiApi.invoke_anki_timeout(
-                    timeout=timeout, action="createDeck", deck=deck_name
-                )
-                print(f"✅ 自动创建卡组：{deck_name}")
+                AnkiApi.invoke("createDeck", deck=deck_name, timeout=timeout)
             except Exception as e:
-                return False, f"❌ 创建卡组失败：{str(e)}"
+                return False, f"Failed to create deck: {str(e)}"
 
-        # 2. 更新已有笔记（有 noteId）
-        if noteId:
-            # 先获取原笔记，对比是否需要更新
+        # Update existing note
+        if note_id:
             try:
-                note_info = AnkiApi.invoke_anki_timeout(
-                    timeout=timeout, action="notesInfo", notes=[noteId]
-                )[0]
+                note_info = AnkiApi.invoke("notesInfo", notes=[note_id], timeout=timeout)[0]
                 old_front = note_info["fields"].get("Front", {}).get("value", "")
                 old_back = note_info["fields"].get("Back", {}).get("value", "")
 
                 if old_front == front and old_back == back:
-                    return True, f"✅ 笔记 {noteId} 内容无变化，无需更新"
+                    return True, f"Note {note_id} unchanged"
 
-                # 执行更新（只改内容，不影响学习进度）
-                AnkiApi.invoke_anki_timeout(
-                    timeout=timeout,
-                    action="updateNoteFields",
-                    note={"id": noteId, "fields": {"Front": front, "Back": back}},
+                AnkiApi.invoke(
+                    "updateNoteFields",
+                    note={"id": note_id, "fields": {"Front": front, "Back": back}},
+                    timeout=timeout
                 )
-                return True, f"✅ 成功更新笔记 {noteId}"
+                return True, f"Note {note_id} updated successfully"
             except Exception as e:
-                return False, f"❌ 更新失败：{str(e)}"
+                return False, f"Update failed: {str(e)}"
 
-        # 3. 没有 noteId → 新建笔记
+        # Create new note
         else:
             try:
-                # Anki 默认模型：Basic（正面Front、反面Back）
                 note = {
                     "deckName": deck_name,
                     "modelName": "Basic",
@@ -141,64 +121,9 @@ class AnkiApi:
                         "duplicateScope": "deck",
                         "duplicateScopeDeckName": deck_name,
                     },
-                    "tags": [],  # 可加标签
+                    "tags": [],
                 }
-                new_note_id = AnkiApi.invoke_anki_timeout(
-                    timeout=timeout, action="addNote", note=note
-                )
-                return True, f"✅ 成功新建卡片，笔记ID：{new_note_id}"
+                new_id = AnkiApi.invoke("addNote", note=note, timeout=timeout)
+                return True, f"Note created successfully, ID: {new_id}"
             except Exception as e:
-                return False, f"❌ 新建失败：{str(e)}"
-
-
-# ------------------- 测试示例 -------------------
-
-# -------------------------- 配置项（修改这里）--------------------------
-DECK_NAME = "Yonsei Korean Word 3"  # 替换成你要查询的卡组名，必须完全一致
-# ---------------------------------------------------------------------
-
-
-if __name__ == "__main__":
-    # 测试1：获取卡组所有卡片（含正面+反面）
-    print("===== 获取卡组卡片 =====")
-    cards = AnkiApi.get_deck_cards_info(DECK_NAME)
-    print(f"共 {len(cards)} 张卡片")
-    for c in cards[:]:  # 只打印前3张
-        print(f"正面：{c['front']}")
-        print(f"反面：{c['back']}")
-        print(f"笔记ID：{c['noteId']}")
-        print("-" * 30)
-
-    # 为之前的卡片添加front id
-    # import hashlib
-
-    # for c in cards[:]:
-    #     noteId = c['noteId']
-    #     front = c['front']
-    #     keyword = front.replace("<p>", "").replace("</p>", "").strip()
-    #     front_id= hashlib.md5(keyword.encode("utf-8")).hexdigest()
-    #     front = f"<div id=\"{front_id}\">{front}</div>"
-    #     back = c['back']
-    #     print(f"正面：{front}", f"反面：{back}", f"笔记ID：{noteId}")
-    #     AnkiApi.upsert_note_to_deck(DECK_NAME, noteId, front, back)
-
-
-#     # 测试2：更新已有笔记（不会改变学习记录）
-#     print("\n===== 更新笔记 =====")
-#     success, msg = AnkiApi.upsert_note_to_deck(
-#         deck_name=DECK_NAME,
-#         noteId=1776935753891,  # 替换成真实笔记ID
-#         front="新的正面",
-#         back="新的反面"
-#     )
-#     print(msg)
-
-#     # 测试3：新建笔记
-#     print("\n===== 新建卡片 =====")
-#     success, msg = AnkiApi.upsert_note_to_deck(
-#         deck_name=DECK_NAME,
-#         noteId=None,  # 为空=新建
-#         front="测试新建正面2",
-#         back="测试新建反面2"
-#     )
-#     print(msg)
+                return False, f"Creation failed: {str(e)}"

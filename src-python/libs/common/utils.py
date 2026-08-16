@@ -1,26 +1,30 @@
+"""
+Global utility class and shared state.
+Extends the config base class with database and runtime state.
+"""
 import sys
-import subprocess
 import os
-from libs.config import UtilsBase
-from libs.websocket_client import WsClient
-from libs.cgevent_websocket_client import CgeventWsClient
-from libs.fstdict_database import FstDictDatabase
+import subprocess
+
+from libs.config.app_config import UtilsBase
+from libs.ws_clients.iwin_client import IWinWsClient
+from libs.ws_clients.cgevent_client import CgEventWsClient
+from libs.core.database import FstDictDatabase
 
 
 class Utils(UtilsBase):
-    """通用工具类"""
+    """Global utility and shared application state."""
 
+    # Database instance
     db = FstDictDatabase(UtilsBase.FSTDICT_DATABASE_PATH)
-    iwin_ws_client: WsClient
-    cgevent_ws_client: CgeventWsClient
+
+    # WebSocket client instances (initialized at app startup)
+    iwin_ws_client: IWinWsClient
+    cgevent_ws_client: CgEventWsClient
 
     @staticmethod
     def delete_dictionary(dict_name: str) -> None:
-        """
-        删除指定字典文件夹
-        dict_name (str): 字典名称
-        return (bool): 是否执行成功
-        """
+        """Delete a dictionary directory and update configuration."""
         dict_dir = Utils.getDictDir(dict_name)
         Utils.removeDirIfExists(dict_dir)
         Utils.Config.removeDictInfo(dict_name)
@@ -28,20 +32,15 @@ class Utils(UtilsBase):
 
     @staticmethod
     def reveal_dict_in_file_manager(dict_name: str) -> bool:
-        """
-        跨平台打开文件管理器并定位选中指定字典文件夹
-        dict_name (str): 字典名称
-        return (bool): 是否执行成功
-        """
+        """Open file manager and highlight the dictionary file."""
         dict_path = Utils.getDictPath(dict_name)
         return Utils.reveal_in_file_manager(dict_path)
 
     @staticmethod
     def reveal_in_file_manager(file_path: str) -> bool:
         """
-        跨平台打开文件管理器并定位选中指定文件
-        :param file_path: 目标文件/文件夹绝对路径
-        :return: 是否执行成功
+        Cross-platform function to open file manager and select a file.
+        Returns True on success, False on failure.
         """
         file_path = os.path.abspath(file_path)
         if not os.path.exists(file_path):
@@ -49,17 +48,12 @@ class Utils(UtilsBase):
 
         try:
             if sys.platform == "darwin":
-                # macOS: open -R 自动在 Finder 中选中文件
                 subprocess.run(["open", "-R", file_path], check=True)
 
             elif sys.platform.startswith("win"):
-                # Windows: explorer /select, 注意路径用正斜杠或转义
-                # 必须用 shell=True，explorer 对参数格式要求特殊
                 subprocess.run(f'explorer /select,"{file_path}"', shell=True)
 
             elif sys.platform.startswith("linux"):
-                # Linux：优先尝试常见文件管理器
-                # dbus 方式最通用（Nautilus/Nemo/Thunar 等大多支持）
                 try:
                     subprocess.run([
                         "dbus-send",
@@ -72,10 +66,8 @@ class Utils(UtilsBase):
                         "string:"
                     ], check=True)
                 except (FileNotFoundError, subprocess.CalledProcessError):
-                    # 兜底：直接打开所在文件夹
                     folder = os.path.dirname(file_path)
                     subprocess.run(["xdg-open", folder], check=True)
-
             else:
                 return False
 
