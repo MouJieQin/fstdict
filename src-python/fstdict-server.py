@@ -312,13 +312,6 @@ def run_frontend_server():
                 access_log=False, log_level="info")
 
 
-def connect_cgevent():
-    def run_connect_cgevent():
-        asyncio.run(Utils.cgevent_ws_client.connect())
-    connect_thread = threading.Thread(target=run_connect_cgevent, daemon=True)
-    connect_thread.start()
-
-
 def main():
     if getattr(sys, "frozen", False):
         # 前端静态服务放子线程（daemon=True，主线程退出它自动结束）
@@ -328,11 +321,9 @@ def main():
         logger.info("✅ Frontend:     http://127.0.0.1:9595")
         logger.info("✅ API server:   http://127.0.0.1:5959")
 
-        # connect_cgevent()
         # API 服务放主线程（阻塞运行，程序主循环在这里）
         run_api_server()
     else:
-        # connect_cgevent()
         run_api_server()
 
 

@@ -185,11 +185,6 @@ class FstDictDatabase:
             row = cursor.fetchone()
             if row:
                 word_id = row["id"]
-                # 查询次数 +1
-                # cursor.execute(
-                #     "UPDATE words SET query_count = query_count + 1 WHERE id = ?",
-                #     (word_id,),
-                # )
                 return word_id
             # 不存在则插入
             cursor.execute("INSERT INTO words (word) VALUES (?)", (word,))
