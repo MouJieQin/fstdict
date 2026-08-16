@@ -45,12 +45,37 @@ jobs:
                       rust_target: x86_64-pc-windows-msvc
                       pyinstaller_arch: AMD64
 
+        # ✨ SIZE & PARTITION FIXES:
+        # 1. APPIMAGE_EXTRACT_AND_RUN strips out the FUSE mounting requirement.
+        # 2. TMPDIR forces linuxdeploy/mksquashfs to build inside the spacious runner SSD
+        #    instead of filling up the restricted memory /tmp filesystem.
+        env:
+            APPIMAGE_EXTRACT_AND_RUN: 1
+            TMPDIR: ${{ github.workspace }}/tmp_build_cache
+
         steps:
+            # ─────────────────────────────────────────
+            # 0. Maximize Disk Space (Linux Only)
+            # ─────────────────────────────────────────
+            - name: Maximize Build Disk Space
+              if: matrix.platform == 'linux'
+              run: |
+                  echo "=== Disk Space Before Cleanup ==="
+                  df -h
+                  sudo rm -rf /usr/share/dotnet
+                  sudo rm -rf /usr/local/lib/android
+                  sudo rm -rf /opt/ghc
+                  sudo rm -rf "/usr/local/share/boost"
+                  sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+                  mkdir -p ${{ github.workspace }}/tmp_build_cache
+                  echo "=== Disk Space After Cleanup ==="
+                  df -h
+
             - name: Checkout
               uses: actions/checkout@v4
 
             # ─────────────────────────────────────────
-            # 1. Node.js
+            # 1. Node.js Setup
             # ─────────────────────────────────────────
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -62,7 +87,7 @@ jobs:
               run: npm ci
 
             # ─────────────────────────────────────────
-            # 2. Python + PyInstaller
+            # 2. Python + PyInstaller Setup
             # ─────────────────────────────────────────
             - name: Setup Python
               if: matrix.platform != 'macos' || matrix.arch != 'x86_64'
@@ -95,7 +120,7 @@ jobs:
                   arch -x86_64 pip install pyinstaller
 
             # ─────────────────────────────────────────
-            # 3. Rust + Tauri Build
+            # 3. Rust + Tauri Compilation Pipeline
             # ─────────────────────────────────────────
             - name: Setup Rust
               uses: dtolnay/rust-toolchain@stable
@@ -116,20 +141,25 @@ jobs:
                     libxdo-dev \
                     libssl-dev \
                     libayatana-appindicator3-dev \
-                    librsvg2-dev
+                    librsvg2-dev \
+                    libgtk-3-dev \
+                    libgstreamer1.0-dev \
+                    libgstreamer-plugins-base1.0-dev \
+                    gstreamer1.0-plugins-good \
+                    gstreamer1.0-plugins-bad \
+                    gstreamer1.0-plugins-ugly \
+                    gstreamer1.0-tools
 
             - name: Build Tauri app
               uses: tauri-apps/tauri-action@v0
               with:
-                  args: --target ${{ matrix.rust_target }}
+                  args: --target ${{ matrix.rust_target }} --verbose
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   TAURI_TARGET: ${{ matrix.rust_target }}
-                  # ✨ Core Fix: Forces linuxdeploy AppImage to extract and run flawlessly without requiring FUSE
-                  APPIMAGE_EXTRACT_AND_RUN: 1
 
             # ─────────────────────────────────────────
-            # 4. Upload Artifacts
+            # 4. Upload Intermediate Compilation Artifacts
             # ─────────────────────────────────────────
             - name: Upload build artifacts
               uses: actions/upload-artifact@v4
@@ -144,7 +174,7 @@ jobs:
                   retention-days: 7
 
     # ═══════════════════════════════════════════
-    # Release Job
+    # Release Assembly Job (Runs only on Push Tags matching v*)
     # ═══════════════════════════════════════════
     release:
         name: Create GitHub Release
