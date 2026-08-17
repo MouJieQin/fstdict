@@ -157,6 +157,9 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   TAURI_TARGET: ${{ matrix.rust_target }}
+                  # ✨ Core Fix: Tell the AppImage dynamic loader where to find the embedded Shapely / GEOS C-libraries
+                  # This prevents linuxdeploy from panicking about "missing dependencies".
+                  LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
 
             # ─────────────────────────────────────────
             # 4. Upload Intermediate Compilation Artifacts
