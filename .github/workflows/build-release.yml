@@ -17,28 +17,28 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # macOS Apple Silicon
+                    # macOS Apple Silicon target
                     - os: macos-14
                       platform: macos
                       arch: aarch64
                       rust_target: aarch64-apple-darwin
                       pyinstaller_arch: arm64
 
-                    # macOS Intel (Running on Apple Silicon via Rosetta)
-                    - os: macos-14 # Use the ARM runner
+                    # macOS Intel target, executed via Rosetta‑2 on ARM runner
+                    - os: macos-14
                       platform: macos
                       arch: x86_64
                       rust_target: x86_64-apple-darwin
                       pyinstaller_arch: x86_64
 
-                    # Linux x86_64
+                    # Linux x86_64 target
                     - os: ubuntu-latest
                       platform: linux
                       arch: x86_64
                       rust_target: x86_64-unknown-linux-gnu
                       pyinstaller_arch: x86_64
 
-                    # Windows x86_64
+                    # Windows x86_64 target
                     - os: windows-latest
                       platform: windows
                       arch: x86_64
@@ -52,7 +52,7 @@ jobs:
 
         steps:
             # ─────────────────────────────────────────
-            # 0. Maximize Disk Space (Linux Only)
+            # 0. Maximize available disk space (Linux only)
             # ─────────────────────────────────────────
             - name: Maximize Build Disk Space
               if: matrix.platform == 'linux'
@@ -68,7 +68,7 @@ jobs:
                   echo "=== Disk Space After Cleanup ==="
                   df -h
 
-            - name: Checkout
+            - name: Checkout repository source
               uses: actions/checkout@v4
 
             # ─────────────────────────────────────────
@@ -88,7 +88,7 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             # ─────────────────────────────────────────
-            # 2. Python + PyInstaller Setup
+            # 2. Setup Python & PyInstaller for backend bundle
             # ─────────────────────────────────────────
             - name: Setup Python
               if: matrix.platform != 'macos' || matrix.arch != 'x86_64'
@@ -115,15 +115,15 @@ jobs:
               if: matrix.platform == 'macos' && matrix.arch == 'x86_64'
               working-directory: src-python
               run: |
-                  # Force pip to run inside the Intel layer to grab x86_64 binary wheels
+                  # Force pip execution under Intel architecture to fetch x86_64 binary wheels
                   arch -x86_64 python -m pip install --upgrade pip
                   arch -x86_64 pip install -r requirements.txt
                   arch -x86_64 pip install pyinstaller
 
             # ─────────────────────────────────────────
-            # 3. Rust + Tauri Compilation Pipeline
+            # 3. Rust toolchain & Tauri application build
             # ─────────────────────────────────────────
-            - name: Setup Rust
+            - name: Setup Rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
                   targets: ${{ matrix.rust_target }}
@@ -151,7 +151,7 @@ jobs:
                     gstreamer1.0-plugins-ugly \
                     gstreamer1.0-tools
 
-            - name: Build Tauri app
+            - name: Build Tauri application bundle
               uses: tauri-apps/tauri-action@v0
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
@@ -160,10 +160,14 @@ jobs:
                   TAURI_TARGET: ${{ matrix.rust_target }}
                   # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
                   TMPDIR: ${{ github.workspace }}/tmp_build_cache
+                  TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+                  # Extend library search path for embedded Shapely / GEOS native libraries
+                  # Prevents linuxdeploy "missing dependency" runtime detection failures
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
 
             # ─────────────────────────────────────────
-            # 4. Upload Intermediate Compilation Artifacts
+            # 4. Upload build artifacts for later release assembly
+            # Include *.sig signature files required for updater manifest
             # ─────────────────────────────────────────
             - name: Upload build artifacts
               uses: actions/upload-artifact@v4
@@ -171,14 +175,21 @@ jobs:
                   name: fstdict-${{ matrix.platform }}-${{ matrix.arch }}
                   path: |
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.sig
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.sig
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.deb
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.sig
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/*.msi
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/*.sig
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/nsis/*.exe
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/nsis/*.sig
                   retention-days: 7
 
     # ═══════════════════════════════════════════
-    # Release Assembly Job (Runs only on Push Tags matching v*)
+    # Release assembly job
+    # Triggered only for tag push events matching v* pattern
+    # Generate static tauri updater latest.json manifest
     # ═══════════════════════════════════════════
     release:
         name: Create GitHub Release
@@ -186,25 +197,53 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         runs-on: ubuntu-latest
         steps:
-            - name: Download all artifacts
+            - name: Checkout repository source
+              uses: actions/checkout@v4
+
+            - name: Download all build artifacts
               uses: actions/download-artifact@v4
               with:
                   path: ./dist
                   pattern: fstdict-*
                   merge-multiple: false
 
-            - name: List release assets
+            - name: List collected release assets
               run: find ./dist -type f | sort
 
-            - name: Create GitHub Release
+            # ─────────────────────────────────────────
+            # Install @tauri-apps/cli to generate static updater manifest latest.json
+            # ─────────────────────────────────────────
+            - name: Setup Node.js for manifest generation
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+
+            - name: Install tauri cli
+              run: npm install -g @tauri-apps/cli
+
+            - name: Generate static updater manifest latest.json
+              working-directory: src-tauri
+              run: |
+                  tauri updater generate --output ../latest.json
+
+            - name: Show generated latest.json content
+              run: cat ./latest.json
+
+            - name: Publish GitHub Release
               uses: softprops/action-gh-release@v2
               with:
                   files: |
                       ./dist/fstdict-macos-*/**/*.dmg
+                      ./dist/fstdict-macos-*/**/*.sig
                       ./dist/fstdict-linux-*/**/*.AppImage
+                      ./dist/fstdict-linux-*/**/*.sig
                       ./dist/fstdict-linux-*/**/*.deb
+                      ./dist/fstdict-linux-*/**/*.sig
                       ./dist/fstdict-windows-*/**/*.msi
+                      ./dist/fstdict-windows-*/**/*.sig
                       ./dist/fstdict-windows-*/**/*.exe
+                      ./dist/fstdict-windows-*/**/*.sig
+                      ./latest.json
                   generate_release_notes: true
                   draft: false
                   prerelease: false
