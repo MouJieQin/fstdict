@@ -1,6 +1,7 @@
 {
     "appearance": {
-        "theme": "auto"
+        "theme": "auto",
+        "language": "en"
     },
     "ocr": {
         "session": {

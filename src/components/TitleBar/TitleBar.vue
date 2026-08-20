@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- macOS-style title bar with drag region -->
-        <div data-tauri-drag-region class="floating-window-titlebar">
+        <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
             <div @mousedown.stop>
                 <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                     :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
@@ -358,6 +358,20 @@ const toggleFavorite = (): void => {
         props.sessionConfig.default_folder.id ?? null
     )
 }
+
+/**
+ * Forces the browser to blur any active inputs 
+ * when the parent title bar layout background is clicked.
+ */
+const blurActiveInput = (event: MouseEvent) => {
+    // Only trigger blur if the user clicked the title bar directly
+    if ((event.target as HTMLElement).classList.contains('floating-window-titlebar')) {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+        }
+    }
+}
+
 
 // --- Note dialog ---
 const openNoteDialog = (): void => {

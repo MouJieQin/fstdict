@@ -15,8 +15,8 @@
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
                     spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
-                    @input="onInputChange" @focus="handleFocus" @blur="handleBlur" @keydown.down.prevent="handleKeyDown"
-                    @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter"
+                    @input="onInputChange" @focus="handleFocus" @keydown.down.prevent="handleKeyDown"
+                    @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter" @blur="handleBlur"
                     @keydown.escape="isDropdownVisible = false" @compositionstart="onCompositionStart"
                     @compositionend="onCompositionEnd">
                     <template #prefix>
@@ -27,7 +27,7 @@
                 </el-input>
             </template>
 
-            <div class="virtual-dropdown-menu">
+            <div class="virtual-dropdown-menu" @mousedown.prevent>
                 <div v-if="isEmptyState" class="empty-suggestions">
                     {{ $t('common.noSuggestions') }}
                 </div>
