@@ -1,0 +1,400 @@
+/* ============= Header & Title Bar ============= */
+.fstdict-header {
+    background: var(--app-header-bg);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.floating-window-titlebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px 0 60px;
+    box-sizing: border-box;
+}
+
+.floating-window-search-container {
+    flex: 1;
+    margin: 10px 0 0 20px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.floating-window-titlebar-button-container {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.floating-window-titlebar-button {
+    font-size: 15px !important;
+}
+
+/* ============= Dictionary Layout ============= */
+.word-options {
+    height: 100vh;
+    padding-bottom: var(--header-height);
+}
+
+.word-detail {
+    height: 100vh;
+    padding-bottom: calc(var(--header-height) + 5px);
+}
+
+.word-detail.not-anki-mode {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.word-detail.anki-mode {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.word-detail.anki-mode::-webkit-scrollbar {
+    display: none;
+}
+
+.dict-iframe {
+    width: 100%;
+    border: none;
+    padding-left: 1rem;
+}
+
+.dict-iframe-container {
+    box-shadow: var(--el-box-shadow);
+}
+
+.simple-divider {
+    height: 1px;
+    background: var(--el-border-color);
+    margin: 0 10px;
+}
+
+.locate-dict-button {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+}
+
+/* ============= Dictionary Settings Dialog ============= */
+.dict-set-options {
+    margin: 20px auto;
+    max-width: 960px;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--el-box-shadow);
+}
+
+.dict-set-options-control {
+    margin: 20px auto;
+    max-width: 960px;
+}
+
+.dict-settings-drag-cards {
+    margin: 0 auto 12px;
+    max-width: 960px;
+}
+
+.dict-settings-drag-card {
+    border-radius: 10px !important;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.dict-settings-drag-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dict-settings-drag-card.is-disabled {
+    opacity: 0.6;
+}
+
+.left-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.right-group {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.icon {
+    width: 35px;
+    height: 35px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.name {
+    font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Drag-and-drop states */
+.sortable-dragging,
+.sortable-dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+.sortable-ghost {
+    opacity: 0.5;
+    background: #f5f5f5;
+}
+
+.drag-area {
+    height: 100px;
+    margin: 0 auto 12px;
+    max-width: 960px;
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+}
+
+.drag-area.active {
+    border-color: #2584ff;
+    background: #e8f3ff;
+}
+
+/* ============= Notes ============= */
+.markdown-note-content {
+    font-size: 1.1rem;
+    margin: 0 10px 0 1rem;
+    max-width: clamp(300px, 100vw, 800px);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: var(--el-box-shadow);
+    text-align: left;
+}
+
+.markdown-note-content strong {
+    font-weight: bold;
+    color: #f56c6c;
+}
+
+.note-content-input {
+    font-size: 1.1rem !important;
+}
+
+/* ============= Element Plus Overrides ============= */
+.el-collapse-item__header {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    line-height: 1.5 !important;
+    padding-left: 1rem !important;
+}
+
+.dropdown-custom-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.collapse-custom-icon {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Sticky collapse headers */
+.sticky-collapse .el-collapse-item__header {
+    position: sticky;
+    top: 0;
+    background-color: var(--el-bg-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding-right: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sticky-collapse .el-collapse-item:first-child .el-collapse-item__header {
+    border-top: none;
+}
+
+.el-tabs__nav {
+    overflow-x: auto;
+    border: none !important;
+    white-space: nowrap;
+    display: block;
+}
+
+.el-tabs__item {
+    float: none;
+    display: inline-block;
+}
+
+/* ============= Search Method Select ============= */
+.icon-select-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 100%;
+    cursor: pointer;
+}
+
+.prefix-icon {
+    width: 16px;
+}
+
+.dropdown-trigger {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* ============= Suggestion States ============= */
+.error-suggestions {
+    padding: 16px;
+    text-align: center;
+    color: var(--el-color-danger);
+    font-size: 13px;
+}
+
+.warn-suggestions {
+    padding: 16px;
+    text-align: center;
+    color: var(--el-color-warning);
+    font-size: 13px;
+}
+
+/* ============= Homepage ============= */
+.dict-homepage-type-p,
+.dict-homepage-dict-p {
+    text-align: center;
+    opacity: 0.5;
+}
+
+.dict-homepage-type-p {
+    font-size: 1.2rem;
+}
+
+.dict-homepage-dict-p {
+    font-size: 1.1rem;
+}
+
+/* ============= Settings ============= */
+.setting-container {
+    padding-bottom: 50px;
+}
+
+.setting-footer-button-group {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.system-config-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.config-class {
+    margin: 0 auto 30px;
+    max-width: clamp(300px, 80vw, 800px);
+    padding: 20px;
+    border-radius: var(--el-border-radius-base);
+    box-shadow: var(--el-box-shadow);
+}
+
+.config-class-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.config-class-desc {
+    font-size: 14px;
+    margin-bottom: 30px;
+    opacity: 0.5;
+}
+
+.config-form .el-input,
+.config-form .el-form-item {
+    max-width: 600px;
+}
+
+.config-radio-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px;
+}
+
+.config-radio-icon {
+    font-size: 24px !important;
+}
+
+/* ============= Favorite Words ============= */
+.favorite-words-table-container {
+    margin: 20px auto 0;
+}
+
+.favorite-folder-name-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.favorite-words-table {
+    max-height: 80%;
+}
+
+/* ============= Responsive ============= */
+@media (max-width: 700px) {
+    #titlebar-setting-button,
+    #titlebar-dictss-button,
+    #titlebar-sessions-button,
+    #titlebar-history-back-button,
+    #titlebar-history-forward-button {
+        display: none;
+    }
+
+    .sticky-collapse {
+        --el-collapse-header-height: 1.5rem !important;
+    }
+
+    .sticky-collapse .collapse-custom-icon {
+        width: 1rem !important;
+        height: 1rem !important;
+        margin-right: 2px !important;
+    }
+
+    .sticky-collapse .el-collapse-item__header {
+        font-size: 1rem !important;
+        line-height: 1 !important;
+        padding-left: 1rem !important;
+    }
+}

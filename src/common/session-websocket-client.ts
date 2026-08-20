@@ -1,306 +1,178 @@
 import { WebSocketService } from '@/common/websocket-client'
 import type { SessionConfig } from '@/common/type-interface'
+import { WS_BASE_URL } from '@/common/constants'
 
-class SessionWebSocketService extends WebSocketService {
-    constructor(url: string) {
-        super(url)
+export class SessionWebSocketService extends WebSocketService {
+    constructor(sessionId: number) {
+        super(`${WS_BASE_URL}${sessionId}`)
     }
 
-    private _send(type: string, data: {} | null = null) {
-        this.send({
-            type: type,
-            data: {
-                ...data,
-            },
+    private sendTyped(type: string, data: Record<string, unknown> = {}): void {
+        this.send({ type, data })
+    }
+
+    // --- Note operations ---
+    public sendSaveWordNote(keyword: string, note: string): void {
+        this.sendTyped('save_word_note', { keyword, note })
+    }
+
+    public sendDeleteWordNote(keyword: string): void {
+        this.sendTyped('delete_word_note', { keyword })
+    }
+
+    // --- Lookup operations ---
+    public sendLookupKeyword(
+        keyword: string,
+        folderId: number | null,
+        dictSettings: string[] | null = null,
+        leftHistory = true
+    ): void {
+        this.sendTyped('lookup_keyword', {
+            keyword,
+            folder_id: folderId,
+            dict_settings: dictSettings,
+            left_history: leftHistory,
         })
     }
 
-    sendSaveWordNote(keyword: string, note: string) {
-        this._send(
-            'save_word_note',
-            {
-                keyword: keyword,
-                note: note,
-            }
-        )
+    public sendLookupKeywordRequest(keyword: string): void {
+        this.sendTyped('lookup_keyword_request', { keyword })
     }
 
-    sendDeleteWordNote(keyword: string) {
-        this._send(
-            'delete_word_note',
-            {
-                keyword: keyword,
-            }
-        )
+    // --- Configuration ---
+    public sendFolderConfig(): void {
+        this.sendTyped('folder_config')
     }
 
-    // 发送用户输入
-    sendLookupKeyword(keyword: string, folder_id: number | null, dictSettings: string[] | null = null, leftHistory: boolean = true) {
-        this._send(
-            'lookup_keyword',
-            {
-                keyword: keyword,
-                folder_id: folder_id,
-                dict_settings: dictSettings,
-                left_history: leftHistory,
-            }
-        )
+    public sendUpdateDictConfig(dictConfig: unknown): void {
+        this.sendTyped('update_dict_config', { dict_config: dictConfig })
     }
 
-    sendFolderConfig() {
-        this._send(
-            'folder_config',
-            {}
-        )
+    public sendUpdateSystemConfig(systemConfig: unknown): void {
+        this.sendTyped('update_system_config', { system_config: systemConfig })
     }
 
-    sendUpdateDictConfig(dictConfig: any) {
-        this._send(
-            'update_dict_config',
-            {
-                dict_config: dictConfig
-            }
-        )
+    // --- Favorites ---
+    public sendToggleFavor(keyword: string, folderId: number | null): void {
+        this.sendTyped('toggle_favor', { keyword, folder_id: folderId })
     }
 
-    sendUpdateSystemConfig(systemConfig: any) {
-        this._send(
-            'update_system_config',
-            {
-                system_config: systemConfig
-            }
-        )
+    // --- Folder management ---
+    public sendCreateFolder(name: string, description: string): void {
+        this.sendTyped('create_folder', { folder_name: name, folder_description: description })
     }
 
-    sendLookupKeywordRequest(keyword: string) {
-        this._send(
-            'lookup_keyword_request',
-            {
-                keyword: keyword,
-            }
-        )
+    public sendDeleteFolder(folderId: number): void {
+        this.sendTyped('delete_folder', { folder_id: folderId })
     }
 
-    sendToggleFavor(keyword: string, folder_id: number | null) {
-        this._send(
-            'toggle_favor',
-            {
-                keyword: keyword,
-                folder_id: folder_id,
-            }
-        )
-    }
-
-    sendCreateFolder(folderName: string, folderDescription: string) {
-        this._send(
-            'create_folder',
-            {
-                folder_name: folderName,
-                folder_description: folderDescription,
-            }
-        )
-    }
-
-    sendCreateDictSetOption(optionName: string) {
-        this._send(
-            'create_dict_set_option',
-            {
-                option_name: optionName
-            }
-        )
-    }
-
-    sendRemoveDictSetOption(optionName: string) {
-        this._send(
-            'remove_dict_set_option',
-            {
-                option_name: optionName
-            }
-        )
-    }
-
-    sendRenameDictSetOption(oldOptionName: string, newOptionName: string) {
-        this._send(
-            'rename_dict_set_option',
-            {
-                old_option_name: oldOptionName,
-                new_option_name: newOptionName
-            }
-        )
-    }
-
-    sendDeleteFolder(folderId: number) {
-        this._send(
-            'delete_folder',
-            {
-                folder_id: folderId,
-            }
-        )
-    }
-
-    sendUpdateToAnki(deck_name: string, folderId: number) {
-        this._send(
-            'update_to_anki',
-            {
-                folder_id: folderId,
-                deck_name: deck_name,
-            }
-        )
-    }
-
-    sendCancelAnkiUpdate() {
-        this._send(
-            'cancel_anki_update',
-            {}
-        )
-    }
-
-
-    sendUpdateFolder(folderId: number, folderName: string, folderDescription: string) {
-        this._send(
-            'update_folder',
-            {
-                folder_id: folderId,
-                folder_name: folderName,
-                folder_description: folderDescription,
-            }
-        )
-    }
-
-    sendSessionConfig(config: SessionConfig) {
-        this._send(
-            'session_config',
-            {
-                config: config,
-            }
-        )
-    }
-
-    sendCreateSession(config: SessionConfig) {
-        this._send(
-            'create_session',
-            {
-                config: config,
-            }
-        )
-    }
-
-    sendRemoveSession() {
-        this._send(
-            'remove_session',
-            {
-            }
-        )
-    }
-
-    sendRenameSession(name: string) {
-        this._send(
-            'rename_session',
-            {
-                name: name
-            }
-        )
-    }
-
-    sendFavoriteWordsRequest(folderId: number) {
-        this._send(
-            'favorite_words_request',
-            {
-                folder_id: folderId,
-            }
-        )
-    }
-
-    sendSearchHistoryRequest() {
-        this._send(
-            'search_history_request',
-            {}
-        )
-    }
-
-    sendFloatingWindowPinClick(sessionId: number, is_pinned: boolean) {
-        this._send(
-            'toggle_floating_pin',
-            {
-                session_id: sessionId,
-                is_pinned: is_pinned,
-            }
-        )
-    }
-
-    sendNoteIsEditing(isEditing: boolean) {
-        this._send(
-            'note_is_editing',
-            {
-                is_editing: isEditing,
-            }
-        )
-    }
-
-    sendAddDictionary(dictPath: string) {
-        this._send(
-            'add_dictionary',
-            {
-                dict_path: dictPath, // 使用传入的字典设置
-            }
-        )
-    }
-
-    sendShowDictInFolder(dictName: string) {
-        this._send(
-            'show_dict_in_folder',
-            {
-                dict_name: dictName,
-            }
-        )
-    }
-
-    sendDeleteDict(dictName: string) {
-        this._send(
-            'delete_dictionary',
-            {
-                dict_name: dictName,
-            }
-        )
-    }
-
-
-
-    sendKeywordOptionsSearch(keyword: string, searchMethod: string = 'prefix_search', dictSettings: string[] | null = null) {
-        this._send(
-            'keyword_options_search',
-            {
-                keyword: keyword,
-                search_method: searchMethod, // 使用传入的搜索方法
-                dict_settings: dictSettings, // 使用传入的字典设置
-            }
-        )
-    }
-
-    sendKeywordOptionsNote(keyword: string, note: string) {
-        this._send(
-            'word_option_note',
-            {
-                keyword: keyword,
-                options: [note]
-            }
-        )
-    }
-
-
-    sendToggleFloatingWindowPin(fullPath: string) {
-        this._send('toggle_float_pin', {
-            full_path: fullPath,
+    public sendUpdateFolder(folderId: number, name: string, description: string): void {
+        this.sendTyped('update_folder', {
+            folder_id: folderId,
+            folder_name: name,
+            folder_description: description,
         })
     }
 
+    // --- Dictionary set options ---
+    public sendCreateDictSetOption(optionName: string): void {
+        this.sendTyped('create_dict_set_option', { option_name: optionName })
+    }
 
+    public sendRemoveDictSetOption(optionName: string): void {
+        this.sendTyped('remove_dict_set_option', { option_name: optionName })
+    }
+
+    public sendRenameDictSetOption(oldName: string, newName: string): void {
+        this.sendTyped('rename_dict_set_option', {
+            old_option_name: oldName,
+            new_option_name: newName,
+        })
+    }
+
+    // --- Session management ---
+    public sendSessionConfig(config: SessionConfig): void {
+        this.sendTyped('session_config', { config })
+    }
+
+    public sendCreateSession(config: SessionConfig): void {
+        this.sendTyped('create_session', { config })
+    }
+
+    public sendRemoveSession(): void {
+        this.sendTyped('remove_session')
+    }
+
+    public sendRenameSession(name: string): void {
+        this.sendTyped('rename_session', { name })
+    }
+
+    // --- Data requests ---
+    public sendFavoriteWordsRequest(folderId: number): void {
+        this.sendTyped('favorite_words_request', { folder_id: folderId })
+    }
+
+    public sendSearchHistoryRequest(): void {
+        this.sendTyped('search_history_request')
+    }
+
+    // --- Floating window ---
+    public sendFloatingWindowPinClick(sessionId: number, isPinned: boolean): void {
+        this.sendTyped('toggle_floating_pin', {
+            session_id: sessionId,
+            is_pinned: isPinned,
+        })
+    }
+
+    public sendNoteIsEditing(isEditing: boolean): void {
+        this.sendTyped('note_is_editing', { is_editing: isEditing })
+    }
+
+    // --- Dictionary management ---
+    public sendAddDictionary(dictPath: string): void {
+        this.sendTyped('add_dictionary', { dict_path: dictPath })
+    }
+
+    public sendShowDictInFolder(dictName: string): void {
+        this.sendTyped('show_dict_in_folder', { dict_name: dictName })
+    }
+
+    public sendDeleteDict(dictName: string): void {
+        this.sendTyped('delete_dictionary', { dict_name: dictName })
+    }
+
+    // --- Autocomplete ---
+    public sendKeywordOptionsSearch(
+        keyword: string,
+        searchMethod = 'prefix_search',
+        dictSettings: string[] | null = null
+    ): void {
+        this.sendTyped('keyword_options_search', {
+            keyword,
+            search_method: searchMethod,
+            dict_settings: dictSettings,
+        })
+    }
+
+    public sendKeywordOptionsNote(keyword: string, note: string): void {
+        this.sendTyped('word_option_note', { keyword, options: [note] })
+    }
+
+    // --- Anki ---
+    public sendUpdateToAnki(deckName: string, folderId: number): void {
+        this.sendTyped('update_to_anki', { folder_id: folderId, deck_name: deckName })
+    }
+
+    public sendCancelAnkiUpdate(): void {
+        this.sendTyped('cancel_anki_update')
+    }
+
+    // --- Legacy alias ---
+    public sendToggleFloatingWindowPin(fullPath: string): void {
+        this.sendTyped('toggle_float_pin', { full_path: fullPath })
+    }
 }
 
-// 导出单例或工厂函数，根据项目需求选择
-let sessionWebSocketInstance: SessionWebSocketService | null = null;
-export function useSessionWebSocket(id: number) {
-    sessionWebSocketInstance = new SessionWebSocketService("ws://127.0.0.1:5959/ws/dictionary/session/" + id);
-    return sessionWebSocketInstance;
+export function useSessionWebSocket(id: number): SessionWebSocketService {
+    return new SessionWebSocketService(id)
 }
-export { SessionWebSocketService }

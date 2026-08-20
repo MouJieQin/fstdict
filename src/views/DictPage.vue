@@ -1,32 +1,37 @@
 <template>
     <el-container>
-        <el-header data-tauri-drag-region height="var(--header-height)" id="fstdict-header" class="fstdict-header">
-            <Titlebar :webSocket="webSocket as SessionWebSocketService" :sessionId="sessionId" :env="envFromRoute"
-                :isWordFavorited="isWordFavorited" :sessionConfig="sessionConfig as SessionConfig"
-                :dictsInfo="dictsInfo" :sessionsNameId="sessionsNameId" :folderWords="folderWords"
-                :leftHistory="leftHistory" :searchHistory="searchHistory" :isPinned="isFloatingWindowPinned"
-                :lastSearchKeyword="lastSearchKeyword" :hasResultLastSearch="hasResultLastSearch"
-                :noteContent="noteContent" :wordOptions="wordOptions" :redirectWord="redirectWord"
-                @change:keyword="handleChangeKeyword" @clear:addDictMsgs="() => addDictMsgs = []"
-                :iframeKeydownEvent="iframeKeydownEvent" :ankiProgress="ankiProgress" :addDictMsgs="addDictMsgs"
-                :refreshDicsSettingsInfoFlag="refreshDicsSettingsInfoFlag"
-                :showPopoverWordOptions="showPopoverWordOptions" />
+        <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header" class="fstdict-header">
+            <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
+                :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
+                :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
+                :search-history="searchHistory" :is-pinned="isFloatingWindowPinned"
+                :last-search-keyword="lastSearchKeyword" :has-result-last-search="hasResultLastSearch"
+                :note-content="noteContent" :word-options="wordOptions" :redirect-word="redirectWord"
+                @change:keyword="keyword = $event" @clear:add-dict-msgs="addDictMsgs = []"
+                :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress" :add-dict-msgs="addDictMsgs"
+                :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
+                :show-popover-word-options="showPopoverWordOptions" />
         </el-header>
+
         <el-main class="no-padding-main">
-            <el-splitter>
+            <el-splitter ref="splitterRef">
+
                 <el-splitter-panel v-if="!showPopoverWordOptions" :size="wordOptionsSize"
                     @update:size="handlePanelResize">
                     <div class="word-options">
-                        <WordOptions :webSocket="webSocket as SessionWebSocketService"
-                            :sessionConfig="sessionConfig as SessionConfig" :wordOptions="wordOptions"
-                            :searchHistory="searchHistory" :keyword="keyword" />
+                        <WordOptions :web-socket="webSocket" :session-config="sessionConfig" :word-options="wordOptions"
+                            :search-history="searchHistory" :keyword="keyword" />
                     </div>
                 </el-splitter-panel>
+
                 <el-splitter-panel :min="400">
-                    <div class="word-detail"
-                        :class="{ 'anki-mode': envFromRoute === 'anki', 'not-anki-mode': envFromRoute !== 'anki' }">
+                    <div class="word-detail" :class="{
+                        'anki-mode': envFromRoute === 'anki',
+                        'not-anki-mode': envFromRoute !== 'anki',
+                    }">
                         <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
-                            <el-collapse-item v-if="noteContent" title="我的笔记" name="我的笔记" :isActive="true"
+                            <!-- Note panel -->
+                            <el-collapse-item v-if="noteContent" title="My Notes" name="notes" :is-active="true"
                                 class="dict-iframe-container">
                                 <template #icon="{ isActive }">
                                     <el-icon v-show="!isActive" class="el-collapse-item__arrow">
@@ -39,57 +44,66 @@
                                 </template>
                                 <div class="markdown-note-content" v-html="md.render(noteContent)"></div>
                             </el-collapse-item>
-                            <div v-for="(result, dictName) in lookupKeywordResult" :key="dictName">
-                                <el-collapse-item :id="`dict-iframe-container-${dictName}`"
-                                    class="dict-iframe-container" :title="dictName" :name="dictName" :isActive="true">
-                                    <template #icon="{ isActive }">
-                                        <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                                            <CaretRight />
-                                        </el-icon>
-                                        <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                                            <CaretBottom />
-                                        </el-icon>
-                                        <el-image :src="getDictIcon(dictName)" class="collapse-custom-icon">
-                                            <template #error>
-                                                <BiSolidBookBookmark size="35" />
-                                            </template>
-                                        </el-image>
-                                    </template>
 
-                                    <div v-for="(html, index) in result" :key="html">
-                                        <div class="simple-divider"></div>
-                                        <DictIframe :dictionary-name="dictName" :index="index" :html="html"
-                                            :css-urls="dictsInfo[dictName].css" :js-urls="dictsInfo[dictName].js"
-                                            :base-path="dictsInfo[dictName].data"
-                                            :dictionary-root="dictsInfo[dictName].root"
-                                            :isDark="systemConfigStore.isDark" @entry-click="handleEntryClick"
-                                            @keydown="handleIframeKeydown" />
-                                    </div>
-                                </el-collapse-item>
-                            </div>
+                            <!-- Dictionary result panels -->
+                            <el-collapse-item v-for="(htmlList, dictName) in lookupResults" :key="dictName"
+                                :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container"
+                                :title="dictName" :name="dictName" :is-active="true">
+                                <template #icon="{ isActive }">
+                                    <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                                        <CaretRight />
+                                    </el-icon>
+                                    <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                                        <CaretBottom />
+                                    </el-icon>
+                                    <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
+                                        <template #error>
+                                            <BiSolidBookBookmark size="35" />
+                                        </template>
+                                    </el-image>
+                                </template>
+
+                                <div v-for="(html, index) in htmlList" :key="index">
+                                    <div class="simple-divider"></div>
+                                    <DictIframe :dictionary-name="dictName" :index="index" :html="html"
+                                        :css-urls="dictsInfo[dictName]?.css || []"
+                                        :js-urls="dictsInfo[dictName]?.js || []"
+                                        :base-path="dictsInfo[dictName]?.data || ''"
+                                        :dictionary-root="dictsInfo[dictName]?.root || ''"
+                                        :is-dark="systemConfigStore.isDark" @entry-click="handleEntryClick"
+                                        @keydown="handleIframeKeydown" />
+                                </div>
+                            </el-collapse-item>
                         </el-collapse>
-                        <div v-show="!keyword && !hasResultLastSearch">
-                            <p class="dict-homepage-type-p">Type a word to look up in…</p>
+
+                        <!-- Empty state -->
+                        <div v-show="!keyword && !hasResultLastSearch" class="empty-state">
+                            <p class="dict-homepage-type-p">Type a word to look up…</p>
                             <br />
-                            <div v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                您的词典库没有任何激活的词典，请点击右上角词库图标激活词典或添加新词典</div>
-                            <div v-for="dictSetting in sessionDictsSettingInfo" :key="dictSetting.name">
-                                <p class="dict-homepage-dict-p" v-show="dictSetting.is_enabled">{{
-                                    dictSetting.name }}</p>
-                            </div>
+                            <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                                No active dictionaries. Click the dictionary icon to activate or add dictionaries.
+                            </p>
+                            <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                                {{ dict.name }}
+                            </p>
                         </div>
-                        <div v-show="keyword && lastSearchKeyword && !hasResultLastSearch">
-                            <p class="dict-homepage-type-p">No results found for 「{{ lastSearchKeyword }}」 in…</p>
+
+                        <div v-show="keyword && lastSearchKeyword && !hasResultLastSearch" class="empty-state">
+                            <p class="dict-homepage-type-p">
+                                No results found for「{{ lastSearchKeyword }}」
+                            </p>
                             <br />
-                            <div v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                您的词典库没有任何激活的词典，请点击右上角词库图标激活词典或添加新词典</div>
-                            <div v-for="dictSetting in sessionDictsSettingInfo" :key="dictSetting.name">
-                                <p class="dict-homepage-dict-p" v-show="dictSetting.is_enabled">{{
-                                    dictSetting.name }}</p>
-                            </div>
+                            <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                                No active dictionaries. Click the dictionary icon to activate or add dictionaries.
+                            </p>
+                            <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                                {{ dict.name }}
+                            </p>
                         </div>
                     </div>
-                    <el-dropdown placement="bottom-end" @command="handleDropdownCommand">
+
+                    <!-- Floating locate button -->
+                    <el-dropdown placement="bottom-end" @command="scrollToDictionary">
                         <el-button text class="locate-dict-button" circle bg>
                             <el-icon class="el-icon--right">
                                 <MoreFilled />
@@ -97,16 +111,15 @@
                         </el-button>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <div v-for="(result, dictName) in lookupKeywordResult" :key="dictName">
-                                    <el-dropdown-item :command="dictName">
-                                        <el-image :src="getDictIcon(dictName)" class="dropdown-custom-icon">
-                                            <template #error>
-                                                <BiSolidBookBookmark :size="25" />
-                                            </template>
-                                        </el-image>
-                                        {{ dictName }}
-                                    </el-dropdown-item>
-                                </div>
+                                <el-dropdown-item v-for="(_, dictName) in lookupResults" :key="dictName"
+                                    :command="dictName">
+                                    <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                                        <template #error>
+                                            <BiSolidBookBookmark :size="25" />
+                                        </template>
+                                    </el-image>
+                                    {{ dictName }}
+                                </el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -117,116 +130,120 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
-import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
-import { invoke } from '@tauri-apps/api/core';
-
-import { SessionWebSocketService, useSessionWebSocket } from '@/common/session-websocket-client'
 import { listen } from '@tauri-apps/api/event'
-import Titlebar from '@/components/TitleBar/TitleBar.vue'
-import WordOptions from '@/components/WordOptions.vue'
-import DictIframe from '@/components/DictIframe.vue';
-import type { DictsInfo, SessionNameId, SessionConfig, DictsSettingInfo, WordInfoWithFavoriteAt, FolderWords, WordInfoWithLastSearch } from '@/common/type-interface'
-import { useFolderConfigStore, useDictConfigStore, useSystemConfigStore } from '@/stores/stores'
-import { getDefaultSessionConfig, getDictSettingsForLookup } from '@/common/utility'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import MarkdownIt from 'markdown-it'
-const md = new MarkdownIt(
-    {
-        breaks: true,    // 单行换行 → <br>
-        xhtmlOut: true   // 闭合<br>标签，兼容更好
-    }
-)
 
-// 路由与状态
+// Icons
+import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
+import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
+
+// Components
+import TitleBar from '@/components/TitleBar/TitleBar.vue'
+import WordOptions from '@/components/WordOptions.vue'
+import DictIframe from '@/components/DictIframe.vue'
+
+// WebSocket & stores
+import { useSessionWebSocket } from '@/common/session-websocket-client'
+import {
+    useFolderConfigStore,
+    useDictConfigStore,
+    useSystemConfigStore,
+} from '@/stores'
+import { getDefaultSessionConfig, getDictSettingsForLookup } from '@/common/utility'
+
+// Types
+import type {
+    DictsInfo,
+    SessionNameId,
+    SessionConfig,
+    DictsSettingInfo,
+    FolderWords,
+    WordInfoWithLastSearch,
+} from '@/common/type-interface'
+
+// Markdown renderer
+const md = new MarkdownIt({
+    breaks: true,
+    xhtmlOut: true,
+})
+
+// --- Router & route ---
 const route = useRoute()
 const router = useRouter()
 
+// --- Stores ---
 const systemConfigStore = useSystemConfigStore()
 const dictConfigStore = useDictConfigStore()
 const folderConfigStore = useFolderConfigStore()
-const webSocket = ref<SessionWebSocketService | null>(null)
-// const bodyScrollTimeoutId = ref<number | null>(null)
+
+// --- Reactive state ---
+const webSocket = ref<ReturnType<typeof useSessionWebSocket> | null>(null)
 const keyword = ref('')
 const sessionId = ref(-1)
-const keywordFromRoute = ref<string>(route.query.keyword as string || '')
-const envFromRoute = ref<string>(route.query.env as string || '')
-const redirectWord = ref<string>('')
+const envFromRoute = ref('')
+const redirectWord = ref('')
+
 const dictsInfo = ref<DictsInfo>({})
 const sessionDictsSettingInfo = ref<DictsSettingInfo>([])
 const sessionsNameId = ref<SessionNameId[]>([])
 const sessionConfig = ref<SessionConfig>(getDefaultSessionConfig('default'))
-const refreshDicsSettingsInfoFlag = ref<boolean>(false)
-const lookupKeywordResult = ref<any>(null)
+const refreshDicsSettingsInfoFlag = ref(false)
+
+const lookupResults = ref<Record<string, string[]>>({})
 const wordOptions = ref<string[]>([])
 const wordOptionsSize = ref<number | string>(0)
 const splitterRef = ref<any>(null)
 
 const activeNames = ref<string[]>([])
-const isWordFavorited = ref<boolean>(false)
-const lastSearchKeyword = ref<string>('')
-const noteContent = ref<string>('')
-const hasResultLastSearch = ref<boolean>(false)
+const isWordFavorited = ref(false)
+const lastSearchKeyword = ref('')
+const noteContent = ref('')
+const hasResultLastSearch = ref(false)
 const folderWords = ref<FolderWords>({})
-const leftHistory = ref<boolean>(false)
+const leftHistory = ref(false)
 const searchHistory = ref<WordInfoWithLastSearch[]>([])
-const iframeKeydownEvent = ref<any | null>(null)
-const ankiProgress = ref<any>({})
-const addDictMsgs = ref<any>([])
+const iframeKeydownEvent = ref<unknown>(null)
+const ankiProgress = ref<Record<string, any>>({})
+const addDictMsgs = ref<any[]>([])
 const showAddDictInfo = ref(false)
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
 
-const isFloatingWindowPinned = ref<boolean>(sessionConfig.value?.pin?.is_pinned || false)
+const isFloatingWindowPinned = computed(
+    () => sessionConfig.value?.pin?.is_pinned || false
+)
 
-watch(() => sessionConfig.value?.pin?.is_pinned, (newVal) => {
-    isFloatingWindowPinned.value = newVal || false
-})
+// --- Computed ---
+const isTauriEnv = computed(
+    () => envFromRoute.value === '' ||
+        envFromRoute.value === 'helper_main_tauri' ||
+        envFromRoute.value === 'selection_float_search'
+)
 
-watch(() => lastSearchKeyword.value, async (val) => {
-    if (isTauriEnv()) {
-        console.log("val:", val)
-        try {
-            await getCurrentWindow().setTitle(val)
-        } catch (error) {
-            console.error("set title error:", error)
-        }
-    }
-})
+const activeDictionaries = computed(() =>
+    sessionDictsSettingInfo.value.filter((d) => d.is_enabled)
+)
 
-watch(() => viewportWidth.value, (newWidth) => {
-    showPopoverWordOptions.value = newWidth < 700
-})
+// --- Helper functions ---
+const getDictCover = (dictName: string): string => dictsInfo.value[dictName]?.cover_url || ''
 
-const isTauriEnv = (): boolean => {
-    return envFromRoute.value === '' || envFromRoute.value === "helper_main_tauri" || envFromRoute.value === "selection_float_search";
+const setShowAddDictInfo = (): void => {
+    showAddDictInfo.value = !activeDictionaries.value.length
 }
 
-const setShowAddDictInfo = () => {
-    const item = sessionDictsSettingInfo.value?.find((item: any) => item.is_enabled === true)
-    showAddDictInfo.value = item ? false : true;
-}
-
-// 1. Sync manual user dragging changes back to the reactive ref state
-const handlePanelResize = (size: number) => {
-    console.log("size:", size)
+// --- Panel sizing ---
+const handlePanelResize = (size: number): void => {
     wordOptionsSize.value = size
 }
 
-// 2. Programmatically resize panels safely
-const resize_wordoptions = async () => {
-    console.log("Current tracking size before shift:", wordOptionsSize.value)
-
+const expandWordOptions = async (): Promise<void> => {
     if (Number(wordOptionsSize.value) <= 5) {
-        // Update the layout tracking value
         wordOptionsSize.value = 300
-
-        // Forcing component element updates to bypass internal flex caching layers
         await nextTick()
         if (splitterRef.value) {
-            // Accessing internal element instance layouts directly to force rendering updates
             const panelEl = splitterRef.value.$el?.querySelector('.el-splitter-panel')
             if (panelEl) {
                 panelEl.style.flexBasis = '300px'
@@ -235,170 +252,169 @@ const resize_wordoptions = async () => {
     }
 }
 
-const setupDicsSettingsInfo = () => {
-    if (!sessionConfig.value?.dict_setting_option_name || !(sessionConfig.value.dict_setting_option_name in dictConfigStore.dictConfig.dict_set_options)) {
+// --- Dictionary setup ---
+const setupDictSettings = (): void => {
+    const optionName = sessionConfig.value.dict_setting_option_name
+    const options = dictConfigStore.dictConfig?.dict_set_options
+
+    if (!optionName || !options || !(optionName in options)) {
         sessionConfig.value.dict_setting_option_name = 'default'
     }
-    sessionDictsSettingInfo.value = dictConfigStore.dictConfig.dict_set_options[sessionConfig.value.dict_setting_option_name]
+
+    const currentOption = dictConfigStore.dictConfig?.dict_set_options?.[
+        sessionConfig.value.dict_setting_option_name
+    ]
+
+    sessionDictsSettingInfo.value = currentOption || []
     setShowAddDictInfo()
     refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
 }
 
-const setupOcrLangType = () => {
+const setupOcrLangType = (): void => {
     if (!sessionConfig.value?.ocr_lang_type) {
         sessionConfig.value.ocr_lang_type = 'English'
     }
 }
 
-const handleDictConfig = (data: any) => {
-    dictConfigStore.setDictConfig(data.dict_config)
-    setupDicsSettingsInfo()
+// --- WebSocket message handlers ---
+const handleDictInfo = (data: any): void => {
+    dictsInfo.value = data
+    setupDictSettings()
 }
 
-const handleSystemConfig = (data: any) => {
+const handleDictConfig = (data: any): void => {
+    dictConfigStore.setDictConfig(data.dict_config)
+    setupDictSettings()
+}
+
+const handleSystemConfig = (data: any): void => {
     systemConfigStore.setSystemConfig(data.system_config)
 }
 
-const handleSessionsNameId = (data: any) => {
+const handleSessionsNameId = (data: any): void => {
     sessionsNameId.value = data.sessions_name_id
-    console.log("front,systemConfigStore.systemConfig.ocr.session.id:", systemConfigStore.systemConfig.ocr.session.id)
-    if (envFromRoute.value === "") {
-        const id = systemConfigStore.systemConfig.app.session.id
-        if (id != sessionId.value) {
-            redirectSession(id)
-        }
-    } else if (envFromRoute.value === "helper_main_tauri") {
-        const id = systemConfigStore.systemConfig.ocr.session.id
-        console.log("systemConfigStore.systemConfig.ocr.session.id:", id)
-        if (id != sessionId.value) {
-            redirectSession(id)
-        }
-    } else if (envFromRoute.value === "selection_float_search") {
-        const id = systemConfigStore.systemConfig.app.helper_selection.session.id
-        console.log("systemConfigStore.systemConfig.app.helper_selection.session.id:", id)
-        if (id != sessionId.value) {
-            redirectSession(id)
+
+    const env = envFromRoute.value
+    const config = systemConfigStore.systemConfig
+    let targetId: number | undefined
+
+    if (env === '') {
+        targetId = config?.app?.session?.id
+    } else if (env === 'helper_main_tauri') {
+        targetId = config?.ocr?.session?.id
+    } else if (env === 'selection_float_search') {
+        targetId = config?.app?.helper_selection?.session?.id
+    }
+
+    if (targetId !== undefined && targetId !== sessionId.value) {
+        redirectToSession(targetId)
+    }
+}
+
+const handleLookupKeyword = (data: any): void => {
+    if (envFromRoute.value === 'anki') {
+        window.scrollTo(0, 0)
+    } else {
+        document.querySelector('.word-detail')?.scrollTo(0, 0)
+    }
+
+    const word = data.keyword
+    document.title = word || 'FstDict'
+
+    lastSearchKeyword.value = word || ''
+    noteContent.value = data.note || ''
+    leftHistory.value = data.left_history
+    lookupResults.value = data.result || {}
+    hasResultLastSearch.value = data.result && Object.keys(data.result).length > 0
+    isWordFavorited.value = data.is_word_favorited
+
+    activeNames.value = Object.keys(data.result || {})
+    if (noteContent.value) {
+        activeNames.value.unshift('notes')
+    }
+}
+
+const handleToggleFavor = (data: any): void => {
+    isWordFavorited.value = data.is_word_favorited
+
+    if (!isWordFavorited.value) {
+        const folderId = data.folder_id
+        if (folderWords.value[folderId]) {
+            folderWords.value[folderId] = folderWords.value[folderId].filter(
+                (item: any) => item.word !== data.keyword
+            )
         }
     }
 }
 
-// 初始化WebSocket
-const setupWebSocket = () => {
+const handleSessionConfig = (message: any): void => {
+    sessionConfig.value = message.data.config
+    setupDictSettings()
+    setupOcrLangType()
+
+    if (message.data.is_right_after_connection) {
+        if (envFromRoute.value === 'iwin') {
+            webSocket.value?.sendFloatingWindowPinClick(
+                sessionId.value,
+                sessionConfig.value?.pin?.is_pinned || false
+            )
+        }
+
+        const keywordFromRoute = route.query.keyword as string
+        if (keywordFromRoute) {
+            webSocket.value?.sendLookupKeywordRequest(keywordFromRoute)
+        }
+    }
+}
+
+const handleToggleFloatPin = (message: any): void => {
+    const pinned = message.data.is_pinned
+
+    if (sessionConfig.value?.pin) {
+        if (sessionConfig.value.pin.is_pinned === pinned) return
+        sessionConfig.value.pin.is_pinned = pinned
+    } else {
+        sessionConfig.value.pin = { is_pinned: pinned }
+    }
+
+    webSocket.value?.sendSessionConfig(sessionConfig.value)
+}
+
+const handleCgevent = (data: any): void => {
+    if (envFromRoute.value !== 'selection_float_search') return
+    if (data.type === 'handlerEventTextSelection') {
+        redirectWord.value = data.text_selected
+    }
+}
+
+const handleTauriNotification = (data: any): void => {
+    if (envFromRoute.value !== 'floating_tauri') return
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+        invoke('trigger_notification', { message: data.message || '' })
+    })
+}
+
+// --- WebSocket setup ---
+const setupWebSocket = (): void => {
     sessionId.value = Number(route.params.id)
     webSocket.value = useSessionWebSocket(sessionId.value)
+
     if (webSocket.value) {
-        webSocket.value.handleMessage = (message: any) => {
-            handleWebSocketMessage(message)
-        }
+        webSocket.value.setMessageHandler(handleWebSocketMessage as any)
     }
 }
 
-// Clean-up holder variable
-let unlistenTextSelectedMessage: any = null;
-let unlistenOcrResultMessage: any = null;
-
-const tauriListenerSetup = async () => {
-    try {
-        console.log("tauri setup")
-        // 1. Listen for "update-message" event emitted from Rust [3]
-        unlistenTextSelectedMessage = await listen('cgevent-select', (event) => {
-            // event.payload contains your string data ("已启用选词浮窗") [3, 4]
-            console.log('Received message from Rust:', event.payload);
-            redirectWord.value = event.payload as string;
-        });
-
-    } catch (error) {
-        console.error('Failed to bind Tauri event listeners:', error);
-    }
-}
-
-const helperMainListenerSetup = async () => {
-    try {
-        unlistenOcrResultMessage = await listen('cgevent-ocr', (event) => {
-            console.log('Received message from Rust:', event.payload);
-            redirectWord.value = event.payload as string;
-        });
-    } catch (error) {
-        console.error('Failed to bind Tauri event listeners:', error);
-    }
-}
-
-
-const initDictPage = async () => {
-    if (envFromRoute.value === 'anki') {
-        document.body.classList.add('anki-mode')
-    } else {
-        document.body.classList.remove('anki-mode')
-    }
-    if (envFromRoute.value === 'selection_float_search' || envFromRoute.value === "") {
-        await tauriListenerSetup()
-    }
-    if (envFromRoute.value === 'helper_main_tauri' || envFromRoute.value === "") {
-        await helperMainListenerSetup()
-    }
-    console.log("Current env:", envFromRoute.value)
-    setupWebSocket()
-    window.addEventListener('resize', handleResize)
-    showPopoverWordOptions.value = window.innerWidth < 700
-}
-
-function handleResize() {
-    viewportWidth.value = window.innerWidth
-}
-
-watch(
-    () => route.params.id,
-    async () => {
-        await initDictPage()
-    },
-    { immediate: false }
-)
-
-// 初始化
-onMounted(async () => {
-    await initDictPage()
-})
-
-onUnmounted(() => {
-    window.removeEventListener('resize', handleResize)
-    if (unlistenTextSelectedMessage) unlistenTextSelectedMessage();
-    if (unlistenOcrResultMessage) unlistenOcrResultMessage();
-})
-
-router.beforeEach(async (to, from) => {
-    // 关闭 WebSocket
-    webSocket.value?.close()
-    // 返回 true 代表正常放行路由跳转
-    return true
-})
-onBeforeUnmount(() => {
-    document.title = 'FstDict'
-})
-
-const handleChangeKeyword = (newKeyword: string) => {
-    keyword.value = newKeyword
-}
-
-
-// 处理WebSocket消息
-const handleWebSocketMessage = (message: any) => {
+const handleWebSocketMessage = (message: any): void => {
     switch (message.type) {
-        // case 'toggle_float_pin':
-        //     handleToggleFloatPin(message)
-        //     break
         case 'dict_info':
-            dictsInfo.value = message.data
-            setupDicsSettingsInfo()
-            console.log('dict_info:', dictsInfo.value)
+            handleDictInfo(message.data)
             break
         case 'keyword_options_search':
             wordOptions.value = message.data.options
-            resize_wordoptions()
-            console.log('keyword_options_search:', wordOptions.value)
+            expandWordOptions()
             break
         case 'lookup_keyword_request':
             redirectWord.value = message.data.keyword
-            console.log('lookup_keyword_request:', message.data)
             break
         case 'word_note':
             if (message.data.keyword === lastSearchKeyword.value) {
@@ -407,46 +423,36 @@ const handleWebSocketMessage = (message: any) => {
             break
         case 'lookup_keyword':
             handleLookupKeyword(message.data)
-            console.log('lookup_keyword:', message.data)
             break
         case 'create_session':
-            handleCreateSession(message.data)
+            redirectToSession(message.data.session_id)
             break
         case 'session_config':
             handleSessionConfig(message)
-            console.log('session_config:', sessionConfig.value)
             break
         case 'sessions_name_id':
             handleSessionsNameId(message.data)
-            console.log('sessions_name_id:', sessionsNameId.value)
             break
         case 'toggle_floating_pin':
             handleToggleFloatPin(message)
             break
         case 'toggle_favor':
-            console.log('toggle_favor:', message.data)
             handleToggleFavor(message.data)
             break
         case 'favorite_words':
             folderWords.value[message.data.folder_id] = message.data.words
-            console.log('favorite_words:', folderWords.value)
             break
         case 'search_history':
             searchHistory.value = message.data.words
-            console.log('search_history:', searchHistory.value)
             break
         case 'folder_config':
             folderConfigStore.setFolderConfig(message.data)
-            console.log('folder_config:', message.data)
             break
         case 'dict_config':
             handleDictConfig(message.data)
-            break;
+            break
         case 'system_config':
             handleSystemConfig(message.data)
-            break;
-        case 'close_fixed_window':
-            handleCloseFixedWindow(message)
             break
         case 'anki_progress':
             ankiProgress.value[message.deck_name] = message.data
@@ -455,215 +461,175 @@ const handleWebSocketMessage = (message: any) => {
             addDictMsgs.value.push(message.data)
             break
         case 'cgevent':
-            handleCgevent(message.data);
-            break;
+            handleCgevent(message.data)
+            break
         case 'tauri_notification':
-            handle_tauri_notification(message.data);
-            break;
+            handleTauriNotification(message.data)
+            break
         case 'error_session_not_exist':
             router.push('/')
             break
     }
 }
 
-const getDictIcon = (dictName: string) => {
-    return dictsInfo.value[dictName]?.cover_url || ''
+// --- Navigation ---
+const redirectToSession = (id: number): void => {
+    router.push({
+        path: `/dict/${id}`,
+        query: { env: envFromRoute.value },
+    })
 }
 
-const handleLookupKeyword = (data: any) => {
-    if (envFromRoute.value === 'anki') {
-        window.scrollTo(0, 0)
-    } else {
-        document.querySelector('.word-detail').scrollTo(0, 0)
-    }
-    const keyword = data.keyword
-    document.title = keyword || 'FstDict'
-    lastSearchKeyword.value = keyword || ''
-    noteContent.value = data.note || ''
-    leftHistory.value = data.left_history
-    lookupKeywordResult.value = data.result
-    hasResultLastSearch.value = data.result !== null && data.result !== undefined && Object.keys(data.result).length !== 0
-    console.log('Object.keys(data.result).length:', Object.keys(data.result).length)
-    isWordFavorited.value = data.is_word_favorited
-    activeNames.value = Object.keys(data.result).map((key) => key)
-    activeNames.value.push('我的笔记')
-    console.log('lookup_keyword', keyword, data)
-}
-
-const handleEntryClick = (entryPath: string) => {
+// --- Iframe events ---
+const handleEntryClick = (entryPath: string): void => {
     redirectWord.value = entryPath
-    console.log('redirectWord.value:', redirectWord.value)
 }
 
-const handleIframeKeydown = (e: any) => {
-    console.log('键盘按下:', e.key)
+const handleIframeKeydown = (e: unknown): void => {
     iframeKeydownEvent.value = e
 }
 
-const redirectSession = (sessionId: number) => {
-    router.push({
-        path: `/dict/${sessionId}`,
-        query: { env: envFromRoute.value }
-    })
-}
-
-const handleCreateSession = (data: any) => {
-    redirectSession(data.session_id)
-    router.push({
-        path: `/dict/${data.session_id}`,
-        query: { env: envFromRoute.value }
-    })
-}
-
-const handleSessionConfig = (message: any) => {
-    sessionConfig.value = message.data.config
-    setupDicsSettingsInfo()
-    setupOcrLangType()
-    if (message.data.is_right_after_connection) {
-        if (envFromRoute.value === 'iwin') {
-            webSocket.value?.sendFloatingWindowPinClick(sessionId.value, sessionConfig.value?.pin?.is_pinned || false)
-        }
-        if (keywordFromRoute.value) {
-            webSocket.value?.sendLookupKeywordRequest(keywordFromRoute.value)
-        }
-    }
-}
-
-const handleToggleFloatPin = (message: any) => {
-    isFloatingWindowPinned.value = message.data.is_pinned
-    if (sessionConfig.value?.pin) {
-        if (sessionConfig.value.pin.is_pinned === message.data.is_pinned) {
-            return
-        }
-        sessionConfig.value.pin.is_pinned = message.data.is_pinned
-    } else {
-        sessionConfig.value.pin = { "is_pinned": message.data.is_pinned }
-    }
-    webSocket.value?.sendSessionConfig(sessionConfig.value)
-}
-
-const handleCgevent = async (data: any) => {
-    if (envFromRoute.value != 'selection_float_search') {
-        return
-    }
-    const type = data.type
-    if (type === 'handlerEventTextSelection') {
-        redirectWord.value = data.text_selected
-        // invoke("show_panel")
-        // await popupPanelNearCursor()
-    }
-}
-
-const handle_tauri_notification = (data: any) => {
-    if (envFromRoute.value != 'floating_tauri') {
-        return
-    }
-    console.log(new Date(), "trigger_notification!")
-    const message = data.message || ''
-    invoke('trigger_notification', {
-        message: message,
-    })
-}
-
-const handleCloseFixedWindow = (message: any) => {
-    console.log('close_fixed_window:', message.data)
-}
-
-
-const handleToggleFavor = (data: any) => {
-    isWordFavorited.value = data.is_word_favorited
-    if (!isWordFavorited.value) {
-        // delete the word in folderWords.value
-        folderWords.value[data.folder_id] = folderWords.value[data.folder_id].filter((item: WordInfoWithFavoriteAt) => item.word !== data.keyword)
-    }
-}
-
-const handleDropdownCommand = (dictName: string) => {
+const scrollToDictionary = (dictName: string): void => {
     const element = document.getElementById(`dict-iframe-container-${dictName}`)
     if (!element) return
 
-    // 1. 先展开词典
-    if (!(dictName in activeNames.value)) {
+    if (!activeNames.value.includes(dictName)) {
         activeNames.value.push(dictName)
     }
 
-    // 2. 等 Vue DOM 更新 + 浏览器重排完成后再滚动
     nextTick(() => {
-        // 获取滚动容器（你的 el-main，替换成你实际的 class/id）
-        const scrollContainer = document.querySelector('.word-detail') as HTMLElement
-        if (!scrollContainer) return
+        const container = document.querySelector('.word-detail') as HTMLElement | null
+        if (!container) return
 
-        // 计算元素相对滚动容器的位置
-        const containerRect = scrollContainer.getBoundingClientRect()
+        const containerRect = container.getBoundingClientRect()
         const elementRect = element.getBoundingClientRect()
+        const targetTop = container.scrollTop + (elementRect.top - containerRect.top)
 
-        const targetScrollTop =
-            scrollContainer.scrollTop +
-            (elementRect.top - containerRect.top)
-
-        // 执行滚动
-        scrollContainer.scrollTo({
-            top: targetScrollTop,
-            behavior: 'instant'
-        })
+        container.scrollTo({ top: targetTop, behavior: 'instant' })
     })
 }
+
+// --- Tauri event listeners ---
+let unlistenTextSelected: (() => void) | null = null
+let unlistenOcrResult: (() => void) | null = null
+
+const setupTauriListeners = async (): Promise<void> => {
+    try {
+        if (envFromRoute.value === 'selection_float_search' || envFromRoute.value === '') {
+            unlistenTextSelected = await listen('cgevent-select', (event) => {
+                redirectWord.value = event.payload as string
+            })
+        }
+
+        if (envFromRoute.value === 'helper_main_tauri' || envFromRoute.value === '') {
+            unlistenOcrResult = await listen('cgevent-ocr', (event) => {
+                redirectWord.value = event.payload as string
+            })
+        }
+    } catch (error) {
+        console.error('Failed to bind Tauri event listeners:', error)
+    }
+}
+
+// --- Viewport resize ---
+const handleResize = (): void => {
+    viewportWidth.value = window.innerWidth
+}
+
+// --- Lifecycle ---
+const initDictPage = async (): Promise<void> => {
+    // Apply anki mode class
+    if (envFromRoute.value === 'anki') {
+        document.body.classList.add('anki-mode')
+    } else {
+        document.body.classList.remove('anki-mode')
+    }
+
+    await setupTauriListeners()
+    setupWebSocket()
+    window.addEventListener('resize', handleResize)
+    showPopoverWordOptions.value = window.innerWidth < 700
+}
+
+onMounted(async () => {
+    envFromRoute.value = (route.query.env as string) || ''
+    await initDictPage()
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+    unlistenTextSelected?.()
+    unlistenOcrResult?.()
+})
+
+onBeforeUnmount(() => {
+    document.title = 'FstDict'
+})
+
+// Route change handler
+watch(
+    () => route.params.id,
+    async () => {
+        webSocket.value?.close()
+        await initDictPage()
+    }
+)
+
+watch(() => lastSearchKeyword.value, async (val) => {
+    if (isTauriEnv.value) {
+        try {
+            await getCurrentWindow().setTitle(val)
+        } catch (error) {
+            console.error('Failed to set window title:', error)
+        }
+    }
+})
+
+watch(() => viewportWidth.value, (width) => {
+    showPopoverWordOptions.value = width < 700
+})
+
+// Router guard for cleanup
+router.beforeEach(async () => {
+    webSocket.value?.close()
+    return true
+})
 </script>
 
 <style scoped>
 :deep(.no-padding-main) {
     padding: 0;
-    /* 直接清除全部内边距 */
-    /* 只清除左右保留上下间距就写 padding: 20px 0; */
     flex: 1;
     overflow-y: auto;
 }
 
-/* 自定义图标样式 */
 :deep(.collapse-custom-icon) {
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
     margin-right: 8px;
-    /* 图标和文字之间的间距 */
     vertical-align: middle;
 }
 
 :deep(.el-collapse-item__arrow) {
     flex-shrink: 0;
-    /* width: 2rem; */
-    /* height: 2rem; */
 }
 
-/* 必须用 :deep() 深度选择器，因为 el-collapse-item__header 是Element Plus内部元素 */
 :deep(.sticky-collapse .el-collapse-item__header) {
-    /* 核心：粘性定位 */
     position: sticky;
     top: 0;
-    /* 悬浮在距离顶部0px的位置 */
-
-    /* 必须设置背景色，否则会透明看到下面的内容 */
     background-color: var(--el-bg-color);
-    /* 使用Element Plus主题变量，自动适配深色模式 */
-
-    /* 确保悬浮在所有内容（包括iframe）的最上层 */
-    /* z-index: 1; */
-
-    /* 可选：添加阴影，增强悬浮层次感 */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    /* 可选：调整内边距，让标题更美观 */
     padding-right: 20px;
-
     white-space: nowrap;
     overflow: hidden;
-    /* text-overflow: ellipsis; */
-    /* max-width: calc(100% - 60px); */
-
 }
 
-/* 可选：去掉第一个折叠项的顶部边框，更美观 */
 :deep(.sticky-collapse .el-collapse-item:first-child .el-collapse-item__header) {
     border-top: none;
+}
+
+.empty-state {
+    text-align: center;
 }
 </style>

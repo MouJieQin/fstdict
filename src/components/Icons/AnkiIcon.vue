@@ -8,7 +8,7 @@
 
 <script setup>
 const props = defineProps({
-    size: [String, Number], // 尺寸
-    color: String, // 颜色
+    size: [String, Number],
+    color: String,
 })
 </script>

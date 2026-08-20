@@ -1,0 +1,52 @@
+html {
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+    /* max-width: 100%; */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Anki mode: hide scrollbars for clean card rendering */
+body.anki-mode {
+    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+body.anki-mode::-webkit-scrollbar {
+    display: none;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background: var(--scrollbar-background);
+}
+
+#app {
+    margin-top: 0;
+    height: 100%;
+}
+
+/* Scrollbar styling for main containers */
+#app::-webkit-scrollbar,
+.word-detail::-webkit-scrollbar {
+    width: 7px;
+}
+
+#app::-webkit-scrollbar-thumb,
+.word-detail::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-background);
+    border-radius: 5px;
+}

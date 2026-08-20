@@ -1,78 +1,74 @@
 <template>
-    <!-- 自定义 macOS 标题栏（仅 macOS 显示，包含 Pin 置顶按钮） -->
     <div>
+        <!-- macOS-style title bar with drag region -->
         <div data-tauri-drag-region class="floating-window-titlebar">
             <div @mousedown.stop>
-                <WordOptionsAutoComplete :webSocket="props.webSocket" :env="props.env"
-                    :redirectWord="props.redirectWord" :redirectHistoryWord="redirectHistoryWord"
-                    :wordOptions="props.wordOptions" :sessionConfig="props.sessionConfig" :searchHistory="searchHistory"
-                    @change:keyword="keywordChange" :showPopoverWordOptions="showPopoverWordOptions" />
+                <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
+                    :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
+                    :session-config="sessionConfig" :search-history="searchHistory"
+                    @change:keyword="emit('change:keyword', $event)"
+                    :show-popover-word-options="showPopoverWordOptions" />
             </div>
+
             <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
-                <el-button :icon="ArrowLeftBold" text @click="handleHistoryBack" class="floating-window-titlebar-button"
-                    size="small" :disabled="historyIndex >= searchHistory.length - 1"
-                    id="titlebar-history-back-button" />
-                <el-button :icon="ArrowRightBold" text @click="handleHistoryForward"
-                    class="floating-window-titlebar-button" size="small"
-                    :disabled="historyIndex === -1 || historyIndex === 0" id="titlebar-history-forward-button" />
-                <el-tooltip v-if="showFavorButtonTooltip" content="请先设置默认收藏夹" trigger="hover">
+                <el-button :icon="ArrowLeftBold" text @click="goBack" class="floating-window-titlebar-button"
+                    size="small" :disabled="!canGoBack" id="titlebar-history-back-button" />
+                <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
+                    size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
+
+                <el-tooltip v-if="showFavoriteTooltip" content="Set a default folder first" placement="bottom">
                     <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
                 </el-tooltip>
-                <el-button v-if="!showFavorButtonTooltip" :icon="props.isWordFavorited ? BsHeartFill : BsHeart" text
-                    @click="handleFavorClick" class="floating-window-titlebar-button" size="small"
-                    :disabled="!(lastSearchKeyword !== '' && (props.isWordFavorited || props.hasResultLastSearch || props.noteContent !== ''))" />
+                <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"
+                    class="floating-window-titlebar-button" size="small" :disabled="!canFavorite" />
 
-                <el-button :icon="Edit" text @click="noteDialogVisible = true" class="floating-window-titlebar-button"
-                    size="small" :disabled="!(lastSearchKeyword !== '')" />
+                <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button"
+                    size="small" :disabled="!lastSearchKeyword" />
 
                 <el-button :icon="ImBooks" text id="titlebar-dictss-button"
-                    @click="dictSSDialogVisible = !dictSSDialogVisible" class="floating-window-titlebar-button"
+                    @click="dictDialogVisible = !dictDialogVisible" class="floating-window-titlebar-button"
                     size="small" />
                 <el-button :icon="Setting" text id="titlebar-setting-button"
-                    @click="settingDialogVisible = !settingDialogVisible" class="floating-window-titlebar-button"
+                    @click="settingsDialogVisible = !settingsDialogVisible" class="floating-window-titlebar-button"
                     size="small" />
-                <el-button v-if="showPinButton" :icon="props.isPinned ? BsPinAngleFill : BsPin" text
-                    @click="handlePinClick" class="floating-window-titlebar-button" size="small" />
+
+                <el-button v-if="showPinButton" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
+                    class="floating-window-titlebar-button" size="small" />
 
                 <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
                     class="floating-window-titlebar-button" @command="handleSessionCommand">
-                    <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px;" />
+                    <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
                     <template #dropdown>
                         <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
-                            <div v-for="item in props.sessionsNameId" :key="item.id">
-                                <el-dropdown-item v-if="item.id === sessionId"
-                                    style="background-color: var(--el-color-primary-light-8) !important">
-                                    <el-icon style="color:var(--el-color-primary)" size="25">
-                                        <BiUserCheck />
-                                    </el-icon>
-                                    <span>{{ item.name }}</span>
-                                </el-dropdown-item>
-                            </div>
-                            <div v-for="item in props.sessionsNameId" :key="item.id">
-                                <el-dropdown-item v-if="item.id != sessionId" :command="{ cmd: 'switch', id: item.id }">
-                                    <el-icon>
-                                        <BiUser />
-                                    </el-icon>
-                                    <span>{{ item.name }}</span>
-                                </el-dropdown-item>
-                            </div>
-                            <el-dropdown-item :command="{ cmd: 'create', id: -1 }">
-                                <el-icon>
-                                    <BiUserPlus style="color: var(--el-color-primary);" />
+                            <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
+                                :class="{ 'is-active': session.id === sessionId }"
+                                :command="{ cmd: 'switch', id: session.id }">
+                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)">
+                                    <BiUserCheck />
                                 </el-icon>
-                                <span>创建新的Session</span>
+                                <el-icon v-else>
+                                    <BiUser />
+                                </el-icon>
+                                <span>{{ session.name }}</span>
+                            </el-dropdown-item>
+
+                            <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
+                                <el-icon>
+                                    <BiUserPlus style="color: var(--el-color-primary)" />
+                                </el-icon>
+                                <span>New Session</span>
                             </el-dropdown-item>
                             <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
                                 <el-icon>
-                                    <LiaUserEditSolid style="color: var(--el-color-success);" />
+                                    <LiaUserEditSolid style="color: var(--el-color-success)" />
                                 </el-icon>
-                                <span>编辑当前Session</span>
+                                <span>Rename Session</span>
                             </el-dropdown-item>
                             <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
                                 <el-icon>
-                                    <BiUserMinus style="color: var(--el-color-danger);" />
+                                    <BiUserMinus style="color: var(--el-color-danger)" />
                                 </el-icon>
-                                <span>移除当前Session</span>
+                                <span>Remove Session</span>
                             </el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
@@ -81,56 +77,53 @@
         </div>
     </div>
 
+    <!-- Dialogs -->
     <div @mousedown.stop>
-        <el-dialog v-model="noteDialogVisible" :title="'「' + keywordEditingNote + '」' + '的笔记（markdown）'" width="500"
-            align-center draggable :close-on-click-modal="false">
-            <el-input class="note-content-input" v-model="noteContent" autocomplete="off" type="textarea"
+        <el-dialog v-model="noteDialogVisible" :title="`Notes for「${noteKeyword}」`" width="500" align-center draggable
+            :close-on-click-modal="false">
+            <el-input v-model="noteContent" class="note-content-input" autocomplete="off" type="textarea"
                 :autosize="{ minRows: 5, maxRows: 9 }" />
             <template #footer>
                 <div class="dialog-footer">
-                    <el-popconfirm confirm-button-text="删除" confirm-button-type="danger" cancel-button-text="取消"
-                        :icon="Delete" icon-color="#FF4949" title="确定删除笔记吗？" @confirm="handleDeleteNote">
+                    <el-popconfirm confirm-button-text="Delete" confirm-button-type="danger" cancel-button-text="Cancel"
+                        :icon="Delete" icon-color="#FF4949" title="Delete this note?" @confirm="deleteNote">
                         <template #reference>
                             <el-button :icon="Delete" type="danger">Delete</el-button>
                         </template>
                     </el-popconfirm>
 
                     <el-button @click="noteDialogVisible = false">Cancel</el-button>
-                    <el-button type="primary" @click="submitNote">
-                        Confirm
-                    </el-button>
+                    <el-button type="primary" @click="saveNote">Save</el-button>
                 </div>
             </template>
         </el-dialog>
 
-        <!-- </el-dialog> :z-index="10000"> -->
         <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
-            <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-                @update-visible="(visible) => favoriteWordsDialogVisible = visible" :favoriteWords="favoriteWords"
-                :folderName="sessionDefaultFolderName" :folderId="props.sessionConfig.default_folder.id" />
+            <FavoriteWords :favorite-words-dialog-visible="favoriteWordsDialogVisible" :web-socket="webSocket"
+                @update-visible="favoriteWordsDialogVisible = $event" :favorite-words="favoriteWords"
+                :folder-name="defaultFolderName" :folder-id="sessionConfig.default_folder.id ?? 0" />
         </el-dialog>
-        <el-dialog v-model="settingDialogVisible" fullscreen>
-            <Settings :webSocket="props.webSocket" :settingDialogVisible="settingDialogVisible"
-                :sessionConfig="props.sessionConfig" :folderWords="props.folderWords" :ankiProgress="ankiProgress"
-                @update-visible="(visible) => settingDialogVisible = visible">
-            </Settings>
+
+        <el-dialog v-model="settingsDialogVisible" fullscreen>
+            <Settings :web-socket="webSocket" :setting-dialog-visible="settingsDialogVisible"
+                :session-config="sessionConfig" :folder-words="folderWords" :anki-progress="ankiProgress"
+                @update-visible="settingsDialogVisible = $event" />
         </el-dialog>
-        <el-dialog v-model="dictSSDialogVisible" fullscreen>
-            <DictSelectAndSortDialog :webSocket="props.webSocket" :env="props.env"
-                :dictSSDialogVisible="dictSSDialogVisible" :sessionConfig="props.sessionConfig"
-                :dictsInfo="props.dictsInfo" :addDictMsgs="props.addDictMsgs"
-                :refreshDicsSettingsInfoFlag="props.refreshDicsSettingsInfoFlag"
-                @clear:addDictMsgs="() => emits('clear:addDictMsgs')">
-            </DictSelectAndSortDialog>
+
+        <el-dialog v-model="dictDialogVisible" fullscreen>
+            <DictSelectAndSortDialog :web-socket="webSocket" :env="env" :dictSSDialogVisible="dictDialogVisible"
+                :session-config="sessionConfig" :dicts-info="dictsInfo" :add-dict-msgs="addDictMsgs"
+                :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
+                @clear:add-dict-msgs="emit('clear:addDictMsgs')" />
         </el-dialog>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, onMounted, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { PropType } from 'vue'
-import type { DropdownInstance } from 'element-plus'
-import { SessionWebSocketService } from '@/common/session-websocket-client'
+
+// Icons
 import {
     BsPin, BsPinAngleFill, BsHeartFill, BsHeart,
 } from 'vue-icons-plus/bs'
@@ -138,27 +131,39 @@ import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
 import { ImBooks } from 'vue-icons-plus/im'
+import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
+
+// Components
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
 import DictSelectAndSortDialog from '@/components/Dialogs/DictSelectAndSortDialog.vue'
 import Settings from '@/views/Settings.vue'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
-import { getDictSettingsForLookup, getDefaultSessionConfig } from '@/common/utility'
-import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
-import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
-import { ElMessageBox } from 'element-plus'
-import type { WordInfoWithLastSearch, FolderWords, SessionNameId, SessionConfig, DictInfo } from '@/common/type-interface'
-import { useRouter } from 'vue-router'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { invoke } from '@tauri-apps/api/core'; // Tauri v2 core invoke module
 
+// Composables & stores
+import { useFolderConfigStore } from '@/stores/folderConfig'
+import { useHistoryNavigation } from '@/composables/useHistoryNavigation'
+import { useSessionManagement } from '@/composables/useSessionManagement'
+import { useWindowPin } from '@/composables/useWindowPin'
+
+// Types
+import { SessionWebSocketService } from '@/common/session-websocket-client'
+import type {
+    WordInfoWithLastSearch,
+    FolderWords,
+    SessionConfig,
+    DictInfo,
+    SessionNameId,
+} from '@/common/type-interface'
+
+// Props & emits
 const props = defineProps({
     webSocket: {
         type: [SessionWebSocketService, null],
-        required: true
+        required: true,
     },
     sessionId: {
         type: Number,
-        required: true
+        required: true,
     },
     env: {
         type: String,
@@ -171,17 +176,17 @@ const props = defineProps({
         default: () => [],
     },
     sessionConfig: {
-        type: Object as () => SessionConfig,
+        type: Object as PropType<SessionConfig>,
         required: true,
-        default: () => ({})
+        default: () => ({}),
     },
     dictsInfo: {
-        type: Object as PropType<DictInfo>,
+        type: Object as PropType<Record<string, DictInfo>>,
         required: true,
         default: () => ({}),
     },
     folderWords: {
-        type: Object as () => FolderWords,
+        type: Object as PropType<FolderWords>,
         required: true,
         default: () => ({}),
     },
@@ -225,16 +230,16 @@ const props = defineProps({
     },
     isPinned: {
         type: Boolean,
-        default: true
+        default: true,
     },
     iframeKeydownEvent: {
-        type: Object as PropType<any | null>,
-        default: () => null,
+        type: Object as PropType<unknown>,
+        default: null,
     },
     ankiProgress: {
         type: Object,
         required: true,
-        default: () => ({})
+        default: () => ({}),
     },
     addDictMsgs: {
         type: Array,
@@ -247,282 +252,184 @@ const props = defineProps({
     showPopoverWordOptions: {
         type: Boolean,
         default: true,
-    }
+    },
 })
 
-const emits = defineEmits<{
+const emit = defineEmits<{
     (e: 'change:keyword', keyword: string): void
     (e: 'clear:addDictMsgs'): void
 }>()
-const router = useRouter()
-const sessionsMenuVisble = ref(false)
-const dropdownSessions = ref<DropdownInstance>()
-const tauriAppWindow = ref<any | null>(null)
-const redirectHistoryWord = ref('')
-const keywordEditingNote = ref('')
-const favoriteWordsDialogVisible = ref(false)
-const dictSSDialogVisible = ref(false)
-const settingDialogVisible = ref(false)
-import type { ElAutocomplete } from 'element-plus'
+
+// --- Stores ---
 const folderConfigStore = useFolderConfigStore()
+
+// --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
+const favoriteWordsDialogVisible = ref(false)
+const settingsDialogVisible = ref(false)
+const dictDialogVisible = ref(false)
+
+const noteKeyword = ref('')
 const noteContent = ref(props.noteContent)
-const historyIndex = ref(-1)
-const isHistoryTriggered = ref(false)
 
-const isTauriEnv = computed(() => {
-    return props.env === ''
+// --- History navigation ---
+const wsRef = computed(() => props.webSocket)
+const configRef = computed(() => props.sessionConfig)
+const historyRef = computed(() => props.searchHistory)
+const leftHistoryRef = computed(() => props.leftHistory)
+const hasResultRef = computed(() => props.hasResultLastSearch)
+
+const {
+    redirectHistoryWord,
+    handleHistoryBack: goBack,
+    handleHistoryForward: goForward,
+    canGoBack,
+    canGoForward,
+} = useHistoryNavigation({
+    webSocket: wsRef,
+    sessionConfig: configRef,
+    searchHistory: historyRef,
+    leftHistory: leftHistoryRef,
+    hasResultLastSearch: hasResultRef,
 })
 
-const handCreateSession = () => {
-    ElMessageBox.prompt('请输入新的Session名字', 'Tip', {
-        confirmButtonText: 'OK',
-        cancelButtonText: 'Cancel',
-        inputValidator: (value: string) => {
-            if (!value) {
-                return "不能为空"
-            }
-            if (value.length > 30) {
-                return "不能超过30个字符"
-            }
-        }
-    })
-        .then(({ value }) => {
-            props.webSocket?.sendCreateSession(getDefaultSessionConfig(value))
-        })
-        .catch(() => {
-        })
-}
+// --- Session management ---
+const sessionIdRef = () => props.sessionId
+const envRef = () => props.env
 
-const handRenameSession = () => {
-    ElMessageBox.prompt('重命名当前Session名字', 'Tip', {
-        confirmButtonText: 'OK',
-        cancelButtonText: 'Cancel',
-        inputValidator: (value: string) => {
-            if (value.length > 30) {
-                return "不能超过30个字符"
-            }
-        }
-    })
-        .then(({ value }) => {
-            props.webSocket?.sendRenameSession(value)
-        })
-        .catch(() => {
-        })
-}
+const {
+    sessionsNameId,
+    handleSessionCommand,
+} = useSessionManagement(
+    () => props.webSocket,
+    sessionIdRef,
+    envRef
+)
 
-const handRemoveSession = () => {
-    ElMessageBox.confirm(
-        `Are you sure you want to remove the Current Session?`,
-        'Warning',
-        {
-            confirmButtonText: 'OK',
-            cancelButtonText: 'Cancel',
-            type: 'warning',
-            center: true,
-        }
+// Sync external sessions list
+watch(() => props.sessionsNameId, (val) => {
+    sessionsNameId.value = val
+}, { immediate: true, deep: true })
+
+// --- Window pin ---
+const isPinnedRef = () => props.isPinned
+
+const { showPinButton, togglePin } = useWindowPin({
+    sessionId: sessionIdRef,
+    isPinned: isPinnedRef,
+    sessionConfig: configRef,
+    webSocket: wsRef,
+})
+
+// --- Favorite logic ---
+const showFavoriteTooltip = computed(() => {
+    const folderId = props.sessionConfig.default_folder.id
+    if (!folderId) return true
+    return !folderConfigStore.folderConfig?.folders?.folder_info.some(
+        (item) => item.id === folderId
     )
-        .then(() => {
-            props.webSocket?.sendRemoveSession(props.SessionId)
-            redirectSession(1)
-        })
-        .catch(() => {
-        })
-}
-
-const redirectSession = (sessionId: number) => {
-    const systemConfigStore = useSystemConfigStore();
-    let localSystemConfig = JSON.parse(JSON.stringify(systemConfigStore.systemConfig))
-    if (props.env === '') {
-        localSystemConfig.app.session.id = sessionId
-        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
-    } else if (props.env === "helper_main_tauri") {
-        localSystemConfig.ocr.session.id = sessionId
-        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
-    }
-    else if (props.env === "selection_float_search") {
-        localSystemConfig.app.helper_selection.session.id = sessionId
-        props.webSocket?.sendUpdateSystemConfig(localSystemConfig)
-    }
-    router.push({
-        path: `/dict/${sessionId}`,
-        query: { env: props.env }
-    })
-}
-
-
-const handleSessionCommand = (command: { cmd: string, id: number }) => {
-    if (command.cmd === 'switch') {
-        redirectSession(command.id)
-    } else if (command.cmd === 'create') {
-        handCreateSession()
-    }
-    else if (command.cmd === 'rename') {
-        handRenameSession()
-    }
-    else if (command.cmd === 'remove') {
-        handRemoveSession()
-    }
-}
-
-const handleDeleteNote = () => {
-    props.webSocket?.sendDeleteWordNote(keywordEditingNote.value)
-    noteDialogVisible.value = false
-}
-
-const submitNote = () => {
-    if (!noteContent.value.trim()) {
-        return
-    }
-    props.webSocket?.sendSaveWordNote(keywordEditingNote.value, noteContent.value)
-    noteDialogVisible.value = false
-}
-
-const keywordChange = (newVal) => {
-    emits('change:keyword', newVal)
-}
-
-watch(() => noteDialogVisible.value, (newVal) => {
-    if (newVal) {
-        keywordEditingNote.value = props.lastSearchKeyword
-        noteContent.value = props.noteContent
-    } else {
-    }
-    props.webSocket?.sendNoteIsEditing(newVal)
 })
 
-watch(() => favoriteWordsDialogVisible.value, (newVal) => {
-    if (newVal) {
-        props.webSocket?.sendFavoriteWordsRequest(props.sessionConfig.default_folder.id)
-    }
+const canFavorite = computed(() => {
+    return (
+        props.lastSearchKeyword !== '' &&
+        (props.isWordFavorited || props.hasResultLastSearch || props.noteContent !== '')
+    )
 })
 
-watch(() => props.iframeKeydownEvent, (newVal) => {
-    if (newVal) {
-        handleKeydown(newVal)
-    }
-})
-
-const showFavorButtonTooltip = computed(() => {
-    return !props.sessionConfig.default_folder.id || !folderConfigStore.folderConfig?.folders?.folder_info.some((item) => item.id === props.sessionConfig.default_folder.id)
-})
-
-const sessionDefaultFolderName = computed(() => {
-    return folderConfigStore.folderConfig?.folders?.folder_info.find((item) => item.id === props.sessionConfig.default_folder.id)?.name || ''
+const defaultFolderName = computed(() => {
+    const folderId = props.sessionConfig.default_folder.id
+    return (
+        folderConfigStore.folderConfig?.folders?.folder_info.find(
+            (item) => item.id === folderId
+        )?.name || ''
+    )
 })
 
 const favoriteWords = computed(() => {
-    return props.folderWords[props.sessionConfig.default_folder.id] || []
+    const folderId = props.sessionConfig.default_folder.id ?? 0
+    return props.folderWords[folderId] || []
 })
 
-const showPinButton = computed(() => {
-    return props.env === '' || props.env === 'selection_float_search' || props.env === 'helper_main_tauri' || props.env === 'iwin'
+const toggleFavorite = (): void => {
+    props.webSocket?.sendToggleFavor(
+        props.lastSearchKeyword,
+        props.sessionConfig.default_folder.id ?? null
+    )
+}
+
+// --- Note dialog ---
+const openNoteDialog = (): void => {
+    noteKeyword.value = props.lastSearchKeyword
+    noteContent.value = props.noteContent
+    noteDialogVisible.value = true
+}
+
+const saveNote = (): void => {
+    if (!noteContent.value.trim()) return
+    props.webSocket?.sendSaveWordNote(noteKeyword.value, noteContent.value)
+    noteDialogVisible.value = false
+}
+
+const deleteNote = (): void => {
+    props.webSocket?.sendDeleteWordNote(noteKeyword.value)
+    noteDialogVisible.value = false
+}
+
+watch(noteDialogVisible, (visible) => {
+    props.webSocket?.sendNoteIsEditing(visible)
 })
 
-const handlePinClick = () => {
-    if (isTauriEnv) {
-        let localSessionConfig = JSON.parse(JSON.stringify(props.sessionConfig))
-        localSessionConfig.pin.is_pinned = !props.isPinned
-        props.webSocket?.sendSessionConfig(localSessionConfig)
-    }
-    else if (props.env === 'selection_float_search' || props.env === 'helper_main_tauri' || props.env === 'iwin') {
-        props.webSocket?.sendFloatingWindowPinClick(props.sessionId, !props.isPinned)
-    }
-}
-
-const handleFavorClick = () => {
-    props.webSocket?.sendToggleFavor(props.lastSearchKeyword, props.sessionConfig.default_folder.id)
-}
-
-const pinSetup = async () => {
-    if (props.env === 'selection_float_search') {
-        await invoke('set_selection_window_pinned', { pinned: props.isPinned });
-    }
-    else if (props.env === 'helper_main_tauri') {
-        await invoke('set_main_window_pinned', { pinned: props.isPinned });
-    }
-    else if (tauriAppWindow.value) {
-        await tauriAppWindow.value.setAlwaysOnTop(props.isPinned);
-    }
-}
-
-watch(() => props.isPinned, pinSetup)
-
-watch(() => props.leftHistory, (newVal) => {
-    if (newVal) {
-        isHistoryTriggered.value = false
-        setTimeout(() => {
-            historyIndex.value = props.hasResultLastSearch ? 0 : -1
-        }, 100)
+// --- Favorite words dialog ---
+watch(favoriteWordsDialogVisible, (visible) => {
+    if (visible) {
+        const folderId = props.sessionConfig.default_folder.id ?? 0
+        props.webSocket?.sendFavoriteWordsRequest(folderId)
     }
 })
 
-watch(() => props.searchHistory, () => {
-    if (isHistoryTriggered.value) {
-        isHistoryTriggered.value = false
-        redirectHistoryWord.value = props.searchHistory[historyIndex.value].word
-        props.webSocket?.sendLookupKeyword(redirectHistoryWord.value, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name), false)
-    }
-})
-
-const handleHistoryBack = () => {
-    if (historyIndex.value < props.searchHistory.length - 1) {
-        historyIndex.value += 1
-        isHistoryTriggered.value = true
-        props.webSocket?.sendSearchHistoryRequest()
-    }
-
-}
-
-const handleHistoryForward = () => {
-    if (historyIndex.value > 0) {
-        historyIndex.value -= 1
-        isHistoryTriggered.value = true
-        props.webSocket?.sendSearchHistoryRequest()
-    }
-}
-
-const handleKeydownData = (keyboardEventData: any) => {
-    if (keyboardEventData.key === '/' && keyboardEventData.metaKey) {
+// --- Keyboard shortcuts from iframe ---
+const handleKeydownData = (data: { key: string; altKey: boolean; metaKey: boolean }): void => {
+    if (data.key === '/' && data.metaKey) {
         favoriteWordsDialogVisible.value = !favoriteWordsDialogVisible.value
-    } else if (keyboardEventData.key === 'ArrowLeft' && keyboardEventData.altKey) {
-        // arrow left
-        handleHistoryBack()
-    } else if (keyboardEventData.key === 'ArrowRight' && keyboardEventData.altKey) {
-        // arrow right
-        handleHistoryForward()
+    } else if (data.key === 'ArrowLeft' && data.altKey) {
+        goBack()
+    } else if (data.key === 'ArrowRight' && data.altKey) {
+        goForward()
     }
-    // else if (keyboardEventData.key === 'p' && keyboardEventData.altKey) {
-    //     if (props.env === 'iwin') {
-    //         handlePinClick()
-    //     }
-    // } else if (keyboardEventData.key === 'b' && keyboardEventData.altKey) {
-    //     noteDialogVisible.value = !noteDialogVisible.value
-    // } else if (keyboardEventData.key === 'f' && keyboardEventData.altKey) {
-    //     handleFavorClick()
-    // }
 }
 
-const handleKeydown = (e: KeyboardEvent) => {
-    handleKeydownData(e)
+watch(() => props.iframeKeydownEvent, (event) => {
+    if (event) handleKeydownData(event as any)
+})
+
+// --- Global keyboard ---
+const handleGlobalKeydown = (e: KeyboardEvent): void => {
+    handleKeydownData({
+        key: e.key,
+        altKey: e.altKey,
+        metaKey: e.metaKey,
+    })
 }
 
-
-
-onMounted(async () => {
-    window.addEventListener('keydown', handleKeydown)
-    if (props.env === '') {
-        tauriAppWindow.value = getCurrentWindow();
-        await pinSetup()
-        // document.getElementById('fstdict-header')?.addEventListener('mousedown', handleTitlebarMouseDown)
-    }
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown)
-    if (props.env === '') {
-        // document.getElementById('fstdict-header')?.removeEventListener('mousedown', handleTitlebarMouseDown)
-    }
+    window.removeEventListener('keydown', handleGlobalKeydown)
 })
-
 </script>
+
+<style scoped>
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.is-active {
+    background-color: var(--el-color-primary-light-8) !important;
+}
+</style>

@@ -1,463 +1,530 @@
 <template>
     <div class="setting-container">
-        <div>
-            <p class="system-config-title">系统设置</p>
-        </div>
-        <div>
-            <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="150px" class="config-form">
-                <div class="config-class">
-                    <p class="config-class-title">Appearance</p>
-                    <el-form-item label="主题">
-                        <el-radio-group v-model="appTheme" size="large" fill="#6cf">
-                            <el-radio-button value="light">
-                                <div class="config-radio-button">
-                                    <el-icon class="config-radio-icon">
-                                        <Sunny />
-                                    </el-icon>
-                                    <span>浅色模式</span>
-                                </div>
-                            </el-radio-button>
-                            <el-radio-button :icon="Moon" label="深色模式" value="dark">
-                                <div class="config-radio-button">
-                                    <el-icon class="config-radio-icon">
-                                        <Moon />
-                                    </el-icon>
-                                    <span>深色模式</span>
-                                </div>
-                            </el-radio-button>
-                            <el-radio-button :icon="SwitchFilled" label="跟随系统" value="auto">
-                                <div class="config-radio-button">
-                                    <el-icon class="config-radio-icon">
-                                        <SwitchFilled />
-                                    </el-icon>
-                                    <span>跟随系统</span>
-                                </div>
-                            </el-radio-button>
-                        </el-radio-group>
-                    </el-form-item>
-                </div>
+        <p class="system-config-title">Settings</p>
 
+        <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="150px" class="config-form">
+            <!-- Appearance Section -->
+            <div class="config-class">
+                <p class="config-class-title">Appearance</p>
+                <el-form-item label="Theme">
+                    <el-radio-group v-model="appTheme" size="large" fill="#6cf">
+                        <el-radio-button value="light">
+                            <div class="config-radio-button">
+                                <el-icon class="config-radio-icon">
+                                    <Sunny />
+                                </el-icon>
+                                <span>Light</span>
+                            </div>
+                        </el-radio-button>
+                        <el-radio-button value="dark">
+                            <div class="config-radio-button">
+                                <el-icon class="config-radio-icon">
+                                    <Moon />
+                                </el-icon>
+                                <span>Dark</span>
+                            </div>
+                        </el-radio-button>
+                        <el-radio-button value="auto">
+                            <div class="config-radio-button">
+                                <el-icon class="config-radio-icon">
+                                    <SwitchFilled />
+                                </el-icon>
+                                <span>System</span>
+                            </div>
+                        </el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+            </div>
 
-                <div class="config-class">
-                    <p class="config-class-title">收藏夹列表</p>
-                    <el-table v-if="localFolderConfig" :data="localFolderConfig.folders.folder_info" height="350"
-                        style="width: 100%" @selection-change="handleSelectionChange" stripe>
-                        <el-table-column type="selection" width="55" />
-                        <el-table-column fixed prop="name" label="Name" width="130" show-overflow-tooltip sortable />
-                        <el-table-column prop="words_count" label="Total" sortable />
-                        <el-table-column prop="created_at" label="Created" width="110" show-overflow-tooltip sortable />
-                        <el-table-column prop="description" label="Description" width="180" show-overflow-tooltip />
-                        <el-table-column fixed="right" label="Operations" width="130">
-                            <template #default="scope">
-                                <el-button-group>
-                                    <el-button :icon="Edit" size="small" @click="handleEdit(scope.$index, scope.row)" />
-                                    <el-button :icon="Document" size="small"
-                                        @click="handleView(scope.$index, scope.row)" />
-                                    <el-popconfirm confirm-button-text="删除" confirm-button-type="danger"
-                                        cancel-button-text="取消" :icon="Delete" icon-color="#FF4949" title="确定删除收藏夹吗？"
-                                        @confirm="handleDelete(scope.$index, scope.row)">
-                                        <template #reference>
-                                            <el-button :icon="Delete" size="small" type="danger" />
-                                        </template>
-                                    </el-popconfirm>
-                                </el-button-group>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                    <div style="margin-top: 20px">
-                        <el-button type="primary" :icon="Plus" @click="handleCreateFolder"></el-button>
-                        <el-button type="danger" :icon="Delete" @click="handleDeleteSelected"
-                            :disabled="disableDeleteButton"></el-button>
-                        <el-button @click="handleUpdateToAnki" :disabled="disableAnkiButton">
-                            <AnkiIcon :size="24" style="margin-right: 8px;" />
-                            Update to Anki
-                        </el-button>
-                        <el-select v-if="localFolderConfig" v-model="localSessionConfig.default_folder.id" filterable
-                            placeholder="Select Default Folder" style="margin-left: 20px;max-width: 240px;">
-                            <el-option v-for="item in defaultFolderOptions" :key="item.id" :label="item.name"
-                                :value="item.id" />
-                        </el-select>
-                    </div>
-                </div>
+            <!-- Favorite Folders Section -->
+            <div class="config-class">
+                <p class="config-class-title">Favorite Folders</p>
 
-                <div class="config-class">
-                    <p class="config-class-title">OCR</p>
-                    <el-select v-if="localSessionConfig.ocr_lang_type" v-model="localSessionConfig.ocr_lang_type"
-                        filterable placeholder="Select Default OCR language type"
-                        style="margin-left: 20px;max-width: 240px;">
-                        <el-option v-for="(_, lang) in localSystemConfig.ocr.lang_types" :key="lang" :label="lang"
-                            :value="lang" />
+                <el-table v-if="localFolderConfig" :data="localFolderConfig.folders.folder_info" height="350"
+                    style="width: 100%" @selection-change="handleSelectionChange" stripe>
+                    <el-table-column type="selection" width="55" />
+                    <el-table-column fixed prop="name" label="Name" width="130" show-overflow-tooltip sortable />
+                    <el-table-column prop="words_count" label="Words" sortable />
+                    <el-table-column prop="created_at" label="Created" width="110" show-overflow-tooltip sortable />
+                    <el-table-column prop="description" label="Description" width="180" show-overflow-tooltip />
+                    <el-table-column fixed="right" label="Actions" width="160">
+                        <template #default="{ row }">
+                            <el-button-group>
+                                <el-button :icon="Edit" size="small" @click="openEditFolder(row)"
+                                    aria-label="Edit folder" />
+                                <el-button :icon="Document" size="small" @click="openFolderWords(row)"
+                                    aria-label="View words" />
+                                <el-popconfirm confirm-button-text="Delete" confirm-button-type="danger"
+                                    cancel-button-text="Cancel" :icon="Delete" icon-color="#FF4949"
+                                    title="Delete this folder?" @confirm="deleteFolder(row.id)">
+                                    <template #reference>
+                                        <el-button :icon="Delete" size="small" type="danger"
+                                            aria-label="Delete folder" />
+                                    </template>
+                                </el-popconfirm>
+                            </el-button-group>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <div class="folder-toolbar">
+                    <el-button type="primary" :icon="Plus" @click="openCreateFolder">
+                        New Folder
+                    </el-button>
+                    <el-button type="danger" :icon="Delete" @click="deleteSelectedFolders"
+                        :disabled="selectedFolders.length === 0">
+                        Delete Selected
+                    </el-button>
+                    <el-button @click="exportToAnki" :disabled="selectedFolders.length === 0">
+                        <AnkiIcon :size="24" style="margin-right: 8px" />
+                        Export to Anki
+                    </el-button>
+
+                    <el-select v-if="localFolderConfig" v-model="localSessionConfig.default_folder.id" filterable
+                        placeholder="Default Folder" style="margin-left: 20px; max-width: 240px"
+                        @change="persistSessionConfig">
+                        <el-option v-for="folder in folderOptions" :key="folder.id" :label="folder.name"
+                            :value="folder.id" />
                     </el-select>
                 </div>
+            </div>
 
-                <div class="config-class">
-                    <p class="config-class-title">Helper</p>
-                    <p class="config-class-desc">
-                        helper accessibility
-                    </p>
-                    <el-switch v-model="is_help_enabled" />
-                </div>
-            </el-form>
-        </div>
+            <!-- OCR Section -->
+            <div class="config-class">
+                <p class="config-class-title">OCR</p>
+                <el-select v-model="localSessionConfig.ocr_lang_type" filterable placeholder="Default OCR Language"
+                    style="max-width: 240px" @change="persistSessionConfig">
+                    <el-option v-for="lang in ocrLanguageOptions" :key="lang" :label="lang" :value="lang" />
+                </el-select>
+            </div>
 
-        <el-dialog v-model="createOrEditDialogVisible" :title="dialogTitle" width="500" align-center
+            <!-- Helper Section -->
+            <div class="config-class">
+                <p class="config-class-title">Helper</p>
+                <p class="config-class-desc">Helper accessibility permissions</p>
+                <el-switch v-model="helperEnabled" @change="handleHelperToggle" />
+            </div>
+        </el-form>
+
+        <!-- Create / Edit Folder Dialog -->
+        <el-dialog v-model="folderDialogVisible" :title="folderDialogTitle" width="500" align-center
             @keydown.enter.prevent.stop>
-            <el-form ref="ruleFormRef" style="max-width: 600px" :model="ruleForm" status-icon :rules="rules"
-                label-width="auto" class="demo-ruleForm">
-                <el-form-item label="Name" prop="name" required>
-                    <el-input v-model="ruleForm.name" autocomplete="off" />
+            <el-form ref="folderFormRef" :model="folderForm" :rules="folderFormRules" label-width="100px">
+                <el-form-item label="Name" prop="name">
+                    <el-input v-model="folderForm.name" autocomplete="off" />
                 </el-form-item>
                 <el-form-item label="Description" prop="description">
-                    <el-input v-model="ruleForm.description" autocomplete="off" type="textarea" />
+                    <el-input v-model="folderForm.description" autocomplete="off" type="textarea" />
                 </el-form-item>
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="createOrEditDialogVisible = false">Cancel</el-button>
-                    <el-button type="primary" @click="submitForm(ruleFormRef)">
-                        Confirm
+                    <el-button @click="folderDialogVisible = false">Cancel</el-button>
+                    <el-button type="primary" @click="submitFolderForm">
+                        Save
                     </el-button>
                 </div>
             </template>
         </el-dialog>
 
-        <el-dialog class="anki-dialog" v-model="ankiDialogVisible"
-            :title="`Update to Anki for ${multipleSelection.length}  folders`" width="700" :close-on-click-modal="false"
-            :close-on-press-escape="false" draggable :show-close="false">
-            {{ isAllAnkiDone }}
-            <div v-for="(item, index) in multipleSelection" :key="index">
-                <div class="config-class">
-                    <p class="config-class-title">{{ item.name }}</p>
-                    <AnkiPorgress :webSocket="props.webSocket" :ankiProgress="ankiProgresses[item.name]"
-                        :ankiDialogVisible="ankiDialogVisible" />
-                </div>
+        <!-- Anki Export Progress Dialog -->
+        <el-dialog v-model="ankiDialogVisible" :title="`Exporting ${selectedFolders.length} folder(s) to Anki`"
+            width="700" :close-on-click-modal="false" :close-on-press-escape="false" draggable :show-close="false">
+            <div v-for="folder in selectedFolders" :key="folder.id" class="config-class">
+                <p class="config-class-title">{{ folder.name }}</p>
+                <AnkiProgress :web-socket="webSocket" :anki-progress="ankiProgresses[folder.name] || {}"
+                    :anki-dialog-visible="ankiDialogVisible" />
             </div>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button v-if="!isAllAnkiDone" type="danger" @click="ankiBeforeClose">
+                    <el-button v-if="!allAnkiCompleted" type="danger" @click="cancelAnkiExport">
                         Cancel
                     </el-button>
-                    <el-button v-else type="primary" @click="ankiBeforeClose">
-                        Confirm
+                    <el-button v-else type="primary" @click="ankiDialogVisible = false">
+                        Close
                     </el-button>
                 </div>
             </template>
         </el-dialog>
 
-        <!-- :z-index="10000" -->
-        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
-            <FavoriteWords :favoriteWordsDialogVisible="favoriteWordsDialogVisible" :webSocket="props.webSocket"
-                @update-visible="handle_update_visible(visible)" :favoriteWords="favoriteWords"
-                :folderName="folderIdNameToShow" :folderId="folderIdToShow" />
+        <!-- Favorite Words Dialog -->
+        <el-dialog v-model="favoriteWordsVisible" fullscreen>
+            <FavoriteWords :favorite-words-dialog-visible="favoriteWordsVisible" :web-socket="webSocket"
+                @update-visible="favoriteWordsVisible = $event" :favorite-words="viewingFolderWords"
+                :folder-name="viewingFolderName" :folder-id="viewingFolderId" />
         </el-dialog>
     </div>
-
 </template>
 
-
-<script lang="ts" setup>
-import { reactive, ref, onBeforeMount, watch, computed } from 'vue'
-import type { PropType } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
+<script setup lang="ts">
+import { reactive, ref, watch, computed, onBeforeMount } from 'vue'
+import type { PropType, FormInstance, FormRules } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { useFolderConfigStore, useSystemConfigStore } from '@/stores/stores'
-import { Edit, Delete, Document, Plus, Sunny, Moon, SwitchFilled } from '@element-plus/icons-vue'
 
+// Icons
+import {
+    Edit,
+    Delete,
+    Document,
+    Plus,
+    Sunny,
+    Moon,
+    SwitchFilled,
+} from '@element-plus/icons-vue'
+
+// Components
 import AnkiIcon from '@/components/Icons/AnkiIcon.vue'
-import { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, FolderConfig, FolderInfo, FolderWords, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
-import AnkiPorgress from '@/components/Dialogs/AnkiPorgress.vue'
-import { invoke } from '@tauri-apps/api/core';
-import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility';
+import AnkiProgress from '@/components/Dialogs/AnkiProgress.vue'
 
+// Stores & utilities
+import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
+import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility'
+import { invoke } from '@tauri-apps/api/core'
+import { safeDeepClone } from '@/common/utility'
+
+// Types & constants
+import type {
+    SessionConfig,
+    FolderConfig,
+    FolderInfo,
+    FolderWords,
+} from '@/common/type-interface'
+import { SessionWebSocketService } from '@/common/session-websocket-client'
+import {
+    MAX_FOLDER_NAME_LENGTH,
+    TAURI_CMD,
+    ANKI_STATE,
+} from '@/common/constants'
+
+// ─── Props & Emits ────────────────────────────────────────────────
 const props = defineProps({
     settingDialogVisible: {
         type: Boolean,
-        require: true
+        required: true,
     },
     webSocket: {
-        type: [SessionWebSocketService, null],
-        required: true
+        type: [Object, null] as PropType<SessionWebSocketService | null>,
+        required: true,
     },
     sessionConfig: {
         type: Object as PropType<SessionConfig>,
-        required: true
+        required: true,
     },
     folderWords: {
-        type: Object as () => FolderWords,
+        type: Object as PropType<FolderWords>,
         required: true,
         default: () => ({}),
     },
     ankiProgress: {
         type: Object,
         required: true,
-        default: () => ({})
+        default: () => ({}),
     },
 })
 
-const emits = defineEmits<{
+const emit = defineEmits<{
     (e: 'update-visible', visible: boolean): void
 }>()
 
+// ─── Stores ──────────────────────────────────────────────────────
 const folderConfigStore = useFolderConfigStore()
-const localFolderConfig = ref<FolderConfig>(JSON.parse(JSON.stringify(folderConfigStore.folderConfig)))
-const localSessionConfig = ref<SessionConfig>(JSON.parse(JSON.stringify(props.sessionConfig)))
-const multipleSelection = ref<FolderInfo[]>([])
-const createOrEditDialogVisible = ref(false)
+const systemConfigStore = useSystemConfigStore()
+
+// ─── Local State ─────────────────────────────────────────────────
+const localFolderConfig = ref<FolderConfig | null>(null)
+const localSessionConfig = ref<SessionConfig>({} as SessionConfig)
+const localSystemConfig = ref<any>(null)
+const ankiProgresses = ref<Record<string, any>>({})
+
+const selectedFolders = ref<FolderInfo[]>([])
+const helperEnabled = ref(false)
+
+// Folder dialog state
+const folderDialogVisible = ref(false)
+const isCreatingFolder = ref(true)
+const editingFolderId = ref<number | null>(null)
+const folderFormRef = ref<FormInstance>()
+
+const folderForm = reactive({
+    name: '',
+    description: '',
+})
+
+const folderFormRules = reactive<FormRules<typeof folderForm>>({
+    name: [{ validator: validateFolderName, trigger: 'blur' }],
+    description: [{ validator: () => true, trigger: 'blur' }],
+})
+
+// Dialog visibility
 const ankiDialogVisible = ref(false)
-const favoriteWordsDialogVisible = ref(false)
-const isCreate = ref(true)
-const is_help_enabled = ref(false)
-const folderIdEditing = ref('')
-const folderIdToShow = ref<number>(0)
-const folderIdNameToShow = ref('')
-const ankiProgresses = ref<Record<string, any>>(JSON.parse(JSON.stringify(props.ankiProgress)))
-const systemConfigStore = useSystemConfigStore();
-const localSystemConfig = ref<any>(JSON.parse(JSON.stringify(systemConfigStore.systemConfig)))
+const favoriteWordsVisible = ref(false)
+const viewingFolderId = ref(0)
+const viewingFolderName = ref('')
 
+// ─── Computed ────────────────────────────────────────────────────
+const folderDialogTitle = computed(() =>
+    isCreatingFolder.value ? 'Create Folder' : 'Edit Folder'
+)
 
-watch(() => folderConfigStore.folderConfig, (newVal) => {
-    localFolderConfig.value = JSON.parse(JSON.stringify(newVal))
-})
+const folderOptions = computed(() =>
+    localFolderConfig.value?.folders.folder_info.map((f) => ({
+        id: f.id,
+        name: f.name,
+    })) || []
+)
 
-watch(() => localSessionConfig.value.default_folder.id, () => {
-    props.webSocket?.sendSessionConfig(localSessionConfig.value)
-})
+const ocrLanguageOptions = computed(() =>
+    Object.keys(localSystemConfig.value?.ocr?.lang_types || {})
+)
 
-watch(() => localSessionConfig.value.ocr_lang_type, () => {
-    props.webSocket?.sendSessionConfig(localSessionConfig.value)
-})
-
-watch(() => props.ankiProgress, (newVal) => {
-    ankiProgresses.value = JSON.parse(JSON.stringify(newVal))
-}, { deep: true })
-
-watch(() => props.sessionConfig, (newVak) => {
-    localSessionConfig.value = JSON.parse(JSON.stringify(newVak))
-}, { deep: true })
-
-watch(() => systemConfigStore.systemConfig, (newVal) => {
-    localSystemConfig.value = JSON.parse(JSON.stringify(newVal))
-}, { deep: true })
-
-watch(() => is_help_enabled.value, async (newVal) => {
-
-    if (newVal) {
-        if (isMacOS()) {
-            if (! await checkAccessibilitySafe()) {
-                await requestAccessibilitySafe()
-                console.log("Out of requestAccessibilitySafe.")
-                is_help_enabled.value = false
-                return
-            }
-            try {
-                console.log("Accessibility verified! Requesting sidecar launch...");
-                // Trigger the new Rust command
-                const response_cgevent_helper = await invoke<string>('launch_cgevent_server');
-                const response_helper = await invoke<string>('launch_helper');
-                console.log("Backend response:", response_cgevent_helper);
-                console.log("Backend response:", response_helper);
-            } catch (error) {
-                console.error("Failed to spin up sidecar:", error);
-            }
-        } else {
-            console.log("Non-macOS platform detected, skipping sidecar execution.");
-        }
-    } else {
-
-    }
-
-})
-
-const updateSystemConfig = () => {
-    props.webSocket?.sendUpdateSystemConfig(localSystemConfig.value)
-}
-
-const appTheme = computed({
-    get: () => localSystemConfig.value?.appearance.theme,
-    set: (val) => {
-        localSystemConfig.value.appearance.theme = val
-        updateSystemConfig()
-    }
-})
-
-const handle_update_visible = (visible) => {
-    favoriteWordsDialogVisible.value = visible
-    emits('update-visible', visible)
-}
-
-const isAllAnkiDone = computed(() => {
-    for (const item of multipleSelection.value) {
-        if (!ankiProgresses.value[item.name]) {
-            return false
-        }
-        if (ankiProgresses.value[item.name].type !== 'done' && ankiProgresses.value[item.name].type !== 'canceled' && ankiProgresses.value[item.name].type !== 'error') {
+const allAnkiCompleted = computed(() => {
+    for (const folder of selectedFolders.value) {
+        const progress = ankiProgresses.value[folder.name]
+        if (!progress) return false
+        const finishedStates = [ANKI_STATE.DONE, ANKI_STATE.CANCELED, ANKI_STATE.ERROR]
+        if (!finishedStates.includes(progress.type)) {
             return false
         }
     }
     return true
 })
 
-const ankiBeforeClose = (done: any) => {
-    if (isAllAnkiDone.value) {
-        ankiDialogVisible.value = false
-    }
-    else {
-        ElMessageBox.confirm('There are folders that are not done. Are you sure you want to close the dialog?', 'Warning', {
-            confirmButtonText: 'OK',
-            cancelButtonText: 'Cancel',
-            type: 'warning',
-            appendTo: '.anki-dialog'
-        }).then(() => {
-            props.webSocket?.sendCancelAnkiUpdate()
-        }).catch(() => {
-        })
-    }
-}
+const viewingFolderWords = computed(() =>
+    props.folderWords[viewingFolderId.value] || []
+)
 
-
-
-const dialogTitle = computed(() => {
-    return isCreate.value ? 'Create New Folder' : 'Edit Folder'
-})
-
-const defaultFolderOptions = computed(() => {
-    return localFolderConfig.value.folders.folder_info.map((item) => ({
-        id: item.id,
-        name: item.name,
-    }))
-})
-
-// const defaultOcrLangOptions=computed(()=>{
-//     return 
-// })
-
-const disableDeleteButton = computed(() => {
-    return multipleSelection.value.length === 0
-})
-
-const disableAnkiButton = computed(() => {
-    return multipleSelection.value.length === 0
-})
-
-const favoriteWords = computed(() => {
-    return props.folderWords[folderIdToShow.value] || []
-})
-
-onBeforeMount(() => {
-    props.webSocket?.sendFolderConfig()
-})
-
-const ruleFormRef = ref<FormInstance>()
-
-const validateName = (_: any, value: any, callback: any) => {
-    if (value === '') {
-        callback(new Error('Please input the name'))
-    } else if (value.length > 20) {
-        callback(new Error('Name must be less than 20 characters'))
-    } else if (localFolderConfig.value.folders.folder_info.some((item) => item.name === value)) {
-        if (isCreate.value) {
-            callback(new Error('Name already exist'))
+const appTheme = computed({
+    get: () => localSystemConfig.value?.appearance?.theme || 'light',
+    set: (value: string) => {
+        if (localSystemConfig.value) {
+            localSystemConfig.value.appearance.theme = value
+            persistSystemConfig()
         }
-        else {
-            callback()
-        }
+    },
+})
+
+// ─── Validators ──────────────────────────────────────────────────
+function validateFolderName(
+    _rule: unknown,
+    value: string,
+    callback: (error?: Error) => void
+): void {
+    const trimmed = value?.trim()
+
+    if (!trimmed) {
+        callback(new Error('Folder name is required'))
+        return
     }
-    else {
-        callback()
+
+    if (trimmed.length > MAX_FOLDER_NAME_LENGTH) {
+        callback(new Error(`Name must be ${MAX_FOLDER_NAME_LENGTH} characters or fewer`))
+        return
     }
-}
-const validateDescription = (_: any, __: any, callback: any) => {
+
+    const duplicate = localFolderConfig.value?.folders.folder_info.some(
+        (f) => f.name === trimmed && f.id !== editingFolderId.value
+    )
+
+    if (duplicate && isCreatingFolder.value) {
+        callback(new Error('A folder with this name already exists'))
+        return
+    }
+
     callback()
 }
 
-const ruleForm = reactive({
-    name: '',
-    description: '',
-})
+// ─── Persistence Helpers ────────────────────────────────────────
+function persistSystemConfig(): void {
+    props.webSocket?.sendUpdateSystemConfig(localSystemConfig.value)
+}
 
-const rules = reactive<FormRules<typeof ruleForm>>({
-    name: [{ validator: validateName, trigger: 'blur' }],
-    description: [{ validator: validateDescription, trigger: 'blur' }],
-})
+function persistSessionConfig(): void {
+    props.webSocket?.sendSessionConfig(localSessionConfig.value)
+}
 
-const submitForm = (formEl: FormInstance | undefined) => {
-    if (!formEl) return
-    formEl.validate((valid) => {
-        if (valid) {
-            if (isCreate.value) {
-                props.webSocket?.sendCreateFolder(
-                    ruleForm.name,
-                    ruleForm.description,
-                )
-            } else {
-                props.webSocket?.sendUpdateFolder(
-                    Number(folderIdEditing.value),
-                    ruleForm.name,
-                    ruleForm.description,
-                )
-            }
-            createOrEditDialogVisible.value = false
-        } else {
-            console.log('error submit!')
+// ─── Folder Actions ─────────────────────────────────────────────
+function openCreateFolder(): void {
+    isCreatingFolder.value = true
+    editingFolderId.value = null
+    folderForm.name = ''
+    folderForm.description = ''
+    folderDialogVisible.value = true
+}
+
+function openEditFolder(row: FolderInfo): void {
+    isCreatingFolder.value = false
+    editingFolderId.value = row.id
+    folderForm.name = row.name
+    folderForm.description = row.description
+    folderDialogVisible.value = true
+}
+
+function submitFolderForm(): void {
+    if (!folderFormRef.value) return
+
+    folderFormRef.value.validate((valid) => {
+        if (!valid) return
+
+        const name = folderForm.name.trim()
+        const description = folderForm.description.trim()
+
+        if (isCreatingFolder.value) {
+            props.webSocket?.sendCreateFolder(name, description)
+        } else if (editingFolderId.value !== null) {
+            props.webSocket?.sendUpdateFolder(editingFolderId.value, name, description)
         }
+
+        folderDialogVisible.value = false
     })
 }
 
-
-const handleCreateFolder = () => {
-    isCreate.value = true
-    createOrEditDialogVisible.value = true
+function deleteFolder(id: number): void {
+    props.webSocket?.sendDeleteFolder(id)
 }
 
-const handleEdit = (_: number, row: any) => {
-    isCreate.value = false
-    ruleForm.name = row.name
-    ruleForm.description = row.description
-    createOrEditDialogVisible.value = true
-    folderIdEditing.value = row.id
+async function deleteSelectedFolders(): Promise<void> {
+    const count = selectedFolders.value.length
+    if (count === 0) return
+
+    try {
+        await ElMessageBox.confirm(
+            `Delete ${count} selected folder(s)? This cannot be undone.`,
+            'Confirm Deletion',
+            {
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                type: 'warning',
+                confirmButtonType: 'danger',
+                appendTo: '.setting-container',
+            }
+        )
+
+        for (const folder of selectedFolders.value) {
+            props.webSocket?.sendDeleteFolder(folder.id)
+        }
+        selectedFolders.value = []
+    } catch {
+        // User cancelled
+    }
 }
 
-const handleView = (_: number, row: any) => {
-    folderIdToShow.value = row.id
-    folderIdNameToShow.value = row.name
+function openFolderWords(row: FolderInfo): void {
+    viewingFolderId.value = row.id
+    viewingFolderName.value = row.name
     props.webSocket?.sendFavoriteWordsRequest(row.id)
-    favoriteWordsDialogVisible.value = true
+    favoriteWordsVisible.value = true
 }
 
-const handleDelete = (_: number, row: any) => {
-    props.webSocket?.sendDeleteFolder(row.id)
+function handleSelectionChange(selection: FolderInfo[]): void {
+    selectedFolders.value = selection
 }
 
-const handleDeleteSelected = () => {
-    ElMessageBox.confirm(`Are you sure to delete ${multipleSelection.value.length} folders?`, 'Confirm Delete', {
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel',
-        type: 'warning',
-        confirmButtonType: 'danger',
-        appendTo: '.setting-container',
-    }).then(() => {
-        multipleSelection.value.forEach((item: FolderInfo) => {
-            props.webSocket?.sendDeleteFolder(item.id)
-        })
-        multipleSelection.value = []
-    }).catch(() => {
-        multipleSelection.value = []
-    })
-
-}
-
-const handleUpdateToAnki = () => {
+// ─── Anki Export ────────────────────────────────────────────────
+function exportToAnki(): void {
     ankiProgresses.value = {}
     ankiDialogVisible.value = true
-    multipleSelection.value.forEach((item: FolderInfo) => {
-        props.webSocket?.sendUpdateToAnki(item.name, item.id)
-    })
+
+    for (const folder of selectedFolders.value) {
+        props.webSocket?.sendUpdateToAnki(folder.name, folder.id)
+    }
 }
 
-const handleSelectionChange = (val: FolderInfo[]) => {
-    multipleSelection.value = val
+async function cancelAnkiExport(): Promise<void> {
+    if (allAnkiCompleted.value) {
+        ankiDialogVisible.value = false
+        return
+    }
+
+    try {
+        await ElMessageBox.confirm(
+            'Some folders are still processing. Cancel the export?',
+            'Cancel Export',
+            {
+                confirmButtonText: 'Cancel Export',
+                cancelButtonText: 'Continue',
+                type: 'warning',
+                appendTo: '.anki-dialog',
+            }
+        )
+        props.webSocket?.sendCancelAnkiUpdate()
+    } catch {
+        // User chose to continue
+    }
 }
 
+// ─── Helper Toggle ──────────────────────────────────────────────
+async function handleHelperToggle(enabled: boolean): Promise<void> {
+    if (!enabled) return
+
+    if (isMacOS()) {
+        const hasAccess = await checkAccessibilitySafe()
+        if (!hasAccess) {
+            await requestAccessibilitySafe()
+            helperEnabled.value = false
+            return
+        }
+
+        try {
+            await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
+            await invoke(TAURI_CMD.LAUNCH_HELPER)
+        } catch (error) {
+            console.error('Failed to launch helper sidecar:', error)
+        }
+    }
+}
+
+// ─── Watchers ───────────────────────────────────────────────────
+watch(
+    () => folderConfigStore.folderConfig,
+    (value) => {
+        localFolderConfig.value = safeDeepClone(value)
+    },
+    { deep: true, immediate: true }
+)
+
+watch(
+    () => props.sessionConfig,
+    (value) => {
+        localSessionConfig.value = safeDeepClone(value)
+    },
+    { deep: true, immediate: true }
+)
+
+watch(
+    () => systemConfigStore.systemConfig,
+    (value) => {
+        localSystemConfig.value = safeDeepClone(value)
+    },
+    { deep: true, immediate: true }
+)
+
+watch(
+    () => props.ankiProgress,
+    (value) => {
+        ankiProgresses.value = safeDeepClone(value)
+    },
+    { deep: true }
+)
+
+// ─── Lifecycle ──────────────────────────────────────────────────
+onBeforeMount(() => {
+    props.webSocket?.sendFolderConfig()
+})
 </script>
+
+<style scoped>
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.folder-toolbar {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+</style>

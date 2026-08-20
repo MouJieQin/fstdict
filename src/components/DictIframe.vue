@@ -1,154 +1,157 @@
 <template>
-  <!-- {{ doc_content }} -->
-  <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"
-    sandbox="allow-scripts allow-same-origin"></iframe>
+    <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"
+        sandbox="allow-scripts allow-same-origin"></iframe>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import debounce from 'lodash/debounce'
+import {
+    API_BASE_URL,
+    IFRAME_HEIGHT_PADDING,
+    IFRAME_HEIGHT_DEBOUNCE_MS,
+    URL_SCHEME,
+    IFRAME_MSG,
+} from '@/common/constants'
 
 interface Props {
-  dictionaryName: string
-  index: number
-  html: string
-  cssUrls: string[]
-  jsUrls: string[]
-  basePath: string
-  dictionaryRoot: string,
-  isDark: boolean
+    dictionaryName: string
+    index: number
+    html: string
+    cssUrls: string[]
+    jsUrls: string[]
+    basePath: string
+    dictionaryRoot: string
+    isDark: boolean
 }
 
 const props = defineProps<Props>()
-const emits = defineEmits(['entry-click', 'keydown'])
+const emit = defineEmits<{
+    (e: 'entry-click', path: string): void
+    (e: 'keydown', event: unknown): void
+}>()
 
 const iframeRef = ref<HTMLIFrameElement | null>(null)
-const API_PREFIX = 'http://localhost:5959/api/download?path='
-// const baseUrl = ref(`${API_PREFIX}${props.basePath}`)
-const baseUrl = ref(`${API_PREFIX}${encodeURIComponent(props.dictionaryName)}/data`)
-const iframeId = ref(`${props.dictionaryName}-${props.index}`)
-const doc_content = ref('')
+const iframeId = computed(() => `${props.dictionaryName}-${props.index}`)
+const tailElementId = computed(() => `${props.dictionaryName}-dict-tail`)
 
-// ================ 业务逻辑 ================
-function handleEntryClick(entryPath: string) {
-  console.log('✅ 点击词条:', entryPath)
-  emits('entry-click', entryPath)
-}
+const baseUrl = computed(() => `${API_BASE_URL}${encodeURIComponent(props.dictionaryName)}/data`)
 
-function updateDarkMode(isDark: boolean) {
-  const doc = iframeRef.value?.contentDocument
-  if (!doc) return
+let mutationObserver: MutationObserver | null = null
+let isUpdatingHeight = false
+let messageListener: ((e: MessageEvent) => void) | null = null
 
-  let styleEl = doc.getElementById('dict-custom-style') as HTMLStyleElement | null
-  if (!styleEl) {
-    styleEl = doc.createElement('style')
-    styleEl.id = 'dict-custom-style'
-    doc.head.appendChild(styleEl)
-  }
+// ============== Dark Mode Injection ==============
+function updateDarkMode(isDark: boolean): void {
+    const doc = iframeRef.value?.contentDocument
+    if (!doc) return
 
-  styleEl.textContent = isDark ? `
-    html { filter: invert(0.92) hue-rotate(180deg); }
-    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }
-  ` : ''
-}
-
-// ================ 核心渲染（极速版） ================
-async function renderIframe() {
-  const iframe = iframeRef.value
-  if (!iframe) return
-
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!doc) return
-
-  doc_content.value = props.html
-    .replace(/file:\//g, '')
-    .replace(/src=\"/g, `src="${baseUrl.value}/`)
-
-  // <meta charset="UTF-8" />
-  // const metaCharset = doc.querySelector('meta[charset]')
-  // if (!metaCharset) {
-  //   const meta = doc.createElement('meta')
-  //   meta.charset = 'UTF-8'
-  //   doc.head.appendChild(meta)
-  // }
-  const styleEl = doc.createElement('style')
-  styleEl.id = 'dict-custom-style'
-  doc.head.appendChild(styleEl)
-  styleEl.textContent = props.isDark ? `
-    html { filter: invert(0.92) hue-rotate(180deg); }
-    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }
-  ` : ''
-  doc.head.appendChild(styleEl)
-
-
-  const style = doc.createElement('style')
-  style.textContent = `
-    // a { color: #818cf8 !important; }
-    // h1, h2, h3, h4, h5, h6 { color: #f3f4f6 !important; }
-    // table { border-color: #374151 !important; }
-    // th, td { border-color: #374151 !important; }
-    // body {
-    //  padding-left: 1rem !important;
-    //  padding-right: 1rem !important;
-    // }
-    // @media (max-width: 500px) {
-    //   body {
-    //     padding-left: 0 !important;
-    //     padding-right: 0 !important;
-    //   }
-    // }
-    `
-  doc.head.appendChild(style)
-
-
-  // 只在第一次加载 CSS/JS
-  doc.body.innerHTML = ''
-
-  // CSS
-  if (props.cssUrls) {
-    for (const cssUrl of props.cssUrls) {
-      const link = doc.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = `${API_PREFIX}${encodeURIComponent(cssUrl)}`
-      doc.head.appendChild(link)
+    let styleEl = doc.getElementById('dict-custom-style') as HTMLStyleElement | null
+    if (!styleEl) {
+        styleEl = doc.createElement('style')
+        styleEl.id = 'dict-custom-style'
+        doc.head.appendChild(styleEl)
     }
-  }
 
-  // JS
-  if (props.jsUrls) {
+    styleEl.textContent = isDark
+        ? `html { filter: invert(0.92) hue-rotate(180deg); }
+       img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+        : ''
+}
+
+// ============== Content Rendering ==============
+function processHtml(rawHtml: string): string {
+    return rawHtml
+        .replace(/file:\//g, '')
+        .replace(/src="/g, `src="${baseUrl.value}/`)
+}
+
+function injectStyles(doc: Document): void {
+    // Dark mode style
+    const darkStyle = doc.createElement('style')
+    darkStyle.id = 'dict-custom-style'
+    darkStyle.textContent = props.isDark
+        ? `html { filter: invert(0.92) hue-rotate(180deg); }
+       img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+        : ''
+    doc.head.appendChild(darkStyle)
+
+    // External CSS resources
+    if (props.cssUrls?.length) {
+        for (const cssUrl of props.cssUrls) {
+            const link = doc.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = `${API_BASE_URL}${encodeURIComponent(cssUrl)}`
+            doc.head.appendChild(link)
+        }
+    }
+}
+
+function injectScripts(doc: Document): void {
+    if (!props.jsUrls?.length) return
+
     for (const jsUrl of props.jsUrls) {
-      const script = doc.createElement('script')
-      script.src = `${API_PREFIX}${encodeURIComponent(jsUrl)}`
-      script.charset = 'UTF-8'
-      doc.head.appendChild(script)
+        const script = doc.createElement('script')
+        script.src = `${API_BASE_URL}${encodeURIComponent(jsUrl)}`
+        script.charset = 'UTF-8'
+        doc.head.appendChild(script)
     }
-  }
-
-  // 注入一次全局点击监听
-  injectClickHandler(doc)
-  // 注入一次全局键盘监听
-  injectKeydownHandler(doc)
-
-  await nextTick()
-
-  // 只更新内容，不重建整个 iframe
-  doc.body.innerHTML = doc_content.value
-  const p = doc.createElement('p')
-  p.textContent = "tail"
-  p.id = props.dictionaryName + '-dict-tail'
-  doc.body.appendChild(p)
-  updateIframeHeightDebounced()
 }
 
-function injectKeydownHandler(doc: Document) {
-  const script = doc.createElement('script')
-  script.textContent = `
+function injectClickHandler(doc: Document): void {
+    const script = doc.createElement('script')
+    script.textContent = `
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.href || a.getAttribute('href');
+
+      if (href.startsWith('${URL_SCHEME.ENTRY}')) {
+        e.preventDefault();
+        const raw = a.getAttribute('href') || a.href;
+        window.parent.postMessage({
+          type: '${IFRAME_MSG.ENTRY_CLICK}',
+          iframeId: '${iframeId.value}',
+          entry: raw.replace('${URL_SCHEME.ENTRY}', '')
+        }, '*');
+      }
+      else if (href.startsWith('${URL_SCHEME.SOUND}')) {
+        e.preventDefault();
+        window.parent.postMessage({
+          type: '${IFRAME_MSG.SOUND_CLICK}',
+          iframeId: '${iframeId.value}',
+          sound: encodeURIComponent(href.replace('${URL_SCHEME.SOUND}', ''))
+        }, '*');
+      }
+      else if (href.includes('#') && href.includes('localhost')) {
+        e.preventDefault();
+        const hash = href.split('#')[1];
+        const el = document.getElementById(hash);
+        if (el) {
+          window.parent.postMessage({
+            type: '${IFRAME_MSG.LOCATION_CLICK}',
+            iframeId: '${iframeId.value}',
+            elementOffsetTop: el.offsetTop
+          }, '*');
+        }
+      }
+      else {
+        e.preventDefault();
+      }
+    });
+  `
+    doc.body.appendChild(script)
+}
+
+function injectKeydownHandler(doc: Document): void {
+    const script = doc.createElement('script')
+    script.textContent = `
     document.addEventListener('keydown', (e) => {
       window.parent.postMessage({
         type: 'KEYDOWN',
-        key: e.key,           // 按键名，比如 "Enter" "Escape"
-        code: e.code,         // 按键码
-        ctrlKey: e.ctrlKey,   // 组合键
+        key: e.key,
+        code: e.code,
+        ctrlKey: e.ctrlKey,
         shiftKey: e.shiftKey,
         altKey: e.altKey,
         metaKey: e.metaKey,
@@ -156,187 +159,170 @@ function injectKeydownHandler(doc: Document) {
       }, '*');
     });
   `
-  doc.body.appendChild(script)
+    doc.body.appendChild(script)
 }
 
-// ================ 点击事件只注入一次 ================
-function injectClickHandler(doc: Document) {
-  const script = doc.createElement('script')
-  script.textContent = `
-    document.addEventListener('click', (e) => {
-      const a = e.target.closest('a[href]');
-      if (!a) return;
-      const href = a.href || a.getAttribute('href');
+async function renderIframe(): Promise<void> {
+    const iframe = iframeRef.value
+    if (!iframe) return
 
-      if (href.startsWith('entry://')) {
-        e.preventDefault();
-        const raw_href = a.getAttribute('href') || a.href;
-        window.parent.postMessage({
-          type: 'ENTRY_CLICK',
-          iframeId: '${iframeId.value}',
-          entry: raw_href.replace('entry://', '')
-        }, '*');
-      }
-      else if (href.startsWith('sound://')) {
-        e.preventDefault();
-        window.parent.postMessage({
-          type: 'SOUND_CLICK',
-          iframeId: '${iframeId.value}',
-          sound: encodeURIComponent(href.replace('sound://', ''))
-        }, '*');
-      }
-      else if (href.includes('#') && href.includes('localhost')) {
-          e.preventDefault();
-          const hash = href.split('#')[1];
-          const el = document.getElementById(hash);
-          if (!el) return;
-          window.parent.postMessage({
-              type: 'LOCATION_CLICK',
-              iframeId: '${iframeId.value}',
-              elementOffsetTop: el.offsetTop
-          }, '*');
-      }
-      else {
-        e.preventDefault();
-        console.log('拦截链接:', href);
-      }
-    });
-  `
-  doc.body.appendChild(script)
-}
-
-//  ================ 监听窗口resize ================
-onMounted(() => {
-  window.addEventListener('resize', updateIframeHeightDebounced)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateIframeHeightDebounced)
-})
-
-
-
-// ================ 高度自适应 ================
-function updateIframeHeight() {
-  const iframe = iframeRef.value
-  if (!iframe?.contentDocument) return
-  const doc = iframe.contentDocument
-  const realHeight = doc.getElementById(`${props.dictionaryName}-dict-tail`)?.getBoundingClientRect().bottom || 0
-  // 赋值给 iframe
-  iframe.style.height = `${realHeight + 10}px`
-}
-
-const updateIframeHeightDebounced = debounce(updateIframeHeight, 200)
-
-// ================ 监听变化 ================
-watch(() => props.isDark, (dark) => {
-  updateDarkMode(dark)
-})
-
-watch(
-  () => [props.html, props.basePath],
-  async () => {
-    await nextTick()
-    renderIframe()
-  },
-  { deep: true, immediate: true }
-)
-
-// 🔥 自动高度（终极版，任何内容变化都能触发）
-let mutationObserver: MutationObserver | null = null
-const changedByThisCode = ref(false)
-
-const handleIframeChange = (val: HTMLIFrameElement | null) => {
-  // 清理旧监听
-  if (mutationObserver) {
-    mutationObserver.disconnect()
-    mutationObserver = null
-  }
-  if (!val) return
-
-  nextTick(() => {
-    const doc = val.contentDocument
+    const doc = iframe.contentDocument || iframe.contentWindow?.document
     if (!doc) return
 
-    // ==========================================
-    // 🔥 监听 iframe 内部内容变化（变大变小都能触发）
-    // ==========================================
-    mutationObserver = new MutationObserver(() => {
-      console.log(props.dictionaryRoot, "**resizeObserver is triggered:", doc.documentElement.scrollHeight)
-      if (changedByThisCode.value) return
-      changedByThisCode.value = true
+    // Only inject assets on first render; subsequent updates only swap body content
+    const isFirstRender = !doc.getElementById('dict-custom-style')
 
-      // 无论内容多少，直接取最新高度
-      const realHeight = doc.getElementById(`${props.dictionaryName}-dict-tail`)?.getBoundingClientRect().bottom || 0
-      console.log(props.dictionaryRoot, "**realHeight:", realHeight)
-      // 赋值给 iframe
-      val.style.height = `${realHeight + 10}px`
+    if (isFirstRender) {
+        doc.body.innerHTML = ''
+        injectStyles(doc)
+        injectScripts(doc)
+        injectClickHandler(doc)
+        injectKeydownHandler(doc)
+    }
 
-      setTimeout(() => {
-        changedByThisCode.value = false
-      }, 100)
-    })
+    // Update body content
+    doc.body.innerHTML = processHtml(props.html)
 
-    // 监听整个 body 的所有变化
-    mutationObserver.observe(doc.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true
-    })
-  })
+    // Append height marker element
+    const tail = doc.createElement('p')
+    tail.id = tailElementId.value
+    tail.textContent = ''
+    tail.style.cssText = 'margin:0;padding:0;height:0;visibility:hidden;'
+    doc.body.appendChild(tail)
+
+    await nextTick()
+    updateIframeHeightDebounced()
 }
 
-watch(iframeRef, (val) => {
-  handleIframeChange(val)
-}, { immediate: true })
+// ============== Height Management ==============
+function updateIframeHeight(): void {
+    const iframe = iframeRef.value
+    const doc = iframe?.contentDocument
+    if (!iframe || !doc) return
 
-// 销毁时清理
-onUnmounted(() => {
-  mutationObserver?.disconnect()
-})
+    const tailEl = doc.getElementById(tailElementId.value)
+    if (!tailEl) return
 
-// ================ 外层消息监听 ================
-const messageListener = (e: MessageEvent) => {
-  if (e.data?.iframeId !== iframeId.value) return
+    const bottom = tailEl.getBoundingClientRect().bottom
+    iframe.style.height = `${bottom + IFRAME_HEIGHT_PADDING}px`
+}
 
-  if (e.data?.type === 'ENTRY_CLICK') {
+const updateIframeHeightDebounced = debounce(updateIframeHeight, IFRAME_HEIGHT_DEBOUNCE_MS)
+
+function setupMutationObserver(iframe: HTMLIFrameElement): void {
+    const doc = iframe.contentDocument
+    if (!doc) return
+
+    mutationObserver = new MutationObserver(() => {
+        if (isUpdatingHeight) return
+        isUpdatingHeight = true
+
+        updateIframeHeight()
+
+        setTimeout(() => {
+            isUpdatingHeight = false
+        }, 100)
+    })
+
+    mutationObserver.observe(doc.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+    })
+}
+
+// ============== Message Handling ==============
+function handleEntryClick(entry: string): void {
     try {
-      handleEntryClick(decodeURIComponent(e.data.entry))
+        emit('entry-click', decodeURIComponent(entry))
     } catch {
-      handleEntryClick(e.data.entry)
+        emit('entry-click', entry)
     }
-  }
-  else if (e.data?.type === 'SOUND_CLICK') {
-    const soundUrl = `${baseUrl.value}/${e.data.sound}`
+}
+
+function handleSoundClick(sound: string): void {
+    const soundUrl = `${baseUrl.value}/${sound}`
     const audio = new Audio(soundUrl)
     audio.currentTime = 0
-    audio.play().catch(err => console.warn('播放失败', err))
-  }
-  else if (e.data?.type === 'LOCATION_CLICK') {
-    const scrollContainer = document.querySelector('.word-detail') as HTMLElement
-    if (!scrollContainer) return
-    const iframeEl = document.getElementById(`dict-iframe-container-${props.dictionaryName}`) as HTMLElement
-    if (!iframeEl) return
-    const iframeTop = iframeEl.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
-    const targetScrollTop = scrollContainer.scrollTop + iframeTop + e.data.elementOffsetTop
-    scrollContainer.scrollTo({
-      top: targetScrollTop,
-      behavior: 'instant'
-    })
-  }
-  else if (e.data?.type === 'KEYDOWN') {
-    emits('keydown', e.data)
-  }
+    audio.play().catch(err => console.warn('Audio playback failed:', err))
 }
 
-window.addEventListener('message', messageListener)
+function handleLocationClick(offsetTop: number): void {
+    const scrollContainer = document.querySelector('.word-detail') as HTMLElement | null
+    const iframeEl = document.getElementById(`dict-iframe-container-${props.dictionaryName}`)
+    if (!scrollContainer || !iframeEl) return
+
+    const iframeTop = iframeEl.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
+    const targetScrollTop = scrollContainer.scrollTop + iframeTop + offsetTop
+
+    scrollContainer.scrollTo({
+        top: targetScrollTop,
+        behavior: 'instant',
+    })
+}
+
+function setupMessageListener(): void {
+    messageListener = (e: MessageEvent) => {
+        if (e.data?.iframeId !== iframeId.value) return
+
+        switch (e.data.type) {
+            case IFRAME_MSG.ENTRY_CLICK:
+                handleEntryClick(e.data.entry)
+                break
+            case IFRAME_MSG.SOUND_CLICK:
+                handleSoundClick(e.data.sound)
+                break
+            case IFRAME_MSG.LOCATION_CLICK:
+                handleLocationClick(e.data.elementOffsetTop)
+                break
+            case IFRAME_MSG.KEYDOWN:
+                emit('keydown', e.data)
+                break
+        }
+    }
+
+    window.addEventListener('message', messageListener)
+}
+
+// ============== Watchers ==============
+watch(() => props.isDark, updateDarkMode)
+
+watch(
+    () => [props.html, props.basePath],
+    async () => {
+        await nextTick()
+        renderIframe()
+    },
+    { deep: true, immediate: true }
+)
+
+watch(iframeRef, (val) => {
+    if (mutationObserver) {
+        mutationObserver.disconnect()
+        mutationObserver = null
+    }
+    if (val) {
+        nextTick(() => setupMutationObserver(val))
+    }
+}, { immediate: true })
+
+// ============== Lifecycle ==============
+onMounted(() => {
+    window.addEventListener('resize', updateIframeHeightDebounced)
+    setupMessageListener()
+})
 
 onUnmounted(() => {
-  mutationObserver?.disconnect()
-  window.removeEventListener('message', messageListener)
-  if (iframeRef.value) {
-    iframeRef.value.srcdoc = ''
-  }
+    window.removeEventListener('resize', updateIframeHeightDebounced)
+    mutationObserver?.disconnect()
+
+    if (messageListener) {
+        window.removeEventListener('message', messageListener)
+    }
+
+    if (iframeRef.value) {
+        iframeRef.value.srcdoc = ''
+    }
 })
 </script>

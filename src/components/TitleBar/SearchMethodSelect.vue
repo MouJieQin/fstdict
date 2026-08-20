@@ -1,36 +1,17 @@
 <template>
     <div class="icon-select-wrapper">
         <el-dropdown trigger="click" @command="handleSelect">
-            <!-- 触发器：点击图标弹出 -->
             <span class="dropdown-trigger">
                 <component :is="currentIcon" class="prefix-icon" />
             </span>
 
             <template #dropdown>
                 <el-dropdown-menu>
-                    <el-dropdown-item command="prefix_search">
+                    <el-dropdown-item v-for="option in searchOptions" :key="option.value" :command="option.value">
                         <el-icon size="20">
-                            <BsSearch />
+                            <component :is="option.icon" />
                         </el-icon>
-                        <span>前缀搜索</span>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="regex_search">
-                        <el-icon size="20">
-                            <VscRegex />
-                        </el-icon>
-                        <span>正则搜索</span>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="prefix_distance_search">
-                        <el-icon size="20">
-                            <Fa6Searchengin/>
-                        </el-icon>
-                        <span>前缀距离搜索</span>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="suggest_search">
-                        <el-icon size="20">
-                            <VscSearchFuzzy />
-                        </el-icon>
-                        <span>模糊搜索</span>
+                        <span>{{ option.label }}</span>
                     </el-dropdown-item>
                 </el-dropdown-menu>
             </template>
@@ -40,40 +21,41 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import {
-    BsSearch,
-} from 'vue-icons-plus/bs'
+import { BsSearch } from 'vue-icons-plus/bs'
 import { VscRegex, VscSearchFuzzy } from 'vue-icons-plus/vsc'
 import { Fa6Searchengin } from 'vue-icons-plus/fa6'
 
-const props = defineProps({
-    searchMethod: {
-        type: String,
-        default: 'prefix_search',
-    }
-})
-
-const emits = defineEmits<{
-    (e: 'update-search-method', searchMethod: string): void
-}>()
-
-// 点击菜单项 → 触发更新
-const handleSelect = (command: string) => {
-    if (command !== props.searchMethod) {
-        emits('update-search-method', command)
-    }
+interface SearchOption {
+    value: string
+    label: string
+    icon: unknown
 }
 
-// 动态切换图标
+const props = defineProps<{
+    searchMethod: string
+}>()
+
+const emit = defineEmits<{
+    (e: 'update-search-method', method: string): void
+}>()
+
+const searchOptions: SearchOption[] = [
+    { value: 'prefix_search', label: 'Prefix Search', icon: BsSearch },
+    { value: 'regex_search', label: 'Regex Search', icon: VscRegex },
+    { value: 'prefix_distance_search', label: 'Prefix Distance', icon: Fa6Searchengin },
+    { value: 'suggest_search', label: 'Fuzzy Search', icon: VscSearchFuzzy },
+]
+
 const currentIcon = computed(() => {
-    const iconMap: Record<string, any> = {
-        prefix_search: BsSearch,
-        regex_search: VscRegex,
-        prefix_distance_search: Fa6Searchengin,
-        suggest_search: VscSearchFuzzy,
-    }
-    return iconMap[props.searchMethod] || BsSearch
+    const found = searchOptions.find((o) => o.value === props.searchMethod)
+    return found?.icon || BsSearch
 })
+
+const handleSelect = (command: string): void => {
+    if (command !== props.searchMethod) {
+        emit('update-search-method', command)
+    }
+}
 </script>
 
 <style scoped>
@@ -81,5 +63,9 @@ const currentIcon = computed(() => {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+}
+
+.prefix-icon {
+    width: 16px;
 }
 </style>

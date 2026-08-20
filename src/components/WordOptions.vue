@@ -1,35 +1,19 @@
 <template>
-    <div v-if="showErrorSuggestion" class="error-suggestions">
-        {{ props.wordOptions[0].replace('FSTD_ERROR', '') || 'No error message' }}
+    <div v-if="showError" class="error-suggestions">
+        {{ errorMessage }}
     </div>
-    <div v-if="showWarnSuggestion" class="warn-suggestions">
-        {{ props.wordOptions[0].replace('FSTD_WARN', '') || 'No warn message' }}
+    <div v-if="showWarning" class="warn-suggestions">
+        {{ warningMessage }}
     </div>
-    <ThreeDotsLoader v-if="showSearchIcon" style="margin-left:1rem;" />
-    <!-- showWarnSuggestion -->
-    <UseVirtualList v-show="!showErrorSuggestion && !showWarnSuggestion && !showSearchIcon && !showHistory"
-        ref="virtualListRef" :list="props.wordOptions" :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)"
-        class="list-container">
+    <ThreeDotsLoader v-if="showLoading" class="loader-inline" />
+
+    <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
+        :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
         <template #default="{ data, index }">
             <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
-                :style="{ height: '30px' }" @click="handleWordClick(data)">
-                <!-- Added a wrapping class 'truncated-text' to ensure uniform string styling -->
+                :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
                 <el-text class="truncated-text" :title="data">
                     {{ data }}
-                    <!-- row {{ index }} - {{ data }} -->
-                </el-text>
-            </div>
-        </template>
-    </UseVirtualList>
-    <UseVirtualList v-show="showHistory" ref="historyVirtualListRef" :list="props.searchHistory.map(item => item.word)"
-        :options="{ itemHeight: 30, overscan: 20 }" height="calc(100%)" class="list-container">
-        <template #default="{ data, index }">
-            <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
-                :style="{ height: '30px' }" @click="handleWordClick(data)">
-                <!-- Added a wrapping class 'truncated-text' to ensure uniform string styling -->
-                <el-text class="truncated-text" :title="data">
-                    {{ data }}
-                    <!-- row {{ index }} - {{ data }} -->
                 </el-text>
             </div>
         </template>
@@ -37,24 +21,26 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import type { PropType } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
-import { SessionWebSocketService } from '@/common/session-websocket-client'
-import { getDictSettingsForLookup } from '@/common/utility'
-import type { WordInfoWithLastSearch } from '@/common/type-interface'
-import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 
+import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
+import { SessionWebSocketService } from '@/common/session-websocket-client'
+import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import { getDictSettingsForLookup } from '@/common/utility'
+
+const ITEM_HEIGHT = 30
 
 const props = defineProps({
     webSocket: {
         type: [SessionWebSocketService, null],
-        required: true
+        required: true,
     },
     sessionConfig: {
-        type: Object as () => SessionConfig,
+        type: Object as PropType<SessionConfig>,
         required: true,
-        default: () => ({})
+        default: () => ({}),
     },
     keyword: {
         type: String,
@@ -72,47 +58,83 @@ const props = defineProps({
     },
 })
 
-const virtualListRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
-const historyVirtualListRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
+const emit = defineEmits<{
+    (e: 'select', word: string): void
+}>()
+
+// --- Refs ---
+const listRef = ref<InstanceType<typeof UseVirtualList> | null>(null)
 const selectedWord = ref<string | null>(null)
-const showHistory = computed(() => {
-    return !props.keyword.trim()
+
+// --- State flags ---
+const showHistory = computed(() => !props.keyword.trim())
+
+const showError = computed(() =>
+    props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_ERROR')
+)
+
+const showWarning = computed(() =>
+    props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_WARN')
+)
+
+const showLoading = computed(() =>
+    props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_SEARCHING')
+)
+
+const showResults = computed(() => !showError.value && !showWarning.value && !showLoading.value)
+
+const errorMessage = computed(() =>
+    showError.value
+        ? props.wordOptions[0].replace('FSTD_ERROR', '') || 'Unknown error'
+        : ''
+)
+
+const warningMessage = computed(() =>
+    showWarning.value
+        ? props.wordOptions[0].replace('FSTD_WARN', '') || ''
+        : ''
+)
+
+const displayList = computed(() => {
+    if (showHistory.value) {
+        return props.searchHistory.map((item) => item.word)
+    }
+    return props.wordOptions
 })
 
-const showErrorSuggestion = computed(() => {
-    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_ERROR'))
-})
+// --- Actions ---
+const handleWordClick = (word: string): void => {
+    selectedWord.value = word
+    props.webSocket?.sendLookupKeyword(
+        word,
+        props.sessionConfig.default_folder.id ?? null,
+        getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name),
+        true
+    )
+}
 
-const showWarnSuggestion = computed(() => {
-    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_WARN'))
-})
-
-const showSearchIcon = computed(() => {
-    return (props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_SEARCHING'))
-})
-
-
-watch(() => props.keyword, (newVal) => {
-    selectedWord.value = newVal
+// --- Watchers ---
+watch(() => props.keyword, (val) => {
+    selectedWord.value = val
 })
 
 watch(
     () => props.wordOptions,
     () => {
-        if (virtualListRef.value?.$el) {
-            virtualListRef.value.$el.scrollTop = 0
-        }
+        nextTick(() => {
+            const el = listRef.value?.$el as HTMLElement | undefined
+            if (el) el.scrollTop = 0
+        })
     },
     { deep: true }
 )
-
-const handleWordClick = (word: string) => {
-    selectedWord.value = word
-    props.webSocket?.sendLookupKeyword(word, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name), true)
-}
 </script>
 
 <style scoped>
+.loader-inline {
+    margin-left: 1rem;
+}
+
 .list-container {
     border: 1px solid var(--el-border-color-light, #e4e7ed);
     border-radius: 4px;
@@ -126,7 +148,6 @@ const handleWordClick = (word: string) => {
     cursor: pointer;
     border-bottom: 1px solid var(--el-border-color-extra-light, #f2f6fc);
     transition: background-color 0.2s ease;
-    /* Crucial: Prevents children from expanding past flex bounds */
     min-width: 0;
 }
 
@@ -142,10 +163,8 @@ const handleWordClick = (word: string) => {
     color: var(--el-color-primary, #409eff);
 }
 
-/* New CSS Rule to force text onto a single line and show "..." when cramped */
 .truncated-text {
     display: block !important;
-    /* Overrides el-text's default inline layout */
     width: 100%;
     white-space: nowrap;
     overflow: hidden;

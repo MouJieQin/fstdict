@@ -1,84 +1,87 @@
-import { ref, watch } from 'vue';
-import { useSystemConfigStore } from '@/stores/stores';
-import { invoke } from '@tauri-apps/api/core';
+import { ref, watch } from 'vue'
+import { useSystemConfigStore } from '@/stores/systemConfig'
+import { invoke } from '@tauri-apps/api/core'
 import { useRoute } from 'vue-router'
 
+const TAURI_ENV_VALUES = new Set(['', 'helper_main_tauri', 'selection_float_search'])
 
-export const useTheme = () => {
+function isTauriEnvironment(env: string): boolean {
+    return TAURI_ENV_VALUES.has(env)
+}
 
-    const route = useRoute()
-    const isTauriEnv = (): boolean => {
-        const envFromRoute = route.query.env as string || ''
-        return envFromRoute === '' || envFromRoute === "helper_main_tauri" || envFromRoute === "selection_float_search";
-    }
+function getSystemTheme(): 'dark' | 'light' {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
+function applyDocumentTheme(isDark: boolean): void {
+    document.documentElement.classList.toggle('dark', isDark)
+}
+
+export function useTheme() {
     const systemConfigStore = useSystemConfigStore()
-    watch(() => systemConfigStore.systemConfig?.appearance.theme, () => {
-        updateTheme();
-    })
+    const systemTheme = ref<'dark' | 'light'>(getSystemTheme())
+    const route = useRoute()
 
-    const getOperationSystemTheme = (): string => {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-
-    const operationSystemTheme = ref(getOperationSystemTheme());
-
-    const updateTauriTheme = (theme: string) => {
+    const updateTauriTheme = async (theme: string): Promise<void> => {
+        const envFromRoute = route.query.env as string || ''
+        const isTauri = isTauriEnvironment(envFromRoute)
+        if (!isTauri) return
         try {
-            if (isTauriEnv()) {
-                if (theme === "dark") {
-                    invoke("set_theme", { theme: "Dark" })
-                } else if (theme === "light") {
-                    invoke("set_theme", { theme: "Light" })
-                } else {
-                    invoke("set_theme", { theme: "Auto" })
-                }
-            }
-        }
-        catch (error) {
-            console.error("Failed to update tauri app theme :", error);
+            const mapped = theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Auto'
+            await invoke('set_theme', { theme: mapped })
+        } catch (error) {
+            console.error('Failed to update Tauri theme:', error)
         }
     }
 
-    const updateTheme = () => {
-        const theme = systemConfigStore.systemConfig?.appearance.theme;
-        if (theme) {
-            if (theme === 'auto') {
-                const isDark = operationSystemTheme.value === 'dark';
-                updateTauriTheme(theme)
-                document.documentElement.classList.toggle('dark', isDark);
-                systemConfigStore.setIsDark(isDark);
-            } else {
-                const isDark = theme === 'dark';
-                updateTauriTheme(theme)
-                document.documentElement.classList.toggle('dark', theme === 'dark');
-                systemConfigStore.setIsDark(isDark);
-            }
+    const applyTheme = (): void => {
+        const theme = systemConfigStore.systemConfig?.appearance?.theme
+
+        if (!theme) return
+
+        let isDark: boolean
+
+        if (theme === 'auto') {
+            isDark = systemTheme.value === 'dark'
+        } else {
+            isDark = theme === 'dark'
         }
+
+        applyDocumentTheme(isDark)
+        systemConfigStore.setIsDark(isDark)
+        updateTauriTheme(theme)
     }
 
-    // 初始化主题
-    const initTheme = () => {
-        updateTheme();
-    };
+    const initTheme = (): void => {
+        applyTheme()
+    }
 
-    // 监听系统主题变化
-    const watchSystemTheme = () => {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            operationSystemTheme.value = e.matches ? 'dark' : 'light';
-            const isDark = operationSystemTheme.value === 'dark';
-            const theme = systemConfigStore.systemConfig?.appearance.theme;
-            systemConfigStore.setIsDark(isDark);
+    const watchSystemTheme = (): void => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+        const handler = (e: MediaQueryListEvent) => {
+            systemTheme.value = e.matches ? 'dark' : 'light'
+
+            const theme = systemConfigStore.systemConfig?.appearance?.theme
             if (theme === 'auto') {
+                const isDark = systemTheme.value === 'dark'
+                applyDocumentTheme(isDark)
+                systemConfigStore.setIsDark(isDark)
                 updateTauriTheme(theme)
-                document.documentElement.classList.toggle('dark', isDark);
             }
-        });
-    };
+        }
+
+        mediaQuery.addEventListener('change', handler)
+    }
+
+    // React to config changes
+    watch(
+        () => systemConfigStore.systemConfig?.appearance?.theme,
+        () => applyTheme()
+    )
 
     return {
         initTheme,
         watchSystemTheme,
-    };
-};
-
+    }
+}

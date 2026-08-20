@@ -1,50 +1,46 @@
 <template>
     <div class="floating-window-search-container">
-        <el-input v-if="!props.showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off"
-            autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search" clearable
-            style="font-size: 1rem;" @input="handleInputChange" @keydown.enter.prevent="handleKeyEnter"
-            @compositionstart="onCompositionStart" @compositionend="onCompositionEnd">
+        <el-input v-if="!showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
+            autocapitalize="off" spellcheck="false" placeholder="Search" clearable class="search-input"
+            @input="onInputChange" @keydown.enter.prevent="onKeyEnter" @compositionstart="onCompositionStart"
+            @compositionend="onCompositionEnd">
             <template #prefix>
-                <SearchMethodSelect :searchMethod="props.sessionConfig.default_search_method?.method || 'prefix_search'"
+                <SearchMethodSelect :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
             </template>
         </el-input>
-        <!-- 1. Restored clean popover bounds and synchronized width binding perfectly -->
+
         <el-popover v-else ref="popoverRef" trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
             :width="popoverWidth" :show-arrow="false" popper-class="virtual-autocomplete-popper" :teleported="true">
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
-                    spellcheck="false" placeholder="Search" clearable style="font-size: 1rem;"
-                    @input="handleInputChange" @focus="handleFocus" @blur="handleBlur"
-                    @keydown.down.prevent="handleKeyDown" @keydown.up.prevent="handleKeyUp"
-                    @keydown.enter.prevent="handleKeyEnter" @keydown.escape="isDropdownVisible = false">
+                    spellcheck="false" placeholder="Search" clearable class="search-input" @input="onInputChange"
+                    @focus="handleFocus" @blur="handleBlur" @keydown.down.prevent="handleKeyDown"
+                    @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter"
+                    @keydown.escape="isDropdownVisible = false" @compositionstart="onCompositionStart"
+                    @compositionend="onCompositionEnd">
                     <template #prefix>
                         <SearchMethodSelect
-                            :searchMethod="props.sessionConfig.default_search_method?.method || 'prefix_search'"
+                            :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                             @update-search-method="handleSearchMethodChange" />
                     </template>
                 </el-input>
             </template>
 
-            <!-- 2. Embedded Virtualized list container -->
             <div class="virtual-dropdown-menu">
-                <div v-if="links.length === 0" class="empty-suggestions">
+                <div v-if="isEmptyState" class="empty-suggestions">
                     No suggestions found
                 </div>
-                <div v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_ERROR'))"
-                    class="error-suggestions">
-                    {{ links[0].value.replace('FSTD_ERROR', '') || 'No error message' }}
+                <div v-else-if="isErrorState" class="error-suggestions">
+                    {{ errorMessage }}
                 </div>
-                <div v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_WARN'))"
-                    class="warn-suggestions">
-                    {{ links[0].value.replace('FSTD_WARN', '') || 'No warn message' }}
+                <div v-else-if="isWarnState" class="warn-suggestions">
+                    {{ warningMessage }}
                 </div>
-                <ThreeDotsLoader v-else-if="(links.length === 1 && links[0].value.startsWith('FSTD_SEARCHING'))"
-                    style="margin-left:1rem;" />
+                <ThreeDotsLoader v-else-if="isSearchingState" class="loader-inline" />
 
-                <UseVirtualList
-                    v-show="(links.length >= 1 && (!links[0].value.startsWith('FSTD_ERROR') && !links[0].value.startsWith('FSTD_WARN') && !links[0].value.startsWith('FSTD_SEARCHING')))"
-                    ref="virtualListRef" :list="links" :options="{ itemHeight: 35, overscan: 10 }" height="250px">
+                <UseVirtualList v-show="isResultState" ref="virtualListRef" :list="links"
+                    :options="{ itemHeight: AUTOCOMPLETE_ITEM_HEIGHT, overscan: 10 }" height="250px">
                     <template #default="{ data, index }">
                         <div class="suggestion-item" :class="{ 'is-active': index === activeIndex }"
                             @mousedown.prevent="handleSelect(data)" @mouseenter="activeIndex = index">
@@ -58,302 +54,225 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
-import { ElInput } from 'element-plus'
-import { getDictSettingsForLookup, willScanAllFstNodes } from '@/common/utility'
+import type { ElInput } from 'element-plus'
 import SearchMethodSelect from '@/components/TitleBar/SearchMethodSelect.vue'
 import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
-
-interface LinkItem {
-    value: string
-    link: string
-}
+import { useAutocomplete } from '@/composables/useAutocomplete'
+import type { SessionWebSocketService } from '@/common/session-websocket-client'
+import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
 
 const props = defineProps<{
-    webSocket: any
+    webSocket: SessionWebSocketService | null
     env: string
-    sessionConfig: any
+    sessionConfig: SessionConfig
     redirectWord: string
     redirectHistoryWord: string
-    searchHistory: Array<{ word: string }>
+    searchHistory: WordInfoWithLastSearch[]
     wordOptions: string[]
     showPopoverWordOptions: boolean
 }>()
 
-const emits = defineEmits<{
+const emit = defineEmits<{
     (e: 'change:keyword', keyword: string): void
 }>()
 
-const keyword = ref('')
-const links = ref<LinkItem[]>([])
-const isDropdownVisible = ref(false)
-const popoverWidth = ref(300)
-const activeIndex = ref(-1)
-
-const optionsReceivedFlag = ref(true)
-const lastKeywordForOptionSearch = ref("")
 const inputRef = ref<InstanceType<typeof ElInput> | null>(null)
-const popoverRef = ref<any>(null)
-const virtualListRef = ref<any>(null)
-const isComposing = ref(false)
+const popoverRef = ref<unknown>(null)
+const virtualListRef = ref<unknown>(null)
+const popoverWidth = ref(300)
 
-let searchDebounceTimer: any = null
 let resizeObserver: ResizeObserver | null = null
 
-// Setup layout trackers and global input listener bounds on initialization
-onMounted(() => {
-    window.addEventListener('keydown', handleGlobalKeydown)
+// Reactive refs for composable
+const wsRef = computed(() => props.webSocket)
+const configRef = computed(() => props.sessionConfig)
+const historyRef = computed(() => props.searchHistory)
+const optionsRef = computed(() => props.wordOptions)
+const showPopoverRef = computed(() => props.showPopoverWordOptions)
 
-    // Track panel layout adjustments to synchronize element outer border bounds exactly
-    if (inputRef.value?.$el) {
-        popoverWidth.value = inputRef.value.$el.offsetWidth
-
-        resizeObserver = new ResizeObserver(() => {
-            if (inputRef.value?.$el) {
-                // Reads offsetWidth to include margins/borders, keeping popover size perfect
-                popoverWidth.value = inputRef.value.$el.offsetWidth
-            }
-        })
-        resizeObserver.observe(inputRef.value.$el)
-    }
+const {
+    keyword,
+    links,
+    isDropdownVisible,
+    activeIndex,
+    isComposing,
+    handleKeyDown,
+    handleKeyUp,
+    handleKeyEnter: onKeyEnter,
+    handleInputChange,
+    handleFocus,
+    handleBlur,
+    sendLookupKeyword,
+    sendKeywordOptionsSearch,
+    AUTOCOMPLETE_ITEM_HEIGHT,
+} = useAutocomplete({
+    webSocket: wsRef,
+    sessionConfig: configRef,
+    searchHistory: historyRef,
+    wordOptions: optionsRef,
+    showPopover: showPopoverRef,
 })
 
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleGlobalKeydown)
-    if (resizeObserver) {
-        resizeObserver.disconnect()
-    }
-})
+// --- Computed state flags for template clarity ---
+const isEmptyState = computed(() => links.value.length === 0)
 
-// Automatically grabs focus if user begins raw typing while app layer is focused
-const handleGlobalKeydown = (e: KeyboardEvent) => {
-    const activeEl = document.activeElement
-    if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-            activeEl.tagName === 'TEXTAREA' ||
-            (activeEl as HTMLElement).isContentEditable)
-    ) {
-        return
-    }
+const isErrorState = computed(() =>
+    links.value.length === 1 && links.value[0].value.startsWith('FSTD_ERROR')
+)
 
-    // Bypass application shortcut system handlers
-    if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Escape' || e.key === 'Tab') {
-        return
-    }
+const isWarnState = computed(() =>
+    links.value.length === 1 && links.value[0].value.startsWith('FSTD_WARN')
+)
 
-    // If a valid plain string character is struck, move context focus to input
-    if (e.key.length === 1 && inputRef.value) {
-        keyword.value = ''
-        inputRef.value.focus()
-    }
-}
+const isSearchingState = computed(() =>
+    links.value.length === 1 && links.value[0].value.startsWith('FSTD_SEARCHING')
+)
 
-const scrollToActiveItem = () => {
-    if (!virtualListRef.value?.$el) return
-    const container = virtualListRef.value.$el
-    const itemHeight = 35
-    const visibleHeight = 250
-    const currentScrollTop = container.scrollTop
-    const targetTopPosition = activeIndex.value * itemHeight
+const isResultState = computed(() =>
+    links.value.length >= 1 &&
+    !links.value[0].value.startsWith('FSTD_ERROR') &&
+    !links.value[0].value.startsWith('FSTD_WARN') &&
+    !links.value[0].value.startsWith('FSTD_SEARCHING')
+)
 
-    if (targetTopPosition + itemHeight > currentScrollTop + visibleHeight) {
-        container.scrollTop = targetTopPosition - visibleHeight + itemHeight
-    } else if (targetTopPosition < currentScrollTop) {
-        container.scrollTop = targetTopPosition
-    }
-}
+const errorMessage = computed(() =>
+    isErrorState.value
+        ? links.value[0].value.replace('FSTD_ERROR', '') || 'Unknown error'
+        : ''
+)
 
-const handleKeyDown = () => {
-    if (!isDropdownVisible.value || links.value.length === 0) return
-    if (activeIndex.value < links.value.length - 1) {
-        activeIndex.value++
-    } else {
-        activeIndex.value = 0
-    }
-    scrollToActiveItem()
-}
+const warningMessage = computed(() =>
+    isWarnState.value
+        ? links.value[0].value.replace('FSTD_WARN', '') || ''
+        : ''
+)
 
-const handleKeyUp = () => {
-    if (!isDropdownVisible.value || links.value.length === 0) return
-    if (activeIndex.value > 0) {
-        activeIndex.value--
-    } else {
-        activeIndex.value = links.value.length - 1
-    }
-    scrollToActiveItem()
-}
+// --- Event handlers ---
+const onInputChange = () => handleInputChange(emit)
 
 const onCompositionStart = () => {
-    console.log("onCompositionStart")
     isComposing.value = true
 }
+
 const onCompositionEnd = () => {
+    // Small delay to ensure IME commit completes before processing
     setTimeout(() => {
-        console.log("onCompositionEnd")
         isComposing.value = false
-    }, 20);
+    }, 20)
 }
 
-const handleKeyEnter = () => {
-    if (isComposing.value) return
-    if (props.sessionConfig.default_search_method.method == "regex_search") {
-        if (keyword.value.trim() && willScanAllFstNodes(keyword.value)) {
-            if (optionsReceivedFlag.value) {
-                optionsReceivedFlag.value = false
-                sendKeywordOptionsSearch(true)
-            }
-        }
-    }
-    if (!props.showPopoverWordOptions) {
-        sendLookupKeyword()
-    } else {
-        if (isDropdownVisible.value && activeIndex.value >= 0 && activeIndex.value < links.value.length) {
-            handleSelect(links.value[activeIndex.value])
-        } else {
-            isDropdownVisible.value = false
-            sendLookupKeyword()
-        }
-    }
-}
-
-const syncSuggestions = () => {
-    if (!keyword.value.trim()) {
-        links.value = props.searchHistory.map(item => ({
-            value: String(item.word),
-            link: String(item.word),
-        }))
-    } else {
-        links.value = props.wordOptions.map(item => ({
-            value: String(item),
-            link: String(item),
-        }))
-    }
-    // activeIndex.value = links.value.length > 0 ? 0 : -1
-    activeIndex.value = -1
-    nextTick(() => {
-        if (virtualListRef.value?.$el) virtualListRef.value.$el.scrollTop = 0
-    })
-}
-
-watch(() => props.wordOptions, () => {
-    if (!(props.wordOptions.length === 1 && props.wordOptions[0].startsWith('FSTD_SEARCHING'))) {
-        optionsReceivedFlag.value = true;
-    }
-    syncSuggestions();
-}, { deep: true })
-watch(() => props.searchHistory, syncSuggestions, { deep: true })
-watch(() => props.redirectWord, (newVal) => {
-    keyword.value = newVal
-    sendLookupKeyword()
-    sendKeywordOptionsSearch()
-})
-watch(() => props.redirectHistoryWord, (newVal) => {
-    keyword.value = newVal
-})
-watch(() => optionsReceivedFlag.value, (newVal) => {
-    if (newVal) {
-        if (lastKeywordForOptionSearch.value != keyword.value) {
-            sendKeywordOptionsSearch()
-        }
-    }
-})
-
-const sendKeywordOptionsSearch = (forced: boolean = false) => {
-    lastKeywordForOptionSearch.value = keyword.value
-    if (props.sessionConfig.default_search_method.method == "regex_search") {
-        if (!keyword.value.trim()) {
-            return
-        }
-        if (willScanAllFstNodes(keyword.value)) {
-            if (!forced) {
-                props.webSocket?.sendKeywordOptionsNote(keyword.value, `FSTD_WARN该正则表达式「${keyword.value}」可能存在性能风险，按 enter 键继续检索。`)
-                return
-            }
-        }
-    }
-    props.webSocket?.sendKeywordOptionsNote(keyword.value, `FSTD_SEARCHING`)
-    props.webSocket?.sendKeywordOptionsSearch(keyword.value, props.sessionConfig.default_search_method.method, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name))
-}
-
-const triggerAsyncSearch = () => {
-    if (searchDebounceTimer) { clearTimeout(searchDebounceTimer) }
-    searchDebounceTimer = setTimeout(() => {
-        if (!keyword.value.trim()) {
-            props.webSocket?.sendSearchHistoryRequest()
-        } else {
-            sendLookupKeyword(false)
-            if (optionsReceivedFlag.value) {
-                optionsReceivedFlag.value = false
-                sendKeywordOptionsSearch()
-            }
-        }
-    }, 300)
-}
-
-const sendLookupKeyword = (leftHistory: boolean = true) => {
-    if (props.sessionConfig.default_search_method.method == "regex_search") {
-        if (willScanAllFstNodes(keyword.value)) {
-            return
-        }
-    }
-    props.webSocket?.sendLookupKeyword(keyword.value, props.sessionConfig.default_folder.id, getDictSettingsForLookup(props.sessionConfig.dict_setting_option_name), leftHistory)
-}
-
-const handleInputChange = () => {
-    if (props.showPopoverWordOptions) {
-        isDropdownVisible.value = true
-    }
-    emits('change:keyword', keyword.value)
-    triggerAsyncSearch()
-}
-
-const handleFocus = () => {
-    if (!keyword.value.trim()) {
-        links.value = props.searchHistory.map(item => ({
-            value: String(item.word),
-            link: String(item.word),
-        }))
-    }
-    activeIndex.value = links.value.length > 0 ? 0 : -1
-    isDropdownVisible.value = true
-}
-
-const handleBlur = () => {
-    isDropdownVisible.value = false
-}
-
-const handleSelect = (item: LinkItem) => {
+const handleSelect = (item: { value: string; link: string }) => {
     keyword.value = item.value
     isDropdownVisible.value = false
     sendLookupKeyword()
 }
 
 const handleSearchMethodChange = (newMethod: string) => {
-    if (props.sessionConfig.default_search_method) {
-        props.sessionConfig.default_search_method.method = newMethod
+    const config = props.sessionConfig
+    if (config.default_search_method) {
+        config.default_search_method.method = newMethod
     } else {
-        props.sessionConfig.default_search_method = { method: newMethod }
+        ; (config as SessionConfig).default_search_method = { method: newMethod }
     }
-    props.webSocket?.sendSessionConfig(props.sessionConfig)
-    nextTick(() => triggerAsyncSearch())
+    props.webSocket?.sendSessionConfig(config)
+    nextTick(() => handleInputChange(emit))
 }
+
+const scrollToActiveItem = () => {
+    const el = virtualListRef.value as { $el?: HTMLElement } | null
+    if (!el?.$el) return
+
+    const container = el.$el
+    const visibleHeight = 250
+    const targetTop = activeIndex.value * AUTOCOMPLETE_ITEM_HEIGHT
+
+    if (targetTop + AUTOCOMPLETE_ITEM_HEIGHT > container.scrollTop + visibleHeight) {
+        container.scrollTop = targetTop - visibleHeight + AUTOCOMPLETE_ITEM_HEIGHT
+    } else if (targetTop < container.scrollTop) {
+        container.scrollTop = targetTop
+    }
+}
+
+// Sync scroll when active index changes
+watch(activeIndex, scrollToActiveItem)
+
+// Sync suggestions when props change
+watch(optionsRef, () => {
+    // Handled internally by composable
+    nextTick(() => {
+        const el = virtualListRef.value as { $el?: HTMLElement } | null
+        if (el?.$el) el.$el.scrollTop = 0
+    })
+}, { deep: true })
+
+// Handle redirect word from parent
+watch(() => props.redirectWord, (newVal) => {
+    keyword.value = newVal
+    // Trigger lookup and option search
+    sendLookupKeyword()
+    sendKeywordOptionsSearch()
+})
+
+watch(() => props.redirectHistoryWord, (newVal) => {
+    keyword.value = newVal
+})
+
+// --- Global keyboard shortcut: type anywhere to focus search ---
+const handleGlobalKeydown = (e: KeyboardEvent) => {
+    const active = document.activeElement as HTMLElement | null
+    if (active) {
+        const tag = active.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || active.isContentEditable) {
+            return
+        }
+    }
+
+    // Ignore modifier combos and navigation keys
+    if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Escape' || e.key === 'Tab') {
+        return
+    }
+
+    // Single printable character: focus and start typing
+    if (e.key.length === 1 && inputRef.value) {
+        keyword.value = ''
+        inputRef.value.focus()
+    }
+}
+
+// --- Lifecycle: resize observer for popover width ---
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeydown)
+
+    if (inputRef.value?.$el) {
+        const inputEl = inputRef.value.$el as HTMLElement
+        popoverWidth.value = inputEl.offsetWidth
+
+        resizeObserver = new ResizeObserver(() => {
+            if (inputRef.value?.$el) {
+                popoverWidth.value = (inputRef.value.$el as HTMLElement).offsetWidth
+            }
+        })
+        resizeObserver.observe(inputEl)
+    }
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleGlobalKeydown)
+    resizeObserver?.disconnect()
+})
 </script>
 
-<style>
-/* Scoped overrides to eliminate unpredictable popover borders and paddings */
-.virtual-autocomplete-popper {
-    padding: 0 !important;
-    min-width: 0 !important;
-    overflow: hidden;
-    box-shadow: var(--el-box-shadow-light) !important;
-    border: 1px solid var(--el-border-color-light, #e4e7ed) !important;
-    background-color: var(--el-bg-color-overlay, #ffffff) !important;
-}
-</style>
-
 <style scoped>
+.search-input {
+    font-size: 1rem;
+}
+
+.loader-inline {
+    margin-left: 1rem;
+}
+
 .virtual-dropdown-menu {
     background-color: var(--el-bg-color-overlay, #ffffff);
     overflow: hidden;
@@ -394,5 +313,17 @@ const handleSearchMethodChange = (newMethod: string) => {
     text-align: center;
     color: var(--el-text-color-secondary, #909399);
     font-size: 13px;
+}
+</style>
+
+<style>
+/* Global popover override - must be unscoped */
+.virtual-autocomplete-popper {
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
+    box-shadow: var(--el-box-shadow-light) !important;
+    border: 1px solid var(--el-border-color-light, #e4e7ed) !important;
+    background-color: var(--el-bg-color-overlay, #ffffff) !important;
 }
 </style>
