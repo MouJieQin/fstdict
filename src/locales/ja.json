@@ -1,0 +1,143 @@
+{
+    "common": {
+        "cancel": "キャンセル",
+        "save": "保存",
+        "delete": "削除",
+        "create": "作成",
+        "rename": "名前変更",
+        "close": "閉じる",
+        "loading": "読み込み中",
+        "done": "完了。",
+        "search": "検索",
+        "noSuggestions": "候補がありません",
+        "unknownError": "不明なエラー",
+        "english": "English",
+        "chinese": "简体中文",
+        "japanese": "日本語",
+        "korean": "한국어"
+    },
+    "settings": {
+        "title": "設定",
+        "appearance": "外観",
+        "theme": "テーマ",
+        "language": "言語",
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システムに従う",
+        "favoriteFolders": "お気に入りフォルダ",
+        "name": "名前",
+        "words": "単語数",
+        "created": "作成日時",
+        "description": "説明",
+        "actions": "操作",
+        "newFolder": "新規フォルダ",
+        "deleteSelected": "選択を削除",
+        "exportToAnki": "Ankiにエクスポート",
+        "defaultFolder": "デフォルトフォルダ",
+        "folderNameRequired": "フォルダ名は必須です",
+        "folderNameTooLong": "名前は{max}文字以内にしてください",
+        "folderNameExists": "同じ名前のフォルダが既に存在します",
+        "createFolder": "フォルダを作成",
+        "editFolder": "フォルダを編集",
+        "ocr": "OCR",
+        "defaultOcrLang": "デフォルトOCR言語",
+        "helper": "ヘルパー",
+        "helperPermission": "ヘルパーアクセシビリティ権限",
+        "deleteConfirmTitle": "削除の確認",
+        "deleteConfirmMsg": "選択した{count}個のフォルダを削除しますか？この操作は取り消せません。",
+        "deleteButton": "削除",
+        "viewWords": "単語を表示",
+        "deleteFolder": "フォルダを削除",
+        "editFolderAction": "フォルダを編集"
+    },
+    "dictSettings": {
+        "createTitle": "プリセットを作成",
+        "createPrompt": "新しい辞書設定プリセットの名前を入力してください",
+        "createButton": "作成",
+        "renameTitle": "プリセット名の変更",
+        "renamePrompt": "辞書設定プリセットの名前を変更します",
+        "renameButton": "変更",
+        "deleteTitle": "プリセットを削除",
+        "deleteConfirm": "辞書設定プリセット「{name}」を削除します。よろしいですか？",
+        "deleteButton": "削除",
+        "nameExists": "同じ名前のプリセットが既に存在します",
+        "nameTooLong": "名前は{max}文字以内にしてください",
+        "selectPreset": "プリセットを選択",
+        "deleteDictTitle": "辞書を削除",
+        "deleteDictConfirm": "「{name}」を削除しますか？辞書とそのすべてのデータが完全に削除されます。"
+    },
+    "session": {
+        "createTitle": "セッションを作成",
+        "createPrompt": "新しいセッションの名前を入力してください",
+        "createButton": "作成",
+        "nameEmpty": "セッション名を入力してください",
+        "nameTooLong": "名前は{max}文字以内にしてください",
+        "renameTitle": "セッション名の変更",
+        "renamePrompt": "現在のセッションの名前を変更します",
+        "renameButton": "変更",
+        "removeTitle": "セッションを削除",
+        "removeConfirm": "現在のセッションを削除してもよろしいですか？",
+        "removeButton": "削除",
+        "newSession": "新規セッション",
+        "renameSession": "セッション名を変更",
+        "removeSession": "セッションを削除"
+    },
+    "titleBar": {
+        "setDefaultFolderFirst": "最初にデフォルトフォルダを設定してください",
+        "notesFor": "「{word}」のメモ",
+        "deleteThisNote": "このメモを削除しますか？",
+        "deleteCancelled": "削除をキャンセルしました"
+    },
+    "searchMethod": {
+        "prefix": "前方一致検索",
+        "regex": "正規表現検索",
+        "prefixDistance": "前方距離検索",
+        "fuzzy": "あいまい検索"
+    },
+    "autocomplete": {
+        "regexPerformanceWarn": "正規表現「{pattern}」はパフォーマンスに影響する可能性があります。続行するにはEnterキーを押してください。",
+        "searching": "検索中..."
+    },
+    "wordOptions": {
+        "noResults": "結果が見つかりません"
+    },
+    "favoriteWords": {
+        "actions": "操作",
+        "word": "単語",
+        "queryCount": "検索回数",
+        "favoritedAt": "お気に入り登録日",
+        "totalWords": "合計: {count} 単語",
+        "empty": "このフォルダにお気に入りの単語はありません",
+        "removeFromFavorites": "お気に入りから削除",
+        "lookupWord": "単語を検索"
+    },
+    "dictDialog": {
+        "dragHint": ".fstdx、.fstdd、.mdx、.mdd ファイルをここにドラッグ＆ドロップ",
+        "visitForum": "FreeMdict フォーラムを訪問",
+        "orDownloadFrom": "またはダウンロードサイトから直接取得",
+        "showInFolder": "フォルダ内で表示",
+        "deleteDict": "削除",
+        "addingDict": "辞書を追加中"
+    },
+    "anki": {
+        "waiting": "待機中...",
+        "fetchingCards": "Ankiからカードを取得中...",
+        "totalWords": "単語総数：",
+        "totalHandled": "処理済み単語：",
+        "successUpdated": "更新成功：",
+        "successCreated": "作成成功：",
+        "failedUpdate": "更新失敗：",
+        "failedCreate": "作成失敗：",
+        "exportTitle": "{count}個のフォルダをAnkiにエクスポート中",
+        "cancelExport": "エクスポートをキャンセル",
+        "cancelConfirm": "一部のフォルダはまだ処理中です。エクスポートをキャンセルしますか？",
+        "cancelButton": "エクスポートをキャンセル",
+        "continueButton": "続行"
+    },
+    "dictPage": {
+        "typeToLookup": "単語を入力して検索…",
+        "noActiveDicts": "有効な辞書がありません。辞書アイコンをクリックして辞書を有効化または追加してください。",
+        "noResults": "「{word}」の検索結果が見つかりません",
+        "myNotes": "マイメモ"
+    }
+}

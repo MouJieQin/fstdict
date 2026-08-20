@@ -2,36 +2,40 @@ import { createI18n } from 'vue-i18n'
 import { ref } from 'vue'
 import en from '@/locales/en.json'
 import zh from '@/locales/zh.json'
+import ja from '@/locales/ja.json'   // new
+import ko from '@/locales/ko.json'   // new
 
-// Typed Element Plus locale imports (official recommended path)
+// Element Plus typed locale imports
 import enLocale from 'element-plus/es/locale/lang/en'
 import zhCnLocale from 'element-plus/es/locale/lang/zh-cn'
+import jaLocale from 'element-plus/es/locale/lang/ja'   // new
+import koLocale from 'element-plus/es/locale/lang/ko'   // new
 import type { Language } from 'element-plus/es/locale'
 
-export type AppLocale = 'en' | 'zh'
+export type AppLocale = 'en' | 'zh' | 'ja' | 'ko'  // extended
 
 export const elementPlusLocales: Record<AppLocale, Language> = {
     en: enLocale,
     zh: zhCnLocale,
+    ja: jaLocale,   // new
+    ko: koLocale,   // new
 }
 
 export const i18n = createI18n({
     legacy: false,
     locale: 'en',
     fallbackLocale: 'en',
-    messages: { en, zh }
+    messages: { en, zh, ja, ko }  // extended
 })
 
-/**
- * Reactive Element Plus locale for ElConfigProvider
- */
 export const elementPlusLocale = ref<Language>(enLocale)
 
-/**
- * Switch language for both vue-i18n and Element Plus
- */
 export function setAppLocale(lang: string): void {
-    const valid: AppLocale = (lang === 'en' || lang === 'zh') ? lang : 'en'
+    // Extended validation
+    const valid: AppLocale =
+        (lang === 'en' || lang === 'zh' || lang === 'ja' || lang === 'ko')
+            ? lang
+            : 'en'
 
     if (i18n.global.locale.value !== valid) {
         i18n.global.locale.value = valid

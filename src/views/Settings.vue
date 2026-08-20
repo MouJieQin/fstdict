@@ -47,6 +47,16 @@
                                 <span>{{ $t('common.chinese') }}</span>
                             </div>
                         </el-radio-button>
+                        <el-radio-button value="ja">
+                            <div class="config-radio-button">
+                                <span>{{ $t('common.japanese') }}</span>
+                            </div>
+                        </el-radio-button>
+                        <el-radio-button value="ko">
+                            <div class="config-radio-button">
+                                <span>{{ $t('common.korean') }}</span>
+                            </div>
+                        </el-radio-button>
                     </el-radio-group>
                 </el-form-item>
             </div>

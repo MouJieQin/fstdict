@@ -12,7 +12,9 @@
         "noSuggestions": "No suggestions found",
         "unknownError": "Unknown error",
         "english": "English",
-        "chinese": "简体中文"
+        "chinese": "简体中文",
+        "japanese": "日本語",
+        "korean": "한국어"
     },
     "settings": {
         "title": "Settings",
