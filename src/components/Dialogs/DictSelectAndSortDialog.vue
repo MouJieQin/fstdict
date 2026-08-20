@@ -103,7 +103,7 @@ import { BsUpload } from 'vue-icons-plus/bs'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 
 import { useDictSetOptions } from '@/composables/useDictSetOptions'
-import type { SessionConfig, DictsSettingInfo } from '@/common/type-interface'
+import type { SessionConfig } from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { useDictConfigStore } from '@/stores/dictConfig'
 
@@ -172,6 +172,7 @@ const {
     deleteDictionary,
     showDictionaryInFolder,
     syncDictConfigIfChanged,
+    syncSessionConfigIfChanged,
     destroySortable,
 } = useDictSetOptions({
     webSocket: wsRef,
@@ -250,6 +251,7 @@ watch(
             await refresh()
         } else {
             syncDictConfigIfChanged()
+            syncSessionConfigIfChanged()
         }
     },
     { deep: true }

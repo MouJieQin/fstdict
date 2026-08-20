@@ -22,14 +22,15 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
 
     const dictConfigStore = useDictConfigStore()
     const localDictConfig = ref(safeDeepClone(dictConfigStore.dictConfig))
+    const localSessionConfig = ref(safeDeepClone(sessionConfig.value))
     const list = ref<DictSettingInfo[]>([])
 
     let sortableInstance: Sortable | null = null
 
     const currentOptionName = computed({
-        get: () => sessionConfig.value.dict_setting_option_name,
+        get: () => localSessionConfig.value.dict_setting_option_name,
         set: (val: string) => {
-            sessionConfig.value.dict_setting_option_name = val
+            localSessionConfig.value.dict_setting_option_name = val
         },
     })
 
@@ -193,7 +194,9 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
     }
 
     const syncSessionConfigIfChanged = (): void => {
-        // Parent handles session config sync
+        if (JSON.stringify(localSessionConfig.value) !== JSON.stringify(sessionConfig.value)) {
+            webSocket.value?.sendSessionConfig(localSessionConfig.value)
+        }
     }
 
     watch(() => dictConfigStore.dictConfig, refresh, { deep: true })
@@ -216,6 +219,7 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
         deleteDictionary,
         showDictionaryInFolder,
         syncDictConfigIfChanged,
+        syncSessionConfigIfChanged,
         destroySortable: () => sortableInstance?.destroy(),
     }
 }
