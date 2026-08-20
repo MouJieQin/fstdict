@@ -1,4 +1,5 @@
 import { watch, ref, onMounted } from 'vue'
+import type { Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
@@ -10,8 +11,9 @@ import { useRoute } from 'vue-router'
 interface UseWindowPinOptions {
     sessionId: () => number
     isPinned: () => boolean
-    sessionConfig: () => SessionConfig
-    webSocket: () => SessionWebSocketService | null
+    sessionConfig: Ref<SessionConfig>
+    webSocket: Ref<SessionWebSocketService | null>
+
 }
 
 export function useWindowPin(options: UseWindowPinOptions) {
@@ -45,12 +47,11 @@ export function useWindowPin(options: UseWindowPinOptions) {
         const e = env()
         const newPinned = !isPinned()
 
-        if (e === '') {
-            const config = safeDeepClone(sessionConfig())
-            config.pin = { is_pinned: newPinned }
-            webSocket()?.sendSessionConfig(config)
-        } else if (e === 'selection_float_search' || e === 'helper_main_tauri' || e === 'iwin') {
-            webSocket()?.sendFloatingWindowPinClick(sessionId(), newPinned)
+        const config = safeDeepClone(sessionConfig.value)
+        config.pin = { is_pinned: newPinned }
+        webSocket.value?.sendSessionConfig(config)
+        if (e === 'iwin') {
+            webSocket.value?.sendFloatingWindowPinClick(sessionId(), newPinned)
         }
     }
 

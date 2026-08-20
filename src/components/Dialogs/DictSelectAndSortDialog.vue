@@ -234,7 +234,6 @@ const setupDragAndDrop = async (): Promise<void> => {
                 dragOver.value = false
                 break
             }
-            case 'cancel':
             case 'leave':
             default:
                 dragOver.value = false

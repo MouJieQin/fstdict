@@ -33,7 +33,7 @@
                     @click="settingsDialogVisible = !settingsDialogVisible" class="floating-window-titlebar-button"
                     size="small" />
 
-                <el-button v-if="showPinButton" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
+                <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
                     class="floating-window-titlebar-button" size="small" />
 
                 <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
@@ -44,7 +44,7 @@
                             <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
                                 :class="{ 'is-active': session.id === sessionId }"
                                 :command="{ cmd: 'switch', id: session.id }">
-                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)">
+                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)" size="20">
                                     <BiUserCheck />
                                 </el-icon>
                                 <el-icon v-else>
@@ -429,7 +429,7 @@ onUnmounted(() => {
     gap: 10px;
 }
 
-.is-active {
-    background-color: var(--el-color-primary-light-8) !important;
+:deep(.is-active){
+    background-color: var(--el-color-primary-light-8);
 }
 </style>
