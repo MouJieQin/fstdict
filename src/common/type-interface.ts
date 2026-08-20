@@ -2,6 +2,13 @@
 // Core type definitions
 // ============================================================
 
+// --- System configuration ---
+export interface AppearanceConfig {
+    theme: 'light' | 'dark' | 'auto'
+    language: 'en' | 'zh' // new field
+}
+
+
 // --- Dictionary metadata ---
 export interface DictInfo {
     name: string

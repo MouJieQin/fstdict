@@ -1,12 +1,12 @@
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, SessionNameId } from '@/common/type-interface'
+import type { SessionNameId } from '@/common/type-interface'
 import { getDefaultSessionConfig } from '@/common/utility'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useRouter } from 'vue-router'
 import { safeDeepClone } from '@/common/utility'
-
+import { useI18n } from 'vue-i18n'
 
 const MAX_SESSION_NAME_LENGTH = 30
 
@@ -17,6 +17,7 @@ export function useSessionManagement(
 ) {
     const router = useRouter()
     const systemConfigStore = useSystemConfigStore()
+    const { t } = useI18n()
 
     const sessionsNameId = ref<SessionNameId[]>([])
 
@@ -44,15 +45,15 @@ export function useSessionManagement(
     const createSession = async (): Promise<void> => {
         try {
             const { value } = await ElMessageBox.prompt(
-                'Enter a name for the new session',
-                'Create Session',
+                t('session.createPrompt'),
+                t('session.createTitle'),
                 {
-                    confirmButtonText: 'Create',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('session.createButton'),
+                    cancelButtonText: t('common.cancel'),
                     inputValidator: (value: string) => {
-                        if (!value?.trim()) return 'Session name cannot be empty'
+                        if (!value?.trim()) return t('session.nameEmpty')
                         if (value.length > MAX_SESSION_NAME_LENGTH) {
-                            return `Name must be under ${MAX_SESSION_NAME_LENGTH} characters`
+                            return t('session.nameTooLong', { max: MAX_SESSION_NAME_LENGTH })
                         }
                         return true
                     },
@@ -67,14 +68,14 @@ export function useSessionManagement(
     const renameSession = async (): Promise<void> => {
         try {
             const { value } = await ElMessageBox.prompt(
-                'Rename the current session',
-                'Rename Session',
+                t('session.renamePrompt'),
+                t('session.renameTitle'),
                 {
-                    confirmButtonText: 'Rename',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('session.renameButton'),
+                    cancelButtonText: t('common.cancel'),
                     inputValidator: (value: string) => {
                         if (value.length > MAX_SESSION_NAME_LENGTH) {
-                            return `Name must be under ${MAX_SESSION_NAME_LENGTH} characters`
+                            return t('session.nameTooLong', { max: MAX_SESSION_NAME_LENGTH })
                         }
                         return true
                     },
@@ -89,11 +90,11 @@ export function useSessionManagement(
     const removeSession = async (): Promise<void> => {
         try {
             await ElMessageBox.confirm(
-                'Are you sure you want to remove the current session?',
-                'Remove Session',
+                t('session.removeConfirm'),
+                t('session.removeTitle'),
                 {
-                    confirmButtonText: 'Remove',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('session.removeButton'),
+                    cancelButtonText: t('common.cancel'),
                     type: 'warning',
                     center: true,
                 }

@@ -9,6 +9,7 @@ import {
     OPTION_PREFIX,
     SEARCH_METHOD,
 } from '@/common/constants'
+import { useI18n } from 'vue-i18n'
 
 interface LinkItem {
     value: string
@@ -25,6 +26,7 @@ interface UseAutocompleteOptions {
 
 export function useAutocomplete(options: UseAutocompleteOptions) {
     const { webSocket, sessionConfig, searchHistory, wordOptions, showPopover } = options
+    const { t } = useI18n()
 
     const keyword = ref('')
     const links = ref<LinkItem[]>([])
@@ -63,14 +65,14 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
 
             if (willScanAllFstNodes(keyword.value)) {
                 if (!forced) {
-                    const warning = `${OPTION_PREFIX.WARN}The regex pattern「${keyword.value}」may cause performance issues. Press Enter to continue.`
+                    const warning = `${OPTION_PREFIX.WARN}${t('autocomplete.regexPerformanceWarn', { pattern: keyword.value })}`
                     webSocket.value?.sendKeywordOptionsNote(keyword.value, warning)
                     return
                 }
             }
         }
 
-        webSocket.value?.sendKeywordOptionsNote(keyword.value, OPTION_PREFIX.SEARCHING)
+        webSocket.value?.sendKeywordOptionsNote(keyword.value, `${OPTION_PREFIX.SEARCHING}${t('autocomplete.searching')}`)
         webSocket.value?.sendKeywordOptionsSearch(
             keyword.value,
             method,

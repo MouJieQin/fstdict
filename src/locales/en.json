@@ -1,0 +1,141 @@
+{
+    "common": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete",
+        "create": "Create",
+        "rename": "Rename",
+        "close": "Close",
+        "loading": "Loading",
+        "done": "Done.",
+        "search": "Search",
+        "noSuggestions": "No suggestions found",
+        "unknownError": "Unknown error",
+        "english": "English",
+        "chinese": "简体中文"
+    },
+    "settings": {
+        "title": "Settings",
+        "appearance": "Appearance",
+        "theme": "Theme",
+        "language": "Language",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System",
+        "favoriteFolders": "Favorite Folders",
+        "name": "Name",
+        "words": "Words",
+        "created": "Created",
+        "description": "Description",
+        "actions": "Actions",
+        "newFolder": "New Folder",
+        "deleteSelected": "Delete Selected",
+        "exportToAnki": "Export to Anki",
+        "defaultFolder": "Default Folder",
+        "folderNameRequired": "Folder name is required",
+        "folderNameTooLong": "Name must be {max} characters or fewer",
+        "folderNameExists": "A folder with this name already exists",
+        "createFolder": "Create Folder",
+        "editFolder": "Edit Folder",
+        "ocr": "OCR",
+        "defaultOcrLang": "Default OCR Language",
+        "helper": "Helper",
+        "helperPermission": "Helper accessibility permissions",
+        "deleteConfirmTitle": "Confirm Deletion",
+        "deleteConfirmMsg": "Delete {count} selected folder(s)? This cannot be undone.",
+        "deleteButton": "Delete",
+        "viewWords": "View words",
+        "deleteFolder": "Delete folder",
+        "editFolderAction": "Edit folder"
+    },
+    "dictSettings": {
+        "createTitle": "Create Preset",
+        "createPrompt": "Enter a name for the new dictionary setting preset",
+        "createButton": "Create",
+        "renameTitle": "Rename Preset",
+        "renamePrompt": "Rename the dictionary setting preset",
+        "renameButton": "Rename",
+        "deleteTitle": "Delete Preset",
+        "deleteConfirm": "The dictionary setting preset \"{name}\" will be deleted. Continue?",
+        "deleteButton": "Delete",
+        "nameExists": "A preset with this name already exists",
+        "nameTooLong": "Name must be under {max} characters",
+        "selectPreset": "Select preset",
+        "deleteDictTitle": "Delete Dictionary",
+        "deleteDictConfirm": "Are you sure you want to delete \"{name}\"? This will permanently delete the dictionary and all its data."
+    },
+    "session": {
+        "createTitle": "Create Session",
+        "createPrompt": "Enter a name for the new session",
+        "createButton": "Create",
+        "nameEmpty": "Session name cannot be empty",
+        "nameTooLong": "Name must be under {max} characters",
+        "renameTitle": "Rename Session",
+        "renamePrompt": "Rename the current session",
+        "renameButton": "Rename",
+        "removeTitle": "Remove Session",
+        "removeConfirm": "Are you sure you want to remove the current session?",
+        "removeButton": "Remove",
+        "newSession": "New Session",
+        "renameSession": "Rename Session",
+        "removeSession": "Remove Session"
+    },
+    "titleBar": {
+        "setDefaultFolderFirst": "Set a default folder first",
+        "notesFor": "Notes for「{word}」",
+        "deleteThisNote": "Delete this note?",
+        "deleteCancelled": "Delete cancelled"
+    },
+    "searchMethod": {
+        "prefix": "Prefix Search",
+        "regex": "Regex Search",
+        "prefixDistance": "Prefix Distance",
+        "fuzzy": "Fuzzy Search"
+    },
+    "autocomplete": {
+        "regexPerformanceWarn": "The regex pattern「{pattern}」may cause performance issues. Press Enter to continue.",
+        "searching": "Searching..."
+    },
+    "wordOptions": {
+        "noResults": "No results found"
+    },
+    "favoriteWords": {
+        "actions": "Actions",
+        "word": "Word",
+        "queryCount": "Query Count",
+        "favoritedAt": "Favorited At",
+        "totalWords": "Total: {count} words",
+        "empty": "No favorite words in this folder.",
+        "removeFromFavorites": "Remove from favorites",
+        "lookupWord": "Look up word"
+    },
+    "dictDialog": {
+        "dragHint": "Drag .fstdx, .fstdd, .mdx, or .mdd files here",
+        "visitForum": "Visit the FreeMdict Forum",
+        "orDownloadFrom": "or download directly from downloads",
+        "showInFolder": "Show in Folder",
+        "deleteDict": "Delete",
+        "addingDict": "Adding Dictionary"
+    },
+    "anki": {
+        "waiting": "Waiting...",
+        "fetchingCards": "Fetching cards from Anki...",
+        "totalWords": "Total words: ",
+        "totalHandled": "Total handled words: ",
+        "successUpdated": "Successfully updated: ",
+        "successCreated": "Successfully created: ",
+        "failedUpdate": "Failed to update: ",
+        "failedCreate": "Failed to create: ",
+        "exportTitle": "Exporting {count} folder(s) to Anki",
+        "cancelExport": "Cancel Export",
+        "cancelConfirm": "Some folders are still processing. Cancel the export?",
+        "cancelButton": "Cancel Export",
+        "continueButton": "Continue"
+    },
+    "dictPage": {
+        "typeToLookup": "Type a word to look up…",
+        "noActiveDicts": "No active dictionaries. Click the dictionary icon to activate or add dictionaries.",
+        "noResults": "No results found for「{word}」",
+        "myNotes": "My Notes"
+    }
+}

@@ -31,8 +31,8 @@
                     }">
                         <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
                             <!-- Note panel -->
-                            <el-collapse-item v-if="noteContent" title="My Notes" name="notes" :is-active="true"
-                                class="dict-iframe-container">
+                            <el-collapse-item v-if="noteContent" :title="$t('dictPage.myNotes')" name="notes"
+                                :is-active="true" class="dict-iframe-container">
                                 <template #icon="{ isActive }">
                                     <el-icon v-show="!isActive" class="el-collapse-item__arrow">
                                         <CaretRight />
@@ -78,10 +78,10 @@
 
                         <!-- Empty state -->
                         <div v-show="!keyword && !hasResultLastSearch" class="empty-state">
-                            <p class="dict-homepage-type-p">Type a word to look up…</p>
+                            <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
                             <br />
                             <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                No active dictionaries. Click the dictionary icon to activate or add dictionaries.
+                                {{ $t('dictPage.noActiveDicts') }}
                             </p>
                             <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
                                 {{ dict.name }}
@@ -90,11 +90,11 @@
 
                         <div v-show="keyword && lastSearchKeyword && !hasResultLastSearch" class="empty-state">
                             <p class="dict-homepage-type-p">
-                                No results found for「{{ lastSearchKeyword }}」
+                                {{ $t('dictPage.noResults', { word: lastSearchKeyword }) }}
                             </p>
                             <br />
                             <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                No active dictionaries. Click the dictionary icon to activate or add dictionaries.
+                                {{ $t('dictPage.noActiveDicts') }}
                             </p>
                             <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
                                 {{ dict.name }}
@@ -163,6 +163,10 @@ import type {
     FolderWords,
     WordInfoWithLastSearch,
 } from '@/common/type-interface'
+
+// add import at top
+import { setAppLocale } from '@/i18n'
+
 
 // Markdown renderer
 const md = new MarkdownIt({
@@ -287,8 +291,12 @@ const handleDictConfig = (data: any): void => {
     setupDictSettings()
 }
 
+// update handleSystemConfig function
 const handleSystemConfig = (data: any): void => {
     systemConfigStore.setSystemConfig(data.system_config)
+    // sync language preference
+    const lang = data.system_config?.appearance?.language
+    if (lang) setAppLocale(lang)
 }
 
 const handleSessionsNameId = (data: any): void => {

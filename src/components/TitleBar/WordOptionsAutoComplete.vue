@@ -1,7 +1,7 @@
 <template>
     <div class="floating-window-search-container">
         <el-input v-if="!showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
-            autocapitalize="off" spellcheck="false" placeholder="Search" clearable class="search-input"
+            autocapitalize="off" spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
             @input="onInputChange" @keydown.enter.prevent="onKeyEnter" @compositionstart="onCompositionStart"
             @compositionend="onCompositionEnd">
             <template #prefix>
@@ -14,8 +14,8 @@
             :width="popoverWidth" :show-arrow="false" popper-class="virtual-autocomplete-popper" :teleported="true">
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
-                    spellcheck="false" placeholder="Search" clearable class="search-input" @input="onInputChange"
-                    @focus="handleFocus" @blur="handleBlur" @keydown.down.prevent="handleKeyDown"
+                    spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
+                    @input="onInputChange" @focus="handleFocus" @blur="handleBlur" @keydown.down.prevent="handleKeyDown"
                     @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter"
                     @keydown.escape="isDropdownVisible = false" @compositionstart="onCompositionStart"
                     @compositionend="onCompositionEnd">
@@ -29,7 +29,7 @@
 
             <div class="virtual-dropdown-menu">
                 <div v-if="isEmptyState" class="empty-suggestions">
-                    No suggestions found
+                    {{ $t('common.noSuggestions') }}
                 </div>
                 <div v-else-if="isErrorState" class="error-suggestions">
                     {{ errorMessage }}
@@ -62,6 +62,7 @@ import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 import { useAutocomplete } from '@/composables/useAutocomplete'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
     webSocket: SessionWebSocketService | null
@@ -91,6 +92,7 @@ const configRef = computed(() => props.sessionConfig)
 const historyRef = computed(() => props.searchHistory)
 const optionsRef = computed(() => props.wordOptions)
 const showPopoverRef = computed(() => props.showPopoverWordOptions)
+const { t } = useI18n()
 
 const {
     keyword,

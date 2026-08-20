@@ -1,25 +1,27 @@
 <template>
     <div class="favorite-words-table-container">
         <div class="favorite-folder-name-title">{{ folderName }}</div>
-        <div class="word-count">Total: {{ words.length }} words</div>
+        <div class="word-count">{{ $t('favoriteWords.totalWords', { count: words.length }) }}</div>
 
         <el-table v-if="words.length > 0" class="favorite-words-table" :data="words" stripe style="font-size: 1rem">
-            <el-table-column fixed="left" label="Actions" width="130">
+            <el-table-column fixed="left" :label="$t('favoriteWords.actions')" width="130">
                 <template #default="{ row }">
                     <el-button-group>
                         <el-button :icon="BsHeartbreak" size="small" @click="removeFavorite(row)"
-                            aria-label="Remove from favorites" />
-                        <el-button :icon="BsSearch" size="small" @click="lookupWord(row)" aria-label="Look up word" />
+                            :aria-label="$t('favoriteWords.removeFromFavorites')" />
+                        <el-button :icon="BsSearch" size="small" @click="lookupWord(row)"
+                            :aria-label="$t('favoriteWords.lookupWord')" />
                     </el-button-group>
                 </template>
             </el-table-column>
 
-            <el-table-column fixed prop="word" label="Word" show-overflow-tooltip sortable />
-            <el-table-column prop="query_count" label="Query Count" sortable />
-            <el-table-column prop="favorited_at" label="Favorited At" show-overflow-tooltip sortable />
+            <el-table-column fixed prop="word" :label="$t('favoriteWords.word')" show-overflow-tooltip sortable />
+            <el-table-column prop="query_count" :label="$t('favoriteWords.queryCount')" sortable />
+            <el-table-column prop="favorited_at" :label="$t('favoriteWords.favoritedAt')" show-overflow-tooltip
+                sortable />
         </el-table>
 
-        <p v-else class="empty-state">No favorite words in this folder.</p>
+        <p v-else class="empty-state">{{ $t('favoriteWords.empty') }}</p>
     </div>
 </template>
 

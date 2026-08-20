@@ -5,12 +5,12 @@
         </el-progress>
 
         <div class="anki-update-progress">
-            <p>Total words: {{ ankiProgress?.data?.total_count || 0 }}</p>
-            <p>Total handled words: {{ ankiProgress?.data?.count || 0 }}</p>
-            <p>Successfully updated: {{ ankiProgress?.data?.updated_count || 0 }}</p>
-            <p>Successfully created: {{ ankiProgress?.data?.created_count || 0 }}</p>
-            <p>Failed to update: {{ ankiProgress?.data?.update_error_count || 0 }}</p>
-            <p>Failed to create: {{ ankiProgress?.data?.create_error_count || 0 }}</p>
+            <p>{{ $t('anki.totalWords') }}{{ ankiProgress?.data?.total_count || 0 }}</p>
+            <p>{{ $t('anki.totalHandled') }}{{ ankiProgress?.data?.count || 0 }}</p>
+            <p>{{ $t('anki.successUpdated') }}{{ ankiProgress?.data?.updated_count || 0 }}</p>
+            <p>{{ $t('anki.successCreated') }}{{ ankiProgress?.data?.created_count || 0 }}</p>
+            <p>{{ $t('anki.failedUpdate') }}{{ ankiProgress?.data?.update_error_count || 0 }}</p>
+            <p>{{ $t('anki.failedCreate') }}{{ ankiProgress?.data?.create_error_count || 0 }}</p>
             <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
         </div>
     </div>
@@ -18,6 +18,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 
 interface AnkiProgressProps {
@@ -27,12 +28,13 @@ interface AnkiProgressProps {
 }
 
 const props = defineProps<AnkiProgressProps>()
+const { t } = useI18n()
 
 const status = ref<'success' | 'exception' | 'warning'>('success')
 const indeterminate = ref(true)
 const showInfo = ref(true)
 const errorMessage = ref('')
-const infoText = ref('Waiting...')
+const infoText = ref('')
 
 const percentage = computed(() => {
     const total = props.ankiProgress?.data?.total_count
@@ -46,7 +48,7 @@ function resetState(): void {
     indeterminate.value = true
     showInfo.value = true
     errorMessage.value = ''
-    infoText.value = 'Waiting...'
+    infoText.value = t('anki.waiting')
 }
 
 watch(() => props.ankiDialogVisible, (visible) => {
@@ -65,7 +67,7 @@ watch(() => props.ankiProgress?.type, (type) => {
             status.value = 'success'
             indeterminate.value = true
             showInfo.value = true
-            infoText.value = 'Fetching cards from Anki...'
+            infoText.value = t('anki.fetchingCards')
             break
 
         case 'progress':
@@ -86,7 +88,7 @@ watch(() => props.ankiProgress?.type, (type) => {
             indeterminate.value = false
             showInfo.value = false
             infoText.value = ''
-            errorMessage.value = props.ankiProgress?.data?.error_message || 'Unknown error'
+            errorMessage.value = props.ankiProgress?.data?.error_message || t('common.unknownError')
             break
 
         case 'canceled':

@@ -3,13 +3,13 @@
         <!-- Drag-and-drop area (Tauri only) -->
         <div v-if="isTauriEnv" class="drag-area" :class="{ active: dragOver }">
             <BsUpload size="35" />
-            <div>Drag .fstdx, .fstdd, .mdx, or .mdd files here</div>
+            <div>{{ $t('dictDialog.dragHint') }}</div>
             <div>
-                Visit the
+                {{ $t('dictDialog.visitForum') }}
                 <el-link href="https://forum.freemdict.com" type="primary" target="_blank">
                     FreeMdict Forum
                 </el-link>
-                or download directly from
+                {{ $t('dictDialog.orDownloadFrom') }}
                 <el-link href="https://downloads.freemdict.com" type="primary" target="_blank">
                     downloads
                 </el-link>
@@ -24,7 +24,7 @@
                     <el-button type="danger" :icon="Delete" @click="deleteOption" :disabled="isDefaultOption" />
                     <el-button :icon="Edit" @click="renameOption" :disabled="isDefaultOption" />
 
-                    <el-select v-model="currentOptionName" filterable placeholder="Select preset"
+                    <el-select v-model="currentOptionName" filterable :placeholder="$t('dictSettings.selectPreset')"
                         style="margin-left: 20px; max-width: 240px">
                         <el-option v-for="(_, name) in dictSetOptions" :key="name" :label="name" :value="name" />
                     </el-select>
@@ -54,13 +54,13 @@
                                     <template #dropdown>
                                         <el-dropdown-menu>
                                             <el-dropdown-item :command="{ cmd: 'showInFolder', name: item.name }">
-                                                Show in Folder
+                                                {{ $t('dictDialog.showInFolder') }}
                                             </el-dropdown-item>
                                             <el-dropdown-item :command="{ cmd: 'delete', name: item.name }">
                                                 <el-icon>
                                                     <Delete style="color: #ff4949" />
                                                 </el-icon>
-                                                <span>Delete</span>
+                                                <span>{{ $t('dictDialog.deleteDict') }}</span>
                                             </el-dropdown-item>
                                         </el-dropdown-menu>
                                     </template>
@@ -73,20 +73,20 @@
         </div>
 
         <!-- Add dictionary progress dialog -->
-        <el-dialog v-model="addDictVisible" title="Adding Dictionary" width="700" :close-on-click-modal="false"
-            :close-on-press-escape="false" draggable :show-close="false">
+        <el-dialog v-model="addDictVisible" :title="$t('dictDialog.addingDict')" width="700"
+            :close-on-click-modal="false" :close-on-press-escape="false" draggable :show-close="false">
             <div v-for="(msg, index) in addDictMsgs" :key="index" class="add-dict-message">
                 <p v-if="msg.type === 'info'" class="msg-info">{{ msg.msg }}</p>
                 <p v-else-if="msg.type === 'warning'" class="msg-warning">{{ msg.msg }}</p>
                 <p v-else-if="msg.type === 'error'" class="msg-error">{{ msg.msg }}</p>
                 <p v-else-if="msg.type === 'success'" class="msg-success">{{ msg.msg }}</p>
-                <p v-else-if="msg.type === 'done'" class="msg-success">Done.</p>
+                <p v-else-if="msg.type === 'done'" class="msg-success">{{ $t('common.done') }}</p>
             </div>
 
             <template #footer>
                 <div class="dialog-footer">
                     <el-button v-if="isAddDictDone" type="primary" @click="addDictVisible = false">
-                        Close
+                        {{ $t('common.close') }}
                     </el-button>
                 </div>
             </template>
@@ -105,6 +105,7 @@ import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { useDictSetOptions } from '@/composables/useDictSetOptions'
 import type { SessionConfig, DictsSettingInfo } from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
+import { useDictConfigStore } from '@/stores/dictConfig'
 
 const props = defineProps({
     dictSSDialogVisible: {
@@ -183,9 +184,6 @@ const dictSetOptions = computed(() => {
     return useDictConfigStore().dictConfig?.dict_set_options || {}
 })
 
-// Import needed for computed above
-import { useDictConfigStore } from '@/stores/dictConfig'
-
 // --- Card dropdown commands ---
 const handleCardCommand = (command: { cmd: string; name: string }): void => {
     switch (command.cmd) {
@@ -253,7 +251,6 @@ watch(
             await refresh()
         } else {
             syncDictConfigIfChanged()
-            // Session config sync handled by parent
         }
     },
     { deep: true }

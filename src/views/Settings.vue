@@ -1,19 +1,19 @@
 <template>
     <div class="setting-container">
-        <p class="system-config-title">Settings</p>
+        <p class="system-config-title">{{ $t('settings.title') }}</p>
 
         <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="150px" class="config-form">
             <!-- Appearance Section -->
             <div class="config-class">
-                <p class="config-class-title">Appearance</p>
-                <el-form-item label="Theme">
+                <p class="config-class-title">{{ $t('settings.appearance') }}</p>
+                <el-form-item :label="$t('settings.theme')">
                     <el-radio-group v-model="appTheme" size="large" fill="#6cf">
                         <el-radio-button value="light">
                             <div class="config-radio-button">
                                 <el-icon class="config-radio-icon">
                                     <Sunny />
                                 </el-icon>
-                                <span>Light</span>
+                                <span>{{ $t('settings.light') }}</span>
                             </div>
                         </el-radio-button>
                         <el-radio-button value="dark">
@@ -21,7 +21,7 @@
                                 <el-icon class="config-radio-icon">
                                     <Moon />
                                 </el-icon>
-                                <span>Dark</span>
+                                <span>{{ $t('settings.dark') }}</span>
                             </div>
                         </el-radio-button>
                         <el-radio-button value="auto">
@@ -29,7 +29,22 @@
                                 <el-icon class="config-radio-icon">
                                     <SwitchFilled />
                                 </el-icon>
-                                <span>System</span>
+                                <span>{{ $t('settings.system') }}</span>
+                            </div>
+                        </el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+
+                <el-form-item :label="$t('settings.language')">
+                    <el-radio-group v-model="appLanguage" size="large" fill="#6cf">
+                        <el-radio-button value="en">
+                            <div class="config-radio-button">
+                                <span>{{ $t('common.english') }}</span>
+                            </div>
+                        </el-radio-button>
+                        <el-radio-button value="zh">
+                            <div class="config-radio-button">
+                                <span>{{ $t('common.chinese') }}</span>
                             </div>
                         </el-radio-button>
                     </el-radio-group>
@@ -38,28 +53,31 @@
 
             <!-- Favorite Folders Section -->
             <div class="config-class">
-                <p class="config-class-title">Favorite Folders</p>
+                <p class="config-class-title">{{ $t('settings.favoriteFolders') }}</p>
 
                 <el-table v-if="localFolderConfig" :data="localFolderConfig.folders.folder_info" height="350"
                     style="width: 100%" @selection-change="handleSelectionChange" stripe>
                     <el-table-column type="selection" width="55" />
-                    <el-table-column fixed prop="name" label="Name" width="130" show-overflow-tooltip sortable />
-                    <el-table-column prop="words_count" label="Words" sortable />
-                    <el-table-column prop="created_at" label="Created" width="110" show-overflow-tooltip sortable />
-                    <el-table-column prop="description" label="Description" width="180" show-overflow-tooltip />
-                    <el-table-column fixed="right" label="Actions" width="160">
+                    <el-table-column fixed prop="name" :label="$t('settings.name')" width="130" show-overflow-tooltip
+                        sortable />
+                    <el-table-column prop="words_count" :label="$t('settings.words')" sortable />
+                    <el-table-column prop="created_at" :label="$t('settings.created')" width="110" show-overflow-tooltip
+                        sortable />
+                    <el-table-column prop="description" :label="$t('settings.description')" width="180"
+                        show-overflow-tooltip />
+                    <el-table-column fixed="right" :label="$t('settings.actions')" width="160">
                         <template #default="{ row }">
                             <el-button-group>
                                 <el-button :icon="Edit" size="small" @click="openEditFolder(row)"
-                                    aria-label="Edit folder" />
+                                    :aria-label="$t('settings.editFolderAction')" />
                                 <el-button :icon="Document" size="small" @click="openFolderWords(row)"
-                                    aria-label="View words" />
-                                <el-popconfirm confirm-button-text="Delete" confirm-button-type="danger"
-                                    cancel-button-text="Cancel" :icon="Delete" icon-color="#FF4949"
-                                    title="Delete this folder?" @confirm="deleteFolder(row.id)">
+                                    :aria-label="$t('settings.viewWords')" />
+                                <el-popconfirm :confirm-button-text="$t('common.delete')" confirm-button-type="danger"
+                                    :cancel-button-text="$t('common.cancel')" :icon="Delete" icon-color="#FF4949"
+                                    :title="$t('settings.deleteFolder')" @confirm="deleteFolder(row.id)">
                                     <template #reference>
                                         <el-button :icon="Delete" size="small" type="danger"
-                                            aria-label="Delete folder" />
+                                            :aria-label="$t('settings.deleteFolder')" />
                                     </template>
                                 </el-popconfirm>
                             </el-button-group>
@@ -69,19 +87,19 @@
 
                 <div class="folder-toolbar">
                     <el-button type="primary" :icon="Plus" @click="openCreateFolder">
-                        New Folder
+                        {{ $t('settings.newFolder') }}
                     </el-button>
                     <el-button type="danger" :icon="Delete" @click="deleteSelectedFolders"
                         :disabled="selectedFolders.length === 0">
-                        Delete Selected
+                        {{ $t('settings.deleteSelected') }}
                     </el-button>
                     <el-button @click="exportToAnki" :disabled="selectedFolders.length === 0">
                         <AnkiIcon :size="24" style="margin-right: 8px" />
-                        Export to Anki
+                        {{ $t('settings.exportToAnki') }}
                     </el-button>
 
                     <el-select v-if="localFolderConfig" v-model="localSessionConfig.default_folder.id" filterable
-                        placeholder="Default Folder" style="margin-left: 20px; max-width: 240px"
+                        :placeholder="$t('settings.defaultFolder')" style="margin-left: 20px; max-width: 240px"
                         @change="persistSessionConfig">
                         <el-option v-for="folder in folderOptions" :key="folder.id" :label="folder.name"
                             :value="folder.id" />
@@ -91,17 +109,18 @@
 
             <!-- OCR Section -->
             <div class="config-class">
-                <p class="config-class-title">OCR</p>
-                <el-select v-model="localSessionConfig.ocr_lang_type" filterable placeholder="Default OCR Language"
-                    style="max-width: 240px" @change="persistSessionConfig">
+                <p class="config-class-title">{{ $t('settings.ocr') }}</p>
+                <el-select v-model="localSessionConfig.ocr_lang_type" filterable
+                    :placeholder="$t('settings.defaultOcrLang')" style="max-width: 240px"
+                    @change="persistSessionConfig">
                     <el-option v-for="lang in ocrLanguageOptions" :key="lang" :label="lang" :value="lang" />
                 </el-select>
             </div>
 
             <!-- Helper Section -->
             <div class="config-class">
-                <p class="config-class-title">Helper</p>
-                <p class="config-class-desc">Helper accessibility permissions</p>
+                <p class="config-class-title">{{ $t('settings.helper') }}</p>
+                <p class="config-class-desc">{{ $t('settings.helperPermission') }}</p>
                 <el-switch v-model="helperEnabled" @change="handleHelperToggle" />
             </div>
         </el-form>
@@ -110,26 +129,26 @@
         <el-dialog v-model="folderDialogVisible" :title="folderDialogTitle" width="500" align-center
             @keydown.enter.prevent.stop>
             <el-form ref="folderFormRef" :model="folderForm" :rules="folderFormRules" label-width="100px">
-                <el-form-item label="Name" prop="name">
+                <el-form-item :label="$t('settings.name')" prop="name">
                     <el-input v-model="folderForm.name" autocomplete="off" />
                 </el-form-item>
-                <el-form-item label="Description" prop="description">
+                <el-form-item :label="$t('settings.description')" prop="description">
                     <el-input v-model="folderForm.description" autocomplete="off" type="textarea" />
                 </el-form-item>
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="folderDialogVisible = false">Cancel</el-button>
+                    <el-button @click="folderDialogVisible = false">{{ $t('common.cancel') }}</el-button>
                     <el-button type="primary" @click="submitFolderForm">
-                        Save
+                        {{ $t('common.save') }}
                     </el-button>
                 </div>
             </template>
         </el-dialog>
 
         <!-- Anki Export Progress Dialog -->
-        <el-dialog v-model="ankiDialogVisible" :title="`Exporting ${selectedFolders.length} folder(s) to Anki`"
-            width="700" :close-on-click-modal="false" :close-on-press-escape="false" draggable :show-close="false">
+        <el-dialog v-model="ankiDialogVisible" :title="ankiExportTitle" width="700" :close-on-click-modal="false"
+            :close-on-press-escape="false" draggable :show-close="false">
             <div v-for="folder in selectedFolders" :key="folder.id" class="config-class">
                 <p class="config-class-title">{{ folder.name }}</p>
                 <AnkiProgress :web-socket="webSocket" :anki-progress="ankiProgresses[folder.name] || {}"
@@ -138,10 +157,10 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button v-if="!allAnkiCompleted" type="danger" @click="cancelAnkiExport">
-                        Cancel
+                        {{ $t('anki.cancelExport') }}
                     </el-button>
                     <el-button v-else type="primary" @click="ankiDialogVisible = false">
-                        Close
+                        {{ $t('common.close') }}
                     </el-button>
                 </div>
             </template>
@@ -160,6 +179,7 @@
 import { reactive, ref, watch, computed, onBeforeMount } from 'vue'
 import type { PropType, FormInstance, FormRules } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 // Icons
 import {
@@ -182,6 +202,7 @@ import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
 import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility'
 import { invoke } from '@tauri-apps/api/core'
 import { safeDeepClone } from '@/common/utility'
+import { setAppLocale } from '@/i18n'
 
 // Types & constants
 import type {
@@ -227,6 +248,8 @@ const emit = defineEmits<{
     (e: 'update-visible', visible: boolean): void
 }>()
 
+const { t } = useI18n()
+
 // ─── Stores ──────────────────────────────────────────────────────
 const folderConfigStore = useFolderConfigStore()
 const systemConfigStore = useSystemConfigStore()
@@ -264,7 +287,11 @@ const viewingFolderName = ref('')
 
 // ─── Computed ────────────────────────────────────────────────────
 const folderDialogTitle = computed(() =>
-    isCreatingFolder.value ? 'Create Folder' : 'Edit Folder'
+    isCreatingFolder.value ? t('settings.createFolder') : t('settings.editFolder')
+)
+
+const ankiExportTitle = computed(() =>
+    t('anki.exportTitle', { count: selectedFolders.value.length })
 )
 
 const folderOptions = computed(() =>
@@ -304,6 +331,17 @@ const appTheme = computed({
     },
 })
 
+const appLanguage = computed({
+    get: () => localSystemConfig.value?.appearance?.language || 'en',
+    set: (value: 'en' | 'zh') => {
+        if (localSystemConfig.value) {
+            localSystemConfig.value.appearance.language = value
+            setAppLocale(value)
+            persistSystemConfig()
+        }
+    },
+})
+
 // ─── Validators ──────────────────────────────────────────────────
 function validateFolderName(
     _rule: unknown,
@@ -313,12 +351,12 @@ function validateFolderName(
     const trimmed = value?.trim()
 
     if (!trimmed) {
-        callback(new Error('Folder name is required'))
+        callback(new Error(t('settings.folderNameRequired')))
         return
     }
 
     if (trimmed.length > MAX_FOLDER_NAME_LENGTH) {
-        callback(new Error(`Name must be ${MAX_FOLDER_NAME_LENGTH} characters or fewer`))
+        callback(new Error(t('settings.folderNameTooLong', { max: MAX_FOLDER_NAME_LENGTH })))
         return
     }
 
@@ -327,7 +365,7 @@ function validateFolderName(
     )
 
     if (duplicate && isCreatingFolder.value) {
-        callback(new Error('A folder with this name already exists'))
+        callback(new Error(t('settings.folderNameExists')))
         return
     }
 
@@ -389,11 +427,11 @@ async function deleteSelectedFolders(): Promise<void> {
 
     try {
         await ElMessageBox.confirm(
-            `Delete ${count} selected folder(s)? This cannot be undone.`,
-            'Confirm Deletion',
+            t('settings.deleteConfirmMsg', { count }),
+            t('settings.deleteConfirmTitle'),
             {
-                confirmButtonText: 'Delete',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: t('settings.deleteButton'),
+                cancelButtonText: t('common.cancel'),
                 type: 'warning',
                 confirmButtonType: 'danger',
                 appendTo: '.setting-container',
@@ -438,11 +476,11 @@ async function cancelAnkiExport(): Promise<void> {
 
     try {
         await ElMessageBox.confirm(
-            'Some folders are still processing. Cancel the export?',
-            'Cancel Export',
+            t('anki.cancelConfirm'),
+            t('anki.cancelExport'),
             {
-                confirmButtonText: 'Cancel Export',
-                cancelButtonText: 'Continue',
+                confirmButtonText: t('anki.cancelButton'),
+                cancelButtonText: t('anki.continueButton'),
                 type: 'warning',
                 appendTo: '.anki-dialog',
             }

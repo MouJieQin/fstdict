@@ -16,7 +16,8 @@
                 <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
                     size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
 
-                <el-tooltip v-if="showFavoriteTooltip" content="Set a default folder first" placement="bottom">
+                <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')"
+                    placement="bottom">
                     <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
                 </el-tooltip>
                 <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"
@@ -51,24 +52,24 @@
                                 </el-icon>
                                 <span>{{ session.name }}</span>
                             </el-dropdown-item>
-
+                            <!-- Session dropdown menu -->
                             <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
                                 <el-icon>
                                     <BiUserPlus style="color: var(--el-color-primary)" />
                                 </el-icon>
-                                <span>New Session</span>
+                                <span>{{ $t('session.newSession') }}</span>
                             </el-dropdown-item>
                             <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
                                 <el-icon>
                                     <LiaUserEditSolid style="color: var(--el-color-success)" />
                                 </el-icon>
-                                <span>Rename Session</span>
+                                <span>{{ $t('session.renameSession') }}</span>
                             </el-dropdown-item>
                             <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
                                 <el-icon>
                                     <BiUserMinus style="color: var(--el-color-danger)" />
                                 </el-icon>
-                                <span>Remove Session</span>
+                                <span>{{ $t('session.removeSession') }}</span>
                             </el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
@@ -422,7 +423,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 .dialog-footer {
     display: flex;
     justify-content: flex-end;

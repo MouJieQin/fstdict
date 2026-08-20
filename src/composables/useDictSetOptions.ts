@@ -6,7 +6,7 @@ import type { DictSettingInfo, SessionConfig } from '@/common/type-interface'
 import { useDictConfigStore } from '@/stores/dictConfig'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import { safeDeepClone } from '@/common/utility'
-
+import { useI18n } from 'vue-i18n'
 
 const MAX_OPTION_NAME_LENGTH = 30
 
@@ -18,6 +18,7 @@ interface UseDictSetOptionsParams {
 
 export function useDictSetOptions(params: UseDictSetOptionsParams) {
     const { webSocket, sessionConfig, listContainerRef } = params
+    const { t } = useI18n()
 
     const dictConfigStore = useDictConfigStore()
     const localDictConfig = ref(safeDeepClone(dictConfigStore.dictConfig))
@@ -83,16 +84,16 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
     const createOption = async (): Promise<void> => {
         try {
             const { value } = await ElMessageBox.prompt(
-                'Enter a name for the new dictionary setting preset',
-                'Create Preset',
+                t('dictSettings.createPrompt'),
+                t('dictSettings.createTitle'),
                 {
-                    confirmButtonText: 'Create',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('dictSettings.createButton'),
+                    cancelButtonText: t('common.cancel'),
                     inputValidator: (name: string) => {
                         const options = localDictConfig.value?.dict_set_options || {}
-                        if (name in options) return 'A preset with this name already exists'
+                        if (name in options) return t('dictSettings.nameExists')
                         if (name.length > MAX_OPTION_NAME_LENGTH) {
-                            return `Name must be under ${MAX_OPTION_NAME_LENGTH} characters`
+                            return t('dictSettings.nameTooLong', { max: MAX_OPTION_NAME_LENGTH })
                         }
                         return true
                     },
@@ -113,19 +114,19 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
 
         try {
             const { value } = await ElMessageBox.prompt(
-                'Rename the dictionary setting preset',
-                'Rename Preset',
+                t('dictSettings.renamePrompt'),
+                t('dictSettings.renameTitle'),
                 {
-                    confirmButtonText: 'Rename',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('dictSettings.renameButton'),
+                    cancelButtonText: t('common.cancel'),
                     inputValue: oldName,
                     inputValidator: (name: string) => {
                         const options = localDictConfig.value?.dict_set_options || {}
                         if (name in options && name !== oldName) {
-                            return 'A preset with this name already exists'
+                            return t('dictSettings.nameExists')
                         }
                         if (name.length > MAX_OPTION_NAME_LENGTH) {
-                            return `Name must be under ${MAX_OPTION_NAME_LENGTH} characters`
+                            return t('dictSettings.nameTooLong', { max: MAX_OPTION_NAME_LENGTH })
                         }
                         return true
                     },
@@ -146,11 +147,11 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
 
         try {
             await ElMessageBox.confirm(
-                `The dictionary setting preset "${name}" will be deleted. Continue?`,
-                'Delete Preset',
+                t('dictSettings.deleteConfirm', { name }),
+                t('dictSettings.deleteTitle'),
                 {
-                    confirmButtonText: 'Delete',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('dictSettings.deleteButton'),
+                    cancelButtonText: t('common.cancel'),
                     type: 'warning',
                     center: true,
                 }
@@ -166,18 +167,18 @@ export function useDictSetOptions(params: UseDictSetOptionsParams) {
     const deleteDictionary = async (dictName: string): Promise<void> => {
         try {
             await ElMessageBox.confirm(
-                `Are you sure you want to delete "${dictName}"? This will permanently delete the dictionary and all its data.`,
-                'Delete Dictionary',
+                t('dictSettings.deleteDictConfirm', { name: dictName }),
+                t('dictSettings.deleteDictTitle'),
                 {
-                    confirmButtonText: 'Delete',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: t('common.delete'),
+                    cancelButtonText: t('common.cancel'),
                     type: 'warning',
                     center: true,
                 }
             )
             webSocket.value?.sendDeleteDict(dictName)
         } catch {
-            ElMessage({ type: 'info', message: 'Delete cancelled' })
+            ElMessage({ type: 'info', message: t('titleBar.deleteCancelled') })
         }
     }
 

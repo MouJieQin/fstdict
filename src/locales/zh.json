@@ -1,0 +1,141 @@
+{
+    "common": {
+        "cancel": "取消",
+        "save": "保存",
+        "delete": "删除",
+        "create": "创建",
+        "rename": "重命名",
+        "close": "关闭",
+        "loading": "加载中",
+        "done": "完成。",
+        "search": "搜索",
+        "noSuggestions": "暂无建议",
+        "unknownError": "未知错误",
+        "english": "English",
+        "chinese": "简体中文"
+    },
+    "settings": {
+        "title": "设置",
+        "appearance": "外观",
+        "theme": "主题",
+        "language": "语言",
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统",
+        "favoriteFolders": "收藏文件夹",
+        "name": "名称",
+        "words": "单词数",
+        "created": "创建时间",
+        "description": "描述",
+        "actions": "操作",
+        "newFolder": "新建文件夹",
+        "deleteSelected": "删除选中项",
+        "exportToAnki": "导出到 Anki",
+        "defaultFolder": "默认文件夹",
+        "folderNameRequired": "文件夹名称不能为空",
+        "folderNameTooLong": "名称不能超过 {max} 个字符",
+        "folderNameExists": "已存在同名文件夹",
+        "createFolder": "新建文件夹",
+        "editFolder": "编辑文件夹",
+        "ocr": "OCR",
+        "defaultOcrLang": "默认 OCR 语言",
+        "helper": "辅助工具",
+        "helperPermission": "辅助功能权限",
+        "deleteConfirmTitle": "确认删除",
+        "deleteConfirmMsg": "确定删除选中的 {count} 个文件夹？此操作不可撤销。",
+        "deleteButton": "删除",
+        "viewWords": "查看单词",
+        "deleteFolder": "删除文件夹",
+        "editFolderAction": "编辑文件夹"
+    },
+    "dictSettings": {
+        "createTitle": "创建预设",
+        "createPrompt": "请输入新词典设置预设的名称",
+        "createButton": "创建",
+        "renameTitle": "重命名预设",
+        "renamePrompt": "重命名该词典设置预设",
+        "renameButton": "重命名",
+        "deleteTitle": "删除预设",
+        "deleteConfirm": "词典设置预设「{name}」将被删除，是否继续？",
+        "deleteButton": "删除",
+        "nameExists": "已存在同名预设",
+        "nameTooLong": "名称不能超过 {max} 个字符",
+        "selectPreset": "选择预设",
+        "deleteDictTitle": "删除词典",
+        "deleteDictConfirm": "确定删除「{name}」？词典及其所有数据将被永久删除。"
+    },
+    "session": {
+        "createTitle": "创建会话",
+        "createPrompt": "请输入新会话的名称",
+        "createButton": "创建",
+        "nameEmpty": "会话名称不能为空",
+        "nameTooLong": "名称不能超过 {max} 个字符",
+        "renameTitle": "重命名会话",
+        "renamePrompt": "重命名当前会话",
+        "renameButton": "重命名",
+        "removeTitle": "删除会话",
+        "removeConfirm": "确定要删除当前会话吗？",
+        "removeButton": "删除",
+        "newSession": "新建会话",
+        "renameSession": "重命名会话",
+        "removeSession": "删除会话"
+    },
+    "titleBar": {
+        "setDefaultFolderFirst": "请先设置默认文件夹",
+        "notesFor": "「{word}」的笔记",
+        "deleteThisNote": "确定删除这条笔记？",
+        "deleteCancelled": "已取消删除"
+    },
+    "searchMethod": {
+        "prefix": "前缀搜索",
+        "regex": "正则搜索",
+        "prefixDistance": "前缀距离",
+        "fuzzy": "模糊搜索"
+    },
+    "autocomplete": {
+        "regexPerformanceWarn": "正则表达式「{pattern}」可能导致性能问题，按回车键继续。",
+        "searching": "搜索中..."
+    },
+    "wordOptions": {
+        "noResults": "暂无结果"
+    },
+    "favoriteWords": {
+        "actions": "操作",
+        "word": "单词",
+        "queryCount": "查询次数",
+        "favoritedAt": "收藏时间",
+        "totalWords": "共 {count} 个单词",
+        "empty": "该文件夹暂无收藏单词",
+        "removeFromFavorites": "取消收藏",
+        "lookupWord": "查询单词"
+    },
+    "dictDialog": {
+        "dragHint": "拖拽 .fstdx、.fstdd、.mdx 或 .mdd 文件到此处",
+        "visitForum": "访问 FreeMdict 论坛",
+        "orDownloadFrom": "或直接从下载站获取",
+        "showInFolder": "在文件夹中显示",
+        "deleteDict": "删除",
+        "addingDict": "正在添加词典"
+    },
+    "anki": {
+        "waiting": "等待中...",
+        "fetchingCards": "正在从 Anki 获取卡片...",
+        "totalWords": "单词总数：",
+        "totalHandled": "已处理单词：",
+        "successUpdated": "更新成功：",
+        "successCreated": "创建成功：",
+        "failedUpdate": "更新失败：",
+        "failedCreate": "创建失败：",
+        "exportTitle": "正在导出 {count} 个文件夹到 Anki",
+        "cancelExport": "取消导出",
+        "cancelConfirm": "部分文件夹仍在处理中，确定取消导出？",
+        "cancelButton": "取消导出",
+        "continueButton": "继续"
+    },
+    "dictPage": {
+        "typeToLookup": "输入单词开始查询…",
+        "noActiveDicts": "暂无激活的词典。点击词典图标激活或添加词典。",
+        "noResults": "未找到「{word}」的查询结果",
+        "myNotes": "我的笔记"
+    }
+}

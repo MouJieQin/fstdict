@@ -1,6 +1,6 @@
 <template>
     <svg :width="width" :height="height" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg" :fill="color"
-        aria-label="Loading" role="img">
+        :aria-label="$t('common.loading')" role="img">
         <circle cx="15" cy="15" r="15">
             <animate attributeName="r" values="15;9;15" dur="0.8s" calcMode="linear" repeatCount="indefinite" />
             <animate attributeName="fill-opacity" values="1;.5;1" dur="0.8s" calcMode="linear"

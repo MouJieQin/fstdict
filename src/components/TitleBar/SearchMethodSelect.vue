@@ -24,6 +24,7 @@ import { computed } from 'vue'
 import { BsSearch } from 'vue-icons-plus/bs'
 import { VscRegex, VscSearchFuzzy } from 'vue-icons-plus/vsc'
 import { Fa6Searchengin } from 'vue-icons-plus/fa6'
+import { useI18n } from 'vue-i18n'
 
 interface SearchOption {
     value: string
@@ -39,11 +40,13 @@ const emit = defineEmits<{
     (e: 'update-search-method', method: string): void
 }>()
 
+const { t } = useI18n()
+
 const searchOptions: SearchOption[] = [
-    { value: 'prefix_search', label: 'Prefix Search', icon: BsSearch },
-    { value: 'regex_search', label: 'Regex Search', icon: VscRegex },
-    { value: 'prefix_distance_search', label: 'Prefix Distance', icon: Fa6Searchengin },
-    { value: 'suggest_search', label: 'Fuzzy Search', icon: VscSearchFuzzy },
+    { value: 'prefix_search', label: t('searchMethod.prefix'), icon: BsSearch },
+    { value: 'regex_search', label: t('searchMethod.regex'), icon: VscRegex },
+    { value: 'prefix_distance_search', label: t('searchMethod.prefixDistance'), icon: Fa6Searchengin },
+    { value: 'suggest_search', label: t('searchMethod.fuzzy'), icon: VscSearchFuzzy },
 ]
 
 const currentIcon = computed(() => {
