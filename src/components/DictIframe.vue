@@ -1,6 +1,5 @@
 <template>
-    <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"
-        sandbox="allow-scripts allow-same-origin"></iframe>
+    <iframe ref="iframeRef" class="dict-iframe" frameborder="0" scrolling="no"></iframe>
 </template>
 
 <script setup lang="ts">
