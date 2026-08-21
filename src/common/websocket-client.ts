@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 import {
-  WS_RECONNECT_BASE_DELAY,
-  WS_RECONNECT_MAX_DELAY,
-  WS_RECONNECT_THRESHOLD,
+    WS_RECONNECT_BASE_DELAY,
+    WS_RECONNECT_MAX_DELAY,
+    WS_RECONNECT_THRESHOLD,
 } from '@/common/constants'
 
 export const WebSocketStatus = {
@@ -80,7 +80,9 @@ export abstract class WebSocketService {
     }
 
     private scheduleReconnect(): void {
-        if (this.reconnectTimer) return
+        if (this.reconnectTimer) {
+            this.clearReconnectTimer();
+        }
 
         const delay = this.reconnectAttempts > WS_RECONNECT_THRESHOLD
             ? WS_RECONNECT_MAX_DELAY
