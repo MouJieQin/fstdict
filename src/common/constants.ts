@@ -4,7 +4,7 @@
 
 // --- WebSocket ---
 export const WS_BASE_URL = 'ws://127.0.0.1:5959/ws/dictionary/session/'
-export const API_BASE_URL = 'http://127.0.0.1:5959/api/download?path='
+export const API_BASE_URL = 'http://127.0.0.1:5959/api/dictionaries'
 
 // --- Reconnection ---
 export const WS_RECONNECT_BASE_DELAY = 500

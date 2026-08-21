@@ -35,7 +35,7 @@ const iframeRef = ref<HTMLIFrameElement | null>(null)
 const iframeId = computed(() => `${props.dictionaryName}-${props.index}`)
 const tailElementId = computed(() => `${props.dictionaryName}-dict-tail`)
 
-const baseUrl = computed(() => `${API_BASE_URL}${encodeURIComponent(props.dictionaryName)}/data`)
+const baseUrl = computed(() => `${API_BASE_URL}/${encodeURIComponent(props.dictionaryName)}`)
 
 let mutationObserver: MutationObserver | null = null
 let isUpdatingHeight = false
@@ -81,7 +81,7 @@ function injectStyles(doc: Document): void {
         for (const cssUrl of props.cssUrls) {
             const link = doc.createElement('link')
             link.rel = 'stylesheet'
-            link.href = `${API_BASE_URL}${encodeURIComponent(cssUrl)}`
+            link.href = `${API_BASE_URL}/${encodeURI(cssUrl)}`
             doc.head.appendChild(link)
         }
     }
@@ -92,7 +92,7 @@ function injectScripts(doc: Document): void {
 
     for (const jsUrl of props.jsUrls) {
         const script = doc.createElement('script')
-        script.src = `${API_BASE_URL}${encodeURIComponent(jsUrl)}`
+        script.src = `${API_BASE_URL}/${encodeURI(jsUrl)}`
         script.charset = 'UTF-8'
         doc.head.appendChild(script)
     }
@@ -123,7 +123,7 @@ function injectClickHandler(doc: Document): void {
           sound: encodeURIComponent(href.replace('${URL_SCHEME.SOUND}', ''))
         }, '*');
       }
-      else if (href.includes('#') && href.includes('localhost')) {
+      else if (href.includes('#') && href.includes('127.0.0.1')) {
         e.preventDefault();
         const hash = href.split('#')[1];
         const el = document.getElementById(hash);
