@@ -223,7 +223,7 @@ class UtilsBase:
                     cover_rel_path = f"{dict_name}/{img_file.name}"
                     UtilsBase.DICT_INFO[dict_name]["cover"] = cover_rel_path
                     UtilsBase.DICT_INFO[dict_name]["cover_url"] = (
-                        f"http://localhost:5959/api/download?path={quote(cover_rel_path)}"
+                        f"http://127.0.0.1:5959/api/download?path={quote(cover_rel_path)}"
                     )
                     break
 

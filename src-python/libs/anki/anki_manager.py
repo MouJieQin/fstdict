@@ -147,7 +147,7 @@ class AnkiManager:
 
                     # Build back HTML with embedded dictionary iframe
                     back = self.HTML_BACK_PREFIX
-                    back += f'<iframe src="http://localhost:9595/#/dict/{session_id}?keyword={word_text}&env=anki"></iframe>\n'
+                    back += f'<iframe src="http://127.0.0.1:9595/#/dict/{session_id}?keyword={word_text}&env=anki"></iframe>\n'
                     back += "</body>\n</html>"
 
                     note_id = existing_cards.get(unique_id, {}).get("noteId")
