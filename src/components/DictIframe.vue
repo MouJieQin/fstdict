@@ -61,12 +61,15 @@ function updateDarkMode(isDark: boolean): void {
 // ============== Content Rendering ==============
 function processHtml(rawHtml: string): string {
     return rawHtml
+        .replace(/<\/?(html|head|body)[^>]*>/gi, '')
+        .replace(/<link[^>]*>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/file:\//g, '')
         .replace(/src="/g, `src="${baseUrl.value}/`)
+        .replace(/href="(?!https?:\/\/|sound:|entry:|#|help:|d:|x:|adddr:|addexample:|helpp:)/g, `href="${baseUrl.value}/`)
 }
 
 function injectStyles(doc: Document): void {
-    // Dark mode style
     const darkStyle = doc.createElement('style')
     darkStyle.id = 'dict-custom-style'
     darkStyle.textContent = props.isDark
@@ -75,7 +78,6 @@ function injectStyles(doc: Document): void {
         : ''
     doc.head.appendChild(darkStyle)
 
-    // External CSS resources
     if (props.cssUrls?.length) {
         for (const cssUrl of props.cssUrls) {
             const link = doc.createElement('link')
@@ -86,15 +88,24 @@ function injectStyles(doc: Document): void {
     }
 }
 
-function injectScripts(doc: Document): void {
-    if (!props.jsUrls?.length) return
+function injectScripts(doc: Document): Promise<void> {
+    if (!props.jsUrls?.length) return Promise.resolve()
 
-    for (const jsUrl of props.jsUrls) {
-        const script = doc.createElement('script')
-        script.src = `${API_BASE_URL}/${encodeURI(jsUrl)}`
-        script.charset = 'UTF-8'
-        doc.head.appendChild(script)
-    }
+    return props.jsUrls.reduce((prevPromise, jsUrl) => {
+        return prevPromise.then(() => {
+            return new Promise<void>((resolve) => {
+                const script = doc.createElement('script')
+                script.src = `${API_BASE_URL}/${encodeURI(jsUrl)}`
+                script.charset = 'UTF-8'
+                script.onload = () => resolve()
+                script.onerror = () => {
+                    console.warn(`Script load failed: ${jsUrl}`)
+                    resolve()
+                }
+                doc.head.appendChild(script)
+            })
+        })
+    }, Promise.resolve())
 }
 
 function injectClickHandler(doc: Document): void {
@@ -168,21 +179,18 @@ async function renderIframe(): Promise<void> {
     const doc = iframe.contentDocument || iframe.contentWindow?.document
     if (!doc) return
 
-    // Only inject assets on first render; subsequent updates only swap body content
     const isFirstRender = !doc.getElementById('dict-custom-style')
 
     if (isFirstRender) {
         doc.body.innerHTML = ''
         injectStyles(doc)
-        injectScripts(doc)
+        await injectScripts(doc)
         injectClickHandler(doc)
         injectKeydownHandler(doc)
     }
 
-    // Update body content
     doc.body.innerHTML = processHtml(props.html)
 
-    // Append height marker element
     const tail = doc.createElement('p')
     tail.id = tailElementId.value
     tail.textContent = ''
@@ -291,7 +299,7 @@ watch(
     () => [props.html, props.basePath],
     async () => {
         await nextTick()
-        renderIframe()
+        await renderIframe()
     },
     { deep: true, immediate: true }
 )
@@ -325,3 +333,10 @@ onUnmounted(() => {
     }
 })
 </script>
+
+<style scoped>
+.dict-iframe {
+    width: 100%;
+    border: none;
+}
+</style>
