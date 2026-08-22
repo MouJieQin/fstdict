@@ -1,246 +1,222 @@
+#include "selection_monitor.h"
+#include "accessibility_manager.h"
+#include "clipboard_manager.h"
+#include "logger.h"
+#include "websocket_server.h"
+#import <Cocoa/Cocoa.h>
+
+#include <atomic>
 #include <chrono>
-#include <iostream>
 #include <mutex>
 #include <optional>
-#include <string>
 #include <thread>
 
-#include <Cocoa/Cocoa.h>
+using namespace std::chrono_literals;
 
-#include "logger.h"
-#include "selection_monitor.h"
-#include "websocket_server.h"
+// Configuration constants
+constexpr uint64_t DOUBLE_CLICK_INTERVAL_NS = 350'000'000; // 350 ms
+constexpr uint64_t LONG_PRESS_DURATION_NS = 500'000'000;   // 500 ms
+constexpr auto TRIGGER_DELAY = 1ms;    // Delay before reading selection
+constexpr auto COPY_WAIT_TIME = 200ms; // Wait for clipboard to update
 
-static std::mutex g_mutex;
-static std::string g_last_selected;
-static std::string g_old_text_in_clipboard;
-static auto &g_websocket_server = WebSocketServer::instance();
+// Internal state
+namespace {
+std::mutex g_stateMutex;
+std::string g_lastSelectedText;
+std::string g_originalClipboard;
+std::atomic<bool> g_isProcessing{false};
 
-using namespace std;
-using namespace std::chrono;
+uint64_t g_lastMouseDownTimestamp = 0;
+uint64_t g_lastMouseUpTimestamp = 0;
+bool g_isDoubleClick = false;
+CGPoint g_mouseDownLocation{};
+CGPoint g_mouseUpLocation{};
 
-// ===================== 可配置参数 =====================
-#define DOUBLE_CLICK_INTERVAL 350000000 // 双击最大间隔(ns)
-#define LONG_PRESS_DURATION 500000000   // 长按最小时长(ns)
-#define DELAY_AFTER_TRIGGER 1           // 触发后等待多久获取文字(ms)
-// ======================================================
+CFMachPortRef g_eventTap = nullptr;
+CFRunLoopSourceRef g_runLoopSource = nullptr;
 
-static bool g_isProcessing = false;
-static uint64_t g_lastMouseDown = 0;
-static uint64_t g_lastMouseUp = 0;
-static bool g_isDoubleClick = false;
-static CGPoint g_mouseLocation_down;
-static CGPoint g_mouseLocation_up;
-static CFMachPortRef g_eventTap = nullptr;
-static CFRunLoopSourceRef g_runLoopSource = nullptr;
+auto &g_wsServer = WebSocketServer::instance();
+} // namespace
 
-// Check and Trigger Permissions
-bool ensureAccessibility() {
-  // Dictionary to tell macOS we want to prompt the user if permission is
-  // missing
-  NSDictionary *options = @{(id)kAXTrustedCheckOptionPrompt : @YES};
-  bool trusted =
-      AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
-
-  if (!trusted) {
-    LOG_CRITICAL("⚠️ Permission denied. Please enable this app in System "
-                 "Settings > Accessibility.");
-  }
-  return trusted;
-}
-
-// 剪贴板
-string getClipboard() {
-  NSPasteboard *pb = [NSPasteboard generalPasteboard];
-  NSString *content = [pb stringForType:NSPasteboardTypeString];
-  return content ? string([content UTF8String]) : "";
-}
-
-void setClipboard(const string &s) {
-  NSPasteboard *pb = [NSPasteboard generalPasteboard];
-  [pb clearContents];
-  [pb setString:[NSString stringWithUTF8String:s.c_str()]
-        forType:NSPasteboardTypeString];
-}
-
-void simulateCopy() {
-  CGEventRef down = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)8, true);
-  CGEventSetFlags(down, kCGEventFlagMaskCommand);
-  CGEventPost(kCGHIDEventTap, down);
-  CFRelease(down);
-
-  CGEventRef up = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)8, false);
-  CGEventSetFlags(up, kCGEventFlagMaskCommand);
-  CGEventPost(kCGHIDEventTap, up);
-  CFRelease(up);
-}
-
-optional<string> getSelectedText() {
-  // 1. Get the frontmost application's PID
+/// Try to get selected text via Accessibility API (preferred, non-intrusive)
+static std::optional<std::string> getSelectedTextViaAX() {
   NSRunningApplication *frontApp =
       [[NSWorkspace sharedWorkspace] frontmostApplication];
   if (!frontApp) {
-    LOG_WARN(
-        "❌ Could not find frontmost app while trying to get selected text.");
-    return nullopt;
+    LOG_WARN("Cannot retrieve frontmost application");
+    return std::nullopt;
   }
+
   pid_t pid = [frontApp processIdentifier];
-
-  // 2. Create an Accessibility object for that specific app
   AXUIElementRef appRef = AXUIElementCreateApplication(pid);
-  AXUIElementRef focusedElement = NULL;
+  AXUIElementRef focusedElement = nullptr;
 
-  // 3. Ask the APP for its focused element (more reliable than system-wide)
   AXError err = AXUIElementCopyAttributeValue(
       appRef, kAXFocusedUIElementAttribute, (CFTypeRef *)&focusedElement);
 
-  optional<string> result = nullopt;
+  std::optional<std::string> result = std::nullopt;
+
   if (err == kAXErrorSuccess && focusedElement) {
-    CFTypeRef selectedText = NULL;
+    CFTypeRef selectedText = nullptr;
     err = AXUIElementCopyAttributeValue(
         focusedElement, kAXSelectedTextAttribute, &selectedText);
 
     if (err == kAXErrorSuccess && selectedText) {
       NSString *text = (__bridge NSString *)selectedText;
-      result = string([text UTF8String]);
-      if (result.value().empty()) {
-        LOG_INFO("❓ [{}] Element found, but no text is selected.",
-                 [[frontApp localizedName] UTF8String]);
-        result = nullopt;
+      std::string utf8Text([text UTF8String]);
+
+      if (!utf8Text.empty()) {
+        result = utf8Text;
+        LOG_INFO("Got selected text via AX from [{}]: {}",
+                 [[frontApp localizedName] UTF8String], utf8Text);
       } else {
-        LOG_INFO("✅ Get selected text by AXUIElement from [{}]: {}",
-                 [[frontApp localizedName] UTF8String], result.value());
+        LOG_INFO("Focused element found in [{}], but no text selected",
+                 [[frontApp localizedName] UTF8String]);
       }
       CFRelease(selectedText);
     } else {
-      LOG_INFO("❓ [{}] Element found , but no text is selected.",
+      LOG_INFO("Focused element found in [{}], but no selection attribute",
                [[frontApp localizedName] UTF8String]);
     }
     CFRelease(focusedElement);
   } else {
-    LOG_WARN("❌ Failed to get focused element from [{}] with error {}",
-             [[frontApp localizedName] UTF8String], (int)err);
+    LOG_WARN("Failed to get focused element from [{}], error code: {}",
+             [[frontApp localizedName] UTF8String], static_cast<int>(err));
   }
+
   CFRelease(appRef);
   return result;
 }
 
-string getSelectedTextBySimulateCopy() {
-  this_thread::sleep_for(milliseconds(DELAY_AFTER_TRIGGER));
-  g_old_text_in_clipboard = getClipboard();
-  simulateCopy();
-  this_thread::sleep_for(milliseconds(300));
-  string selected = getClipboard();
-  this_thread::sleep_for(milliseconds(300));
-  setClipboard(g_old_text_in_clipboard);
+/// Fallback: get selected text by simulating Cmd+C
+static std::string getSelectedTextViaSimulatedCopy() {
+  std::this_thread::sleep_for(TRIGGER_DELAY);
+
+  g_originalClipboard = getClipboardText();
+  simulateCopyShortcut();
+  std::this_thread::sleep_for(COPY_WAIT_TIME);
+
+  std::string selected = getClipboardText();
+  std::this_thread::sleep_for(COPY_WAIT_TIME);
+
+  // Restore original clipboard content
+  setClipboardText(g_originalClipboard);
   return selected;
 }
 
-// 获取选中文字
-void processSelection() {
-  if (g_isProcessing) return;
-  g_isProcessing = true;
-
-  auto selected = getSelectedText();
-  string selected_text = "";
-  if (!selected) {
-    selected_text = getSelectedTextBySimulateCopy();
-  } else {
-    selected_text = selected.value();
+/// Process text selection event and broadcast via WebSocket
+static void processSelectionEvent() {
+  if (g_isProcessing.exchange(true)) {
+    return; // Skip if already processing
   }
-  if (!selected_text.empty() && selected_text != g_old_text_in_clipboard) {
-    LOG_INFO("✅ 捕获：{}", selected_text);
-    json json_data;
-    json_data["type"] = "CGEvent";
-    json_data["data"]["type"] =
-        EventTypeEnum::toString(EventType::handlerEventTextSelection);
-    json_data["data"]["text_selected"] = selected_text;
-    json_data["data"]["mouseLocation_down"]["x"] = g_mouseLocation_down.x;
-    json_data["data"]["mouseLocation_down"]["y"] = g_mouseLocation_down.y;
-    json_data["data"]["mouseLocation_up"]["x"] = g_mouseLocation_up.x;
-    json_data["data"]["mouseLocation_up"]["y"] = g_mouseLocation_up.y;
 
-    g_websocket_server.push_event_json(json_data);
+  auto axResult = getSelectedTextViaAX();
+  std::string selectedText;
+
+  if (axResult.has_value()) {
+    selectedText = std::move(axResult.value());
+  } else {
+    selectedText = getSelectedTextViaSimulatedCopy();
+  }
+
+  if (!selectedText.empty() && selectedText != g_originalClipboard) {
+    LOG_INFO("Text selection captured: {}", selectedText);
+
+    nlohmann::json eventData;
+    eventData["type"] = "CGEvent";
+    eventData["data"]["type"] =
+        EventTypeUtil::toString(EventType::kHandlerTextSelection);
+    eventData["data"]["text_selected"] = selectedText;
+    eventData["data"]["mouseLocation_down"]["x"] = g_mouseDownLocation.x;
+    eventData["data"]["mouseLocation_down"]["y"] = g_mouseDownLocation.y;
+    eventData["data"]["mouseLocation_up"]["x"] = g_mouseUpLocation.x;
+    eventData["data"]["mouseLocation_up"]["y"] = g_mouseUpLocation.y;
+
+    g_wsServer.pushEvent(eventData);
   }
 
   g_isProcessing = false;
 }
 
-// 鼠标事件
-CGEventRef mouseCallback(CGEventTapProxy proxy, CGEventType type,
-                         CGEventRef event, void *refcon) {
-  uint64_t now = CGEventGetTimestamp(event);
+/// Core CGEvent tap callback for mouse events
+CGEventRef mouseEventCallback(CGEventTapProxy proxy, CGEventType type,
+                              CGEventRef event, void *refcon) {
+  uint64_t timestamp = CGEventGetTimestamp(event);
 
   if (type == kCGEventLeftMouseDown) {
-    g_mouseLocation_down =
-        CGEventGetLocation(event); // 核心函数：获取当前鼠标位置
-    uint64_t diff = now - g_lastMouseUp;
-    g_isDoubleClick = (diff < DOUBLE_CLICK_INTERVAL);
-    g_lastMouseDown = now;
-    // ====================== 新增：获取鼠标坐标 ======================
-    if (g_websocket_server.is_need_to_listen(
-            EventType::kCGEventLeftMouseDown)) {
-      CGFloat x = g_mouseLocation_down.x; // 屏幕 X 坐标
-      CGFloat y = g_mouseLocation_down.y; // 屏幕 Y 坐标
+    g_mouseDownLocation = CGEventGetLocation(event);
+    uint64_t timeSinceLastUp = timestamp - g_lastMouseUpTimestamp;
+    g_isDoubleClick = (timeSinceLastUp < DOUBLE_CLICK_INTERVAL_NS);
+    g_lastMouseDownTimestamp = timestamp;
 
-      json json_data;
-      json_data["type"] = "CGEvent";
-      json_data["data"]["type"] =
-          EventTypeEnum::toString(EventType::kCGEventLeftMouseDown);
-      json_data["data"]["x"] = x;
-      json_data["data"]["y"] = y;
-      json_data["data"]["timestamp"] = now;
-      g_websocket_server.push_event_json(json_data);
+    // Broadcast mouse down event if subscribed
+    if (g_wsServer.isEventSubscribed(EventType::kCGEventLeftMouseDown)) {
+      nlohmann::json eventData;
+      eventData["type"] = "CGEvent";
+      eventData["data"]["type"] =
+          EventTypeUtil::toString(EventType::kCGEventLeftMouseDown);
+      eventData["data"]["x"] = g_mouseDownLocation.x;
+      eventData["data"]["y"] = g_mouseDownLocation.y;
+      eventData["data"]["timestamp"] = timestamp;
+      g_wsServer.pushEvent(eventData);
     }
-    // ==============================================================
   } else if (type == kCGEventLeftMouseUp) {
-    g_mouseLocation_up =
-        CGEventGetLocation(event); // 核心函数：获取当前鼠标位置
-    g_lastMouseUp = now;
-    bool trigger =
-        g_isDoubleClick || ((now - g_lastMouseDown) > LONG_PRESS_DURATION);
-    if (trigger) {
-      if (g_websocket_server.is_need_to_listen(
-              EventType::handlerEventTextSelection)) {
-        thread(processSelection).detach();
-      }
+    g_mouseUpLocation = CGEventGetLocation(event);
+    g_lastMouseUpTimestamp = timestamp;
+
+    bool shouldTrigger =
+        g_isDoubleClick ||
+        ((timestamp - g_lastMouseDownTimestamp) > LONG_PRESS_DURATION_NS);
+
+    if (shouldTrigger &&
+        g_wsServer.isEventSubscribed(EventType::kHandlerTextSelection)) {
+      std::thread(processSelectionEvent).detach();
     }
   }
+
   return event;
 }
 
-// 启动监听
-bool start_mouse_event_listener() {
+bool startMouseEventListener() {
   g_eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
                                 kCGEventTapOptionListenOnly,
                                 CGEventMaskBit(kCGEventLeftMouseDown) |
                                     CGEventMaskBit(kCGEventLeftMouseUp),
-                                mouseCallback, NULL);
+                                mouseEventCallback, nullptr);
 
   if (!g_eventTap) {
-    LOG_CRITICAL("❌ 请开启【辅助功能(Accessibility)】权限");
+    LOG_CRITICAL("Failed to create event tap. "
+                 "Please verify Accessibility permissions.");
     return false;
   }
 
-  g_runLoopSource = CFMachPortCreateRunLoopSource(NULL, g_eventTap, 0);
+  g_runLoopSource = CFMachPortCreateRunLoopSource(nullptr, g_eventTap, 0);
   CFRunLoopAddSource(CFRunLoopGetCurrent(), g_runLoopSource,
                      kCFRunLoopCommonModes);
   CGEventTapEnable(g_eventTap, true);
-  LOG_INFO("业务启动完成，进入事件循环");
-  // 运行循环
+
+  LOG_INFO("Mouse event listener started, entering run loop");
   CFRunLoopRun();
-  LOG_INFO("业务退出，开始清理资源");
+
+  // Cleanup after run loop exits
+  LOG_INFO("Event loop stopped, cleaning up resources");
+
   if (g_eventTap) {
     CGEventTapEnable(g_eventTap, false);
     CFRelease(g_eventTap);
     g_eventTap = nullptr;
   }
-
   if (g_runLoopSource) {
     CFRunLoopRemoveSource(CFRunLoopGetCurrent(), g_runLoopSource,
                           kCFRunLoopCommonModes);
     CFRelease(g_runLoopSource);
     g_runLoopSource = nullptr;
   }
+
   return true;
+}
+
+std::string getLastSelectedText() {
+  std::lock_guard<std::mutex> lock(g_stateMutex);
+  return g_lastSelectedText;
 }

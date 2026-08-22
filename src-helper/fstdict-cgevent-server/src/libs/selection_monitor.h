@@ -1,15 +1,9 @@
-#ifndef SELECTION_MONITOR_H
-#define SELECTION_MONITOR_H
-
-#include <functional>
+#pragma once
 #include <string>
 
-bool ensureAccessibility();
+/// Initialize and start global mouse event listener
+/// Runs event loop on calling thread (blocks)
+bool startMouseEventListener();
 
-// 初始化并启动监听
-bool start_mouse_event_listener();
-
-// 获取最后一次选中的文字
-std::string get_last_selected_text();
-
-#endif
+/// Get the most recently captured selected text
+std::string getLastSelectedText();

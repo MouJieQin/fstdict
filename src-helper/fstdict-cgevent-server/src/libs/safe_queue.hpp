@@ -1,38 +1,48 @@
-#include <chrono>
+#pragma once
 #include <condition_variable>
-#include <iostream>
 #include <mutex>
+#include <optional>
 #include <queue>
-#include <thread>
 
-// 线程安全队列（生产者-消费者）
+/// Thread-safe FIFO queue for producer-consumer patterns
+/// Uses condition variable for zero-CPU blocking wait
 template <typename T> class SafeQueue {
-private:
-  std::queue<T> queue;        // 数据队列
-  std::mutex mtx;             // 互斥锁，保证线程安全
-  std::condition_variable cv; // 条件变量：实现休眠/唤醒，无轮询
-
 public:
-  // 生产者：push 数据，不阻塞
+  /// Push an element into the queue (non-blocking)
   void push(T data) {
-    std::lock_guard<std::mutex> lock(mtx);
-    queue.push(std::move(data));
-    cv.notify_one(); // 关键！唤醒消费者线程
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_queue.push(std::move(data));
+    m_cv.notify_one();
   }
 
-  // 消费者：等待并取出数据（无数据时自动休眠，0 CPU占用）
-  T wait_and_pop() {
-    std::unique_lock<std::mutex> lock(mtx);
-    // 队列空 → 休眠，释放锁；被 notify 后 → 自动唤醒
-    cv.wait(lock, [this]() { return !queue.empty(); });
+  /// Block until an element is available, then pop and return it
+  T waitAndPop() {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_cv.wait(lock, [this]() { return !m_queue.empty(); });
 
-    T data = std::move(queue.front());
-    queue.pop();
+    T data = std::move(m_queue.front());
+    m_queue.pop();
     return data;
   }
 
-  bool empty() {
-    std::lock_guard<std::mutex> lock(mtx);
-    return queue.empty();
+  /// Try to pop an element without blocking; returns nullopt if empty
+  std::optional<T> tryPop() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_queue.empty()) return std::nullopt;
+
+    T data = std::move(m_queue.front());
+    m_queue.pop();
+    return data;
   }
+
+  /// Check if queue is empty
+  bool empty() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_queue.empty();
+  }
+
+private:
+  std::queue<T> m_queue;
+  mutable std::mutex m_mutex;
+  std::condition_variable m_cv;
 };

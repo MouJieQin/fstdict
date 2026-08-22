@@ -31,7 +31,7 @@ class CgEventHandler:
         """Process a CGEvent notification."""
         event_type = event_data["type"]
 
-        if event_type == "handlerEventTextSelection":
+        if event_type == "kHandlerTextSelection":
             selected_text = event_data["text_selected"]
             await CgEventHandler._broadcast_text_selection(selected_text)
 
@@ -45,7 +45,7 @@ class CgEventHandler:
     async def _broadcast_text_selection(text: str):
         """Forward text selection event to the helper window."""
         msg = {
-            "type": "handlerEventTextSelection",
+            "type": "kHandlerTextSelection",
             "data": {"text_selected": text}
         }
         if Utils.fstdict_helper_websocket:

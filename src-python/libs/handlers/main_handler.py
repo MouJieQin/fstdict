@@ -40,7 +40,7 @@ class MainMessageHandler:
     async def _broadcast_text_selection(text: str):
         """Forward selected text to the helper window."""
         msg = {
-            "type": "handlerEventTextSelection",
+            "type": "kHandlerTextSelection",
             "data": {"text_selected": text}
         }
         if Utils.fstdict_helper_websocket:
@@ -55,15 +55,15 @@ class MainMessageHandler:
         Utils.Config.syncConfig()
 
         if enabled:
-            await Utils.cgevent_ws_client.send_register_request("handlerEventTextSelection")
-            if "handlerEventTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("handlerEventTextSelection")
+            await Utils.cgevent_ws_client.send_register_request("kHandlerTextSelection")
+            if "kHandlerTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("kHandlerTextSelection")
             logger.info("Text selection monitoring enabled")
             notification = "Text selection monitoring enabled"
         else:
-            await Utils.cgevent_ws_client.send_unregister_request("handlerEventTextSelection")
-            if "handlerEventTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
+            await Utils.cgevent_ws_client.send_unregister_request("kHandlerTextSelection")
+            if "kHandlerTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
+                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("kHandlerTextSelection")
             logger.info("Text selection monitoring disabled")
             notification = "Text selection monitoring disabled"
 

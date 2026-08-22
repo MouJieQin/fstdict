@@ -390,7 +390,7 @@ const handleToggleFloatPin = (message: any): void => {
 
 const handleCgevent = (data: any): void => {
     if (envFromRoute.value !== 'selection_float_search') return
-    if (data.type === 'handlerEventTextSelection') {
+    if (data.type === 'kHandlerTextSelection') {
         redirectWord.value = data.text_selected
     }
 }

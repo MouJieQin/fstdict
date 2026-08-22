@@ -1,42 +1,44 @@
-#include <algorithm>
+#pragma once
 #include <array>
-#include <iostream>
 #include <optional>
-#include <string>
+#include <string_view>
 
-// 1. 你的枚举（完全不变）
+/// Event types that clients can subscribe to
 enum class EventType {
   kCGEventLeftMouseDown,
-  handlerEventTextSelection,
+  kHandlerTextSelection,
 };
 
-// ===================== C++20 极简枚举工具 =====================
-consteval auto getEnumNames(EventType) {
-  return std::array<std::pair<std::string_view, EventType>, 3>{{
+/// Compile-time enum <-> string mapping
+consteval auto getEventTypeMapping() {
+  return std::array<std::pair<std::string_view, EventType>, 2>{{
       {"kCGEventLeftMouseDown", EventType::kCGEventLeftMouseDown},
-      {"handlerEventTextSelection", EventType::handlerEventTextSelection},
+      {"kHandlerTextSelection", EventType::kHandlerTextSelection},
   }};
 }
 
-struct EventTypeEnum {
-  // 核心：判断字符串是否存在（你要的功能）
+struct EventTypeUtil {
+  /// Check if an event name exists
   static constexpr bool exists(std::string_view name) {
-    for (auto [n, e] : getEnumNames(EventType{}))
-      if (n == name) return true;
+    for (const auto &[name_str, event] : getEventTypeMapping()) {
+      if (name_str == name) return true;
+    }
     return false;
   }
 
-  // 字符串 → 枚举
+  /// Convert string to EventType, returns nullopt if invalid
   static constexpr std::optional<EventType> fromString(std::string_view name) {
-    for (auto [n, e] : getEnumNames(EventType{}))
-      if (n == name) return e;
+    for (const auto &[name_str, event] : getEventTypeMapping()) {
+      if (name_str == name) return event;
+    }
     return std::nullopt;
   }
 
-  // 枚举 → 字符串
+  /// Convert EventType to string_view
   static constexpr std::string_view toString(EventType e) {
-    for (auto [n, val] : getEnumNames(EventType{}))
-      if (val == e) return n;
+    for (const auto &[name_str, event] : getEventTypeMapping()) {
+      if (event == e) return name_str;
+    }
     return "Unknown";
   }
 };

@@ -10,7 +10,7 @@ pub enum InboundMessage {
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
 
-    #[serde(rename = "handlerEventTextSelection")]
+    #[serde(rename = "kHandlerTextSelection")]
     TextSelection { data: TextSelectionData },
 
     #[serde(rename = "kCGEventLeftMouseDown")]

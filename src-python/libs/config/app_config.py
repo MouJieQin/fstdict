@@ -33,12 +33,10 @@ class UtilsBase:
     FSTDICT_STORAGE_PATH = str(app_paths.STORAGE_PATH)
     USER_CONFIG_DIR = str(app_paths.CONFIG_DIR)
     CONFIG_FILE = str(app_paths.CONFIG_FILE)
-    CGEVENT_CONFIG_FILE = str(app_paths.CGEVENT_CONFIG_FILE)
     DICT_CONFIG_FILE = str(app_paths.DICT_CONFIG_FILE)
     ANKI_CONFIG_FILE = str(app_paths.ANKI_CONFIG_FILE)
 
     DEFAULT_CONFIG_FILE = str(app_paths.DEFAULT_CONFIG_FILE)
-    DEFAULT_CGEVENT_CONFIG_FILE = str(app_paths.DEFAULT_CGEVENT_CONFIG_FILE)
     DEFAULT_DICT_CONFIG_FILE = str(app_paths.DEFAULT_DICT_CONFIG_FILE)
 
     FFMPEG_PATH = str(app_paths.FFMPEG_BINARY)
@@ -57,8 +55,6 @@ class UtilsBase:
     # Configuration state
     DEFAULT_CONFIG: Dict = {}
     CONFIG: Dict = {}
-    DEFAULT_CGEVENT_CONFIG: Dict = {}
-    CGEVENT_CONFIG: Dict = {}
     DEFAULT_DICT_CONFIG: Dict = {}
     DICT_CONFIG: Dict = {}
 
@@ -127,12 +123,6 @@ class UtilsBase:
             UtilsBase.Config.syncConfigFile(UtilsBase.CONFIG, UtilsBase.CONFIG_FILE)
 
         @staticmethod
-        def syncCgeventConfig() -> None:
-            UtilsBase.Config.syncConfigFile(
-                UtilsBase.CGEVENT_CONFIG, UtilsBase.CGEVENT_CONFIG_FILE
-            )
-
-        @staticmethod
         def syncDictConfig() -> None:
             UtilsBase.Config.syncConfigFile(
                 UtilsBase.DICT_CONFIG, UtilsBase.DICT_CONFIG_FILE
@@ -142,11 +132,6 @@ class UtilsBase:
         def init_config(config: Dict) -> None:
             UtilsBase.CONFIG = config
             UtilsBase.Config.syncConfig()
-
-        @staticmethod
-        def init_cgevent_config(config: Dict) -> None:
-            UtilsBase.CGEVENT_CONFIG = config
-            UtilsBase.Config.syncDictConfig()
 
         @staticmethod
         def init_dict_config(config: Dict) -> None:
@@ -276,15 +261,12 @@ def initialize_config() -> None:
     # Load default config templates
     with open(UtilsBase.DEFAULT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
         UtilsBase.DEFAULT_CONFIG = json.load(f)
-    with open(UtilsBase.DEFAULT_CGEVENT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
-        UtilsBase.DEFAULT_CGEVENT_CONFIG = json.load(f)
     with open(UtilsBase.DEFAULT_DICT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
         UtilsBase.DEFAULT_DICT_CONFIG = json.load(f)
 
     # Load user configs if they exist
     for config_file, config_attr in [
         (UtilsBase.CONFIG_FILE, "CONFIG"),
-        (UtilsBase.CGEVENT_CONFIG_FILE, "CGEVENT_CONFIG"),
         (UtilsBase.DICT_CONFIG_FILE, "DICT_CONFIG"),
     ]:
         if os.path.isfile(config_file):
@@ -352,12 +334,6 @@ def initialize_config() -> None:
         [["schema_version"], ["dict_set_options"]]
     )
     migrate_config(
-        UtilsBase.CGEVENT_CONFIG,
-        UtilsBase.DEFAULT_CGEVENT_CONFIG,
-        UtilsBase.CGEVENT_CONFIG_FILE,
-        []
-    )
-    migrate_config(
         UtilsBase.DICT_CONFIG,
         UtilsBase.DEFAULT_DICT_CONFIG,
         UtilsBase.DICT_CONFIG_FILE,
@@ -366,12 +342,11 @@ def initialize_config() -> None:
 
     # Apply selection monitoring setting to auto-register list
     if UtilsBase.CONFIG["app"]["helper_selection"]["enabled"]:
-        UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("handlerEventTextSelection")
+        UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("kHandlerTextSelection")
 
     # Final initialization steps
     UtilsBase.Config.renew_dict_set_options()
     UtilsBase.Config.init_config(UtilsBase.CONFIG)
-    UtilsBase.Config.init_cgevent_config(UtilsBase.CGEVENT_CONFIG)
     UtilsBase.Config.init_dict_config(UtilsBase.DICT_CONFIG)
 
 

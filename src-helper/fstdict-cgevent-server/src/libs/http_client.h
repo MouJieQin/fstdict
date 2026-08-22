@@ -1,11 +1,15 @@
-// http_client.h
 #pragma once
 #include <functional>
 #include <string>
 
-// 回调签名：success(http_body) | error(message)
-using HttpCallback =
-    std::function<void(bool ok, const std::string &body_or_err)>;
+/// Callback signature for async HTTP requests
+/// @param ok True if request succeeded
+/// @param bodyOrErr Response body on success, error message on failure
+using HttpCallback = std::function<void(bool ok, const std::string &bodyOrErr)>;
 
-/// 异步GET请求（macOS NSURLSession）
-void http_get_async(const std::string &url, int timeout_sec, HttpCallback cb);
+/// Perform an async HTTP GET request using macOS native NSURLSession
+/// @param url Target URL
+/// @param timeoutSec Request timeout in seconds
+/// @param callback Completion callback
+void httpGetAsync(const std::string &url, int timeoutSec,
+                  HttpCallback callback);
