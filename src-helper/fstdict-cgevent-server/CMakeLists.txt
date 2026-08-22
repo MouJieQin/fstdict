@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.24)
 
-# 全局策略
 cmake_policy(SET CMP0148 NEW)
 
 # ===================== Build Type Postfix Config =====================
@@ -45,7 +44,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # ===================== Source Files =====================
 set(SRC_MAIN
     ${PROJECT_ROOT}/main.cpp
-    ${PROJECT_ROOT}/src/CGEventHandler.cpp
 )
 aux_source_directory(${PROJECT_ROOT}/src/libs DIR_LIB_SRCS)
 
@@ -95,16 +93,15 @@ elseif (CMAKE_BUILD_TYPE_LOWER STREQUAL "gperf")
 endif()
 
 # ===================== Dependencies Option =====================
-# 开关：OFF=使用brew系统库；ON=FetchContent源码编译（备用）
 option(FETCH_DEPS "Build dependencies from source via FetchContent instead of system brew" OFF)
 
 if (NOT FETCH_DEPS)
-    # Mode A: Use brew installed packages (CI 默认方案)
+    # Mode A: Use brew installed packages (CI)
     find_package(nlohmann_json REQUIRED)
     find_package(spdlog REQUIRED)
     find_package(fmt REQUIRED)
 else()
-    # Mode B: FetchContent fallback（复用你fstd工程的宏，此处先声明占位，可直接粘贴find_shared_or_fetch宏进来）
+    # Mode B: FetchContent fallback
     include(FetchContent)
     message(STATUS "Fetch dependencies from source enabled")
     # Release CI mode: Fetch all thirdparty source, static link

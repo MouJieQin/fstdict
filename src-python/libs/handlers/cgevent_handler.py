@@ -31,11 +31,7 @@ class CgEventHandler:
         """Process a CGEvent notification."""
         event_type = event_data["type"]
 
-        if event_type == "globalKeyboardShortCut":
-            shortcut_msg = event_data["msg"]
-            logger.info(f"Global keyboard shortcut triggered: {shortcut_msg}")
-
-        elif event_type == "handlerEventTextSelection":
+        if event_type == "handlerEventTextSelection":
             selected_text = event_data["text_selected"]
             await CgEventHandler._broadcast_text_selection(selected_text)
 

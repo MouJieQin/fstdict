@@ -1,9 +1,0 @@
-{
-    "shortcuts": {
-        "settings": {
-            "name": "settings",
-            "description": "It's the shortcut common setting, instead of a shortcut item. Do not change the key as it's a system setting of the current program",
-            "double-typing-interval": "500000"
-        }
-    }
-}

@@ -26,7 +26,6 @@ using namespace std::chrono;
 #define DELAY_AFTER_TRIGGER 1           // 触发后等待多久获取文字(ms)
 // ======================================================
 
-static bool g_is_running = false;
 static bool g_isProcessing = false;
 static uint64_t g_lastMouseDown = 0;
 static uint64_t g_lastMouseUp = 0;
@@ -298,8 +297,6 @@ CGEventRef mouseCallback(CGEventTapProxy proxy, CGEventType type,
 
 // 启动监听
 bool start_mouse_event_listener() {
-  if (g_is_running) return true;
-
   g_eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
                                 kCGEventTapOptionListenOnly,
                                 CGEventMaskBit(kCGEventLeftMouseDown) |
@@ -315,16 +312,10 @@ bool start_mouse_event_listener() {
   CFRunLoopAddSource(CFRunLoopGetCurrent(), g_runLoopSource,
                      kCFRunLoopCommonModes);
   CGEventTapEnable(g_eventTap, true);
-
-  g_is_running = true;
-  std::thread([] { CFRunLoopRun(); }).detach();
-  return true;
-}
-
-// 停止监听
-void stop_macos_event_listener() {
-  if (!g_is_running) return;
-
+  LOG_INFO("业务启动完成，进入事件循环");
+  // 运行循环
+  CFRunLoopRun();
+  LOG_INFO("业务退出，开始清理资源");
   if (g_eventTap) {
     CGEventTapEnable(g_eventTap, false);
     CFRelease(g_eventTap);
@@ -337,8 +328,7 @@ void stop_macos_event_listener() {
     CFRelease(g_runLoopSource);
     g_runLoopSource = nullptr;
   }
-
-  g_is_running = false;
+  return true;
 }
 
 // 内部回调：底层捕获到文字后调用
@@ -347,21 +337,4 @@ void internal_on_text_selected(const std::string &text) {
   g_last_selected = text;
 
   if (g_user_callback) { g_user_callback(text); }
-}
-
-// 外部启动方法
-bool start_selection_monitor(SelectionCallback callback) {
-  g_user_callback = callback;
-  return start_mouse_event_listener(); // 由 .mm 实现
-}
-
-void set_selection_monitor_callback(SelectionCallback callback) {
-  g_user_callback = callback;
-}
-
-void stop_selection_monitor() { stop_macos_event_listener(); }
-
-std::string get_last_selected_text() {
-  std::lock_guard<std::mutex> lock(g_mutex);
-  return g_last_selected;
 }

@@ -62,7 +62,7 @@ class UtilsBase:
     DEFAULT_DICT_CONFIG: Dict = {}
     DICT_CONFIG: Dict = {}
 
-    REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION: List[str] = ["globalKeyboardShortCut"]
+    REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION: List[str] = []
     DICT_INFO: Dict = {}
 
     # WebSocket connection state maps
