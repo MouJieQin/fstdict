@@ -14,7 +14,6 @@
 static std::mutex g_mutex;
 static std::string g_last_selected;
 static std::string g_old_text_in_clipboard;
-static SelectionCallback g_user_callback;
 static auto &g_websocket_server = WebSocketServer::instance();
 
 using namespace std;
@@ -34,9 +33,6 @@ static CGPoint g_mouseLocation_down;
 static CGPoint g_mouseLocation_up;
 static CFMachPortRef g_eventTap = nullptr;
 static CFRunLoopSourceRef g_runLoopSource = nullptr;
-
-// 声明内部回调
-extern void internal_on_text_selected(const std::string &text);
 
 // Check and Trigger Permissions
 bool ensureAccessibility() {
@@ -133,8 +129,9 @@ string getSelectedTextBySimulateCopy() {
   this_thread::sleep_for(milliseconds(DELAY_AFTER_TRIGGER));
   g_old_text_in_clipboard = getClipboard();
   simulateCopy();
-  this_thread::sleep_for(milliseconds(100));
+  this_thread::sleep_for(milliseconds(300));
   string selected = getClipboard();
+  this_thread::sleep_for(milliseconds(300));
   setClipboard(g_old_text_in_clipboard);
   return selected;
 }
@@ -152,7 +149,6 @@ void processSelection() {
     selected_text = selected.value();
   }
   if (!selected_text.empty() && selected_text != g_old_text_in_clipboard) {
-    // internal_on_text_selected(selected_text);
     LOG_INFO("✅ 捕获：{}", selected_text);
     json json_data;
     json_data["type"] = "CGEvent";
@@ -165,88 +161,6 @@ void processSelection() {
     json_data["data"]["mouseLocation_up"]["y"] = g_mouseLocation_up.y;
 
     g_websocket_server.push_event_json(json_data);
-  }
-
-  g_isProcessing = false;
-}
-
-/**
- 逐个字符输入（带延迟，撤销一个一个删）
- @param text 要输入的字符串
- @param delay 每个字符之间的延迟（秒）
- */
-void input_text(NSString *text, float delay) {
-  for (unsigned long i = 0; i < text.length; i++) {
-    UniChar character = [text characterAtIndex:i];
-
-    // 按下
-    CGEventRef keyDown = CGEventCreateKeyboardEvent(NULL, 0, true);
-    CGEventKeyboardSetUnicodeString(keyDown, 1, &character);
-    CGEventPost(kCGHIDEventTap, keyDown);
-    CFRelease(keyDown);
-
-    // 松开
-    CGEventRef keyUp = CGEventCreateKeyboardEvent(NULL, 0, false);
-    CGEventKeyboardSetUnicodeString(keyUp, 1, &character);
-    CGEventPost(kCGHIDEventTap, keyUp);
-    CFRelease(keyUp);
-
-    // 延迟
-    usleep((useconds_t)(delay * 1000000));
-  }
-}
-
-/**
- 一次性完整输入整段文字（一次撤销全部清空）
- @param text 要输入的字符串
- */
-void input_text_full(NSString *text) {
-  // --------------------------
-  // 🔴 关键修复：先发一个空字符激活上下文
-  // --------------------------
-  UniChar zero = 0;
-  CGEventRef kick = CGEventCreateKeyboardEvent(NULL, 0, true);
-  CGEventKeyboardSetUnicodeString(kick, 1, &zero);
-  CGEventPost(kCGHIDEventTap, kick);
-  CFRelease(kick);
-  usleep(1000);
-
-  // 正式输入字符串
-  NSInteger length = text.length;
-  UniChar *buffer = (UniChar *)malloc(length * sizeof(UniChar));
-  [text getCharacters:buffer range:NSMakeRange(0, length)];
-
-  CGEventRef keyDown = CGEventCreateKeyboardEvent(NULL, 0, true);
-  CGEventKeyboardSetUnicodeString(keyDown, length, buffer);
-  CGEventPost(kCGHIDEventTap, keyDown);
-  CFRelease(keyDown);
-
-  CGEventRef keyUp = CGEventCreateKeyboardEvent(NULL, 0, false);
-  CGEventKeyboardSetUnicodeString(keyUp, length, buffer);
-  CGEventPost(kCGHIDEventTap, keyUp);
-  CFRelease(keyUp);
-
-  free(buffer);
-}
-
-// 获取选中文字
-void handleSelection(const std::string &prefix, const std::string &suffix) {
-  if (g_isProcessing) return;
-  g_isProcessing = true;
-
-  this_thread::sleep_for(milliseconds(DELAY_AFTER_TRIGGER));
-
-  string oldClip = getClipboard();
-  simulateCopy();
-  this_thread::sleep_for(milliseconds(200));
-  string selected = getClipboard();
-
-  if (!selected.empty()) {
-    LOG_INFO("✅ 捕获：{}", selected);
-    selected = prefix + selected + suffix;
-    LOG_INFO("✅ 输入：{}", selected);
-    input_text([NSString stringWithUTF8String:selected.c_str()], 0.1);
-    // input_text_full([NSString stringWithUTF8String:selected.c_str()]);
   }
 
   g_isProcessing = false;
@@ -329,12 +243,4 @@ bool start_mouse_event_listener() {
     g_runLoopSource = nullptr;
   }
   return true;
-}
-
-// 内部回调：底层捕获到文字后调用
-void internal_on_text_selected(const std::string &text) {
-  std::lock_guard<std::mutex> lock(g_mutex);
-  g_last_selected = text;
-
-  if (g_user_callback) { g_user_callback(text); }
 }
