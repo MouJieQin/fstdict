@@ -85,6 +85,7 @@ const virtualListRef = ref<unknown>(null)
 const popoverWidth = ref(300)
 
 let resizeObserver: ResizeObserver | null = null
+let rafId: number | null = null
 
 // Reactive refs for composable
 const wsRef = computed(() => props.webSocket)
@@ -221,6 +222,33 @@ watch(() => props.redirectHistoryWord, (newVal) => {
     keyword.value = newVal
 })
 
+
+watch(
+    () => inputRef.value?.$el as HTMLElement | null,
+    (el) => {
+        // clear previous
+        if (rafId) cancelAnimationFrame(rafId)
+        resizeObserver?.disconnect()
+
+        if (!el) return
+
+        resizeObserver = new ResizeObserver((entries) => {
+            const entry = entries[0]
+            if (!entry) return
+            const w = entry.contentRect.width
+
+            rafId = requestAnimationFrame(() => {
+                popoverWidth.value = w
+            })
+        })
+
+        resizeObserver.observe(el)
+        popoverWidth.value = el.getBoundingClientRect().width
+    },
+    { immediate: true }
+)
+
+
 // --- Global keyboard shortcut: type anywhere to focus search ---
 const handleGlobalKeydown = (e: KeyboardEvent) => {
     const active = document.activeElement as HTMLElement | null
@@ -246,23 +274,13 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
 // --- Lifecycle: resize observer for popover width ---
 onMounted(() => {
     window.addEventListener('keydown', handleGlobalKeydown)
-
-    if (inputRef.value?.$el) {
-        const inputEl = inputRef.value.$el as HTMLElement
-        popoverWidth.value = inputEl.offsetWidth
-
-        resizeObserver = new ResizeObserver(() => {
-            if (inputRef.value?.$el) {
-                popoverWidth.value = (inputRef.value.$el as HTMLElement).offsetWidth
-            }
-        })
-        resizeObserver.observe(inputEl)
-    }
 })
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleGlobalKeydown)
+    if (rafId) cancelAnimationFrame(rafId)
     resizeObserver?.disconnect()
+    resizeObserver = null
 })
 </script>
 
