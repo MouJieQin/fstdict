@@ -152,7 +152,7 @@ import {
     useDictConfigStore,
     useSystemConfigStore,
 } from '@/stores'
-import { getDefaultSessionConfig, getDictSettingsForLookup } from '@/common/utility'
+import { getDefaultSessionConfig } from '@/common/utility'
 
 // Types
 import type {

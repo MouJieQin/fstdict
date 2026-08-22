@@ -129,10 +129,9 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     panel.set_collection_behavior(
         CollectionBehavior::new()
             .full_screen_auxiliary()
-            .can_join_all_spaces()
+            // .can_join_all_spaces()
             .into(),
     );
-    panel.set_floating_panel(true);
 
     // ✨ Core Fix: Consume the pre-cast public delegate reference seamlessly
     // This completely removes all "private type" errors from setup.rs
