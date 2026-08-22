@@ -139,8 +139,8 @@ static void processSelectionEvent() {
 }
 
 /// Core CGEvent tap callback for mouse events
-CGEventRef mouseEventCallback(CGEventTapProxy proxy, CGEventType type,
-                              CGEventRef event, void *refcon) {
+CGEventRef mouseEventCallback(CGEventTapProxy _, CGEventType type,
+                              CGEventRef event, void *) {
   uint64_t timestamp = CGEventGetTimestamp(event);
 
   if (type == kCGEventLeftMouseDown) {
@@ -214,9 +214,4 @@ bool startMouseEventListener() {
   }
 
   return true;
-}
-
-std::string getLastSelectedText() {
-  std::lock_guard<std::mutex> lock(g_stateMutex);
-  return g_lastSelectedText;
 }

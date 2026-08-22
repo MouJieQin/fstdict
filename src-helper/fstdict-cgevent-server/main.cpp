@@ -29,7 +29,7 @@ void runMainBusiness() {
   startMouseEventListener();
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
   runMainBusiness();
   return EXIT_SUCCESS;
 }

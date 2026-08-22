@@ -21,7 +21,7 @@ void httpGetAsync(const std::string &urlStr, int timeoutSec,
   NSURLSession *session = [NSURLSession sharedSession];
   NSURLSessionDataTask *task =
       [session dataTaskWithRequest:request
-                 completionHandler:^(NSData *data, NSURLResponse *response,
+                 completionHandler:^(NSData *data, NSURLResponse *_,
                                      NSError *error) {
                    if (error) {
                      std::string msg(error.localizedDescription.UTF8String);

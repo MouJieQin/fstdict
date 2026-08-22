@@ -64,7 +64,7 @@ bool decodeFrame(const char *data, size_t len, std::string &outPayload,
                  uint8_t &outOpcode) {
   if (len < 2) return false;
 
-  uint8_t fin = (static_cast<uint8_t>(data[0]) >> 7) & 1;
+  // uint8_t fin = (static_cast<uint8_t>(data[0]) >> 7) & 1;
   outOpcode = static_cast<uint8_t>(data[0]) & 0x0F;
   uint8_t masked = (static_cast<uint8_t>(data[1]) >> 7) & 1;
   uint64_t payloadLen = static_cast<uint8_t>(data[1]) & 0x7F;
