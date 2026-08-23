@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.26",
   "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -20,11 +24,13 @@
     "build:all": "npm run version:sync && npm run build && npm run build:sidecar"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-opener": "^2",
     "@vueuse/components": "^14.3.0",
     "@vueuse/core": "^14.3.0",
     "element-plus": "^2.13.6",
+    "lodash": "^4.18.1",
     "markdown-it": "^14.1.1",
     "pinia": "^3.0.4",
     "sortablejs": "^1.15.7",
