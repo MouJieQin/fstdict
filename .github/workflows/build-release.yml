@@ -47,11 +47,8 @@ jobs:
 
         # ✨ SIZE & PARTITION FIXES:
         # 1. APPIMAGE_EXTRACT_AND_RUN strips out the FUSE mounting requirement.
-        # 2. TMPDIR forces linuxdeploy/mksquashfs to build inside the spacious runner SSD
-        #    instead of filling up the restricted memory /tmp filesystem.
         env:
             APPIMAGE_EXTRACT_AND_RUN: 1
-            TMPDIR: ${{ github.workspace }}/tmp_build_cache
 
         steps:
             # ─────────────────────────────────────────
@@ -75,10 +72,11 @@ jobs:
               uses: actions/checkout@v4
 
             # ─────────────────────────────────────────
-            # 1. Node.js Setup (Migrated to pnpm)
+            # 1. Node.js Setup (Fixed Configuration)
             # ─────────────────────────────────────────
             - name: Install pnpm
               uses: pnpm/action-setup@v4
+              # No 'version' key needed here; it automatically matches package.json
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -160,8 +158,8 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   TAURI_TARGET: ${{ matrix.rust_target }}
-                  # ✨ Core Fix: Tell the AppImage dynamic loader where to find the embedded Shapely / GEOS C-libraries
-                  # This prevents linuxdeploy from panicking about "missing dependencies".
+                  # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
+                  TMPDIR: ${{ github.workspace }}/tmp_build_cache
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
 
             # ─────────────────────────────────────────
