@@ -3,6 +3,7 @@ mod commands;
 mod shortcuts;
 mod sidecar;
 mod theme;
+mod updater;
 mod websocket;
 mod window;
 
@@ -23,6 +24,7 @@ use ctrlc;
 use shortcuts::global::register_global_shortcuts;
 use sidecar::common::terminate_child_process;
 use sidecar::python::start_python_sidecar;
+use updater::update;
 use websocket::client::start_ws_client;
 use window::main_window::setup_main_window;
 
@@ -117,6 +119,13 @@ pub async fn run() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir, "fstdict-main".to_string());
+
+            let updater_app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = update(updater_app_handle).await {
+                    error!("update task failed: {:?}", e);
+                }
+            });
 
             // Share sidecar state handles with global registry for signal handler access
             let _ = GLOBAL_PYTHON_SERVER.set(app.state::<PythonServer>().0.clone());
