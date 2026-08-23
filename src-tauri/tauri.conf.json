@@ -4,7 +4,7 @@
   "version": "0.0.26",
   "identifier": "FstDict",
   "build": {
-    "beforeDevCommand": "npm run dev:all",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:9595",
     "beforeBuildCommand": "npm run build:all",
     "frontendDist": "../dist"
