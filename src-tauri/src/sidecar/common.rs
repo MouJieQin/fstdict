@@ -92,3 +92,4 @@ pub fn terminate_child_process(child: &mut Option<Child>, name: &str) {
     let _ = proc.wait();
     info!("{} terminated successfully", name);
 }
+
