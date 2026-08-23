@@ -1,4 +1,4 @@
-use super::notification::{NOTIFICATION_INNER_WIDTH};
+use super::notification::NOTIFICATION_INNER_WIDTH;
 use log::{debug, error, warn};
 use tauri::{AppHandle, LogicalPosition, Manager, Monitor, Position, WebviewWindow};
 

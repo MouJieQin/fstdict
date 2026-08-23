@@ -15,6 +15,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "macOS": {
       "infoPlist": "Info.plist"
     },
@@ -34,17 +35,15 @@
       "icons/icon.ico"
     ]
   },
-  "tauri": {
+  "plugins": {
     "updater": {
-      "active": true,
+      "windows": {
+        "installMode": "passive"
+      },
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1RDExQ0RGNTRBNjc1QzQKUldURWRhWlUzeHpSVmR3cVA5azBEREhTVXgvUlFwNUJwaFBsRS9rTFlUMk5yNVZhL2tKQmtJWHIK",
       "endpoints": [
         "https://github.com/MouJieQin/fstdict/releases/latest/download/latest.json"
-      ],
-      "dialog": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1RDExQ0RGNTRBNjc1QzQKUldURWRhWlUzeHpSVmR3cVA5azBEREhTVXgvUlFwNUJwaFBsRS9rTFlUMk5yNVZhL2tKQmtJWHIK"
-    },
-    "windows": {
-      "installMode": "passive"
+      ]
     }
   }
 }

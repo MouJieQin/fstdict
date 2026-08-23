@@ -50,4 +50,3 @@ impl MainWindowPinState {
         self.is_pinned.store(pinned, Ordering::SeqCst);
     }
 }
-

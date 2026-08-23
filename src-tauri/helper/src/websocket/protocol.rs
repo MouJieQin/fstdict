@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::Deserialize;
 
 /// Inbound message types from the CGEvent WebSocket server.
 #[derive(Debug, Deserialize)]

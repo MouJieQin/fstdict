@@ -160,7 +160,8 @@ jobs:
                   TAURI_TARGET: ${{ matrix.rust_target }}
                   # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
                   TMPDIR: ${{ github.workspace }}/tmp_build_cache
-                  TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
                   # Extend library search path for embedded Shapely / GEOS native libraries
                   # Prevents linuxdeploy "missing dependency" runtime detection failures
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
@@ -175,7 +176,8 @@ jobs:
                   name: fstdict-${{ matrix.platform }}-${{ matrix.arch }}
                   path: |
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
-                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.sig
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/*.sig
+                      src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/*.tar.gz
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.sig
                       src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.deb
@@ -234,6 +236,7 @@ jobs:
               with:
                   files: |
                       ./dist/fstdict-macos-*/**/*.dmg
+                      ./dist/fstdict-macos-*/**/*.tar.gz
                       ./dist/fstdict-macos-*/**/*.sig
                       ./dist/fstdict-linux-*/**/*.AppImage
                       ./dist/fstdict-linux-*/**/*.sig

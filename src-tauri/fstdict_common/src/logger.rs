@@ -4,7 +4,7 @@ use env_logger::{Builder, Env};
 use log::{Level, LevelFilter};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use std::path::{Path};
+use std::path::Path;
 use std::time::SystemTime;
 
 /// Initialize logging: colored console + daily rotated file output.

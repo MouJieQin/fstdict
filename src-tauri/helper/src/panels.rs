@@ -76,11 +76,10 @@ impl PublicPanelEventHandler {
     }
 
     // Inside implementation block for PublicPanelEventHandler in helper/src/panels.rs
-    
+
     /// Provides an open signature converting internal state back to a visible NSWindowDelegate ProtocolObject.
     pub fn as_protocol_delegate(&self) -> &ProtocolObject<dyn NSWindowDelegate> {
         // ✨ Fix: Use the turbofish syntax ::<PanelEventHandler> to guide the compiler's type resolution engine
         ProtocolObject::from_ref::<PanelEventHandler>(self.inner.as_ref())
     }
-
 }
