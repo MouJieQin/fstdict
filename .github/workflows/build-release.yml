@@ -153,6 +153,13 @@ jobs:
                   uploadUpdaterJson: true
                   uploadUpdaterSignatures: true
                   prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAURI_TARGET: ${{ matrix.rust_target }}
+                  TMPDIR: ${{ github.workspace }}/tmp_build_cache
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+                  LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
 
             # ─────────────────────────────────────────
             # Build Tauri bundle only, no GitHub Release
@@ -164,8 +171,8 @@ jobs:
               uses: tauri-apps/tauri-action@v1
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
-                  tagName: ""       # ✨ Set to empty string to skip Release creation
-                  releaseName: ""   # ✨ Set to empty string to skip Release creation
+                  tagName: "" # ✨ Set to empty string to skip Release creation
+                  releaseName: "" # ✨ Set to empty string to skip Release creation
                   uploadWorkflowArtifacts: true
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -174,7 +181,6 @@ jobs:
                   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
                   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
-
 
             # ─────────────────────────────────────────
             # Upload build outputs as workflow artifacts (manual dispatch only)

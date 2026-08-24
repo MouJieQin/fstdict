@@ -1,6 +1,6 @@
 [package]
 name = "fstdict-helper"
-version = "0.0.29"
+version = "0.0.30"
 authors = ["Moujie Qin"]
 edition = "2021"
 
