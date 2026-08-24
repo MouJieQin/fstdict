@@ -136,10 +136,13 @@ jobs:
 
             # ─────────────────────────────────────────
             # Build Tauri bundle, create GitHub Release, auto‑generate latest.json manifest
+            # Triggered only on version tag push
             # tauri‑action@v0 handles artifact upload, signature files and updater manifest
             # uploadUpdaterJson defaults to true, uploadUpdaterSignatures defaults to true
             # ─────────────────────────────────────────
             - name: Build Tauri application bundle & upload to GitHub Release
+              if: startsWith(github.ref, 'refs/tags/v')
+              id: build_release
               uses: tauri-apps/tauri-action@v0
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
@@ -156,3 +159,35 @@ jobs:
                   # Extend library search path for embedded Shapely / GEOS native libraries
                   # Prevents linuxdeploy "missing dependency" runtime detection failures
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
+
+            # ─────────────────────────────────────────
+            # Build Tauri bundle only, no GitHub Release
+            # Triggered only on manual workflow_dispatch
+            # ─────────────────────────────────────────
+            - name: Build Tauri application bundle (manual build)
+              if: github.event_name == 'workflow_dispatch'
+              id: build_manual
+              uses: tauri-apps/tauri-action@v0
+              with:
+                  args: --target ${{ matrix.rust_target }} --verbose
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAURI_TARGET: ${{ matrix.rust_target }}
+                  # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
+                  TMPDIR: ${{ github.workspace }}/tmp_build_cache
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+                  # Extend library search path for embedded Shapely / GEOS native libraries
+                  # Prevents linuxdeploy "missing dependency" runtime detection failures
+                  LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
+
+            # ─────────────────────────────────────────
+            # Upload build outputs as workflow artifacts (manual dispatch only)
+            # Artifacts will be available for download on the workflow run page
+            # ─────────────────────────────────────────
+            - name: Upload build artifacts
+              if: github.event_name == 'workflow_dispatch'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.platform }}-${{ matrix.arch }}-bundles
+                  path: ${{ steps.build_manual.outputs.artifactPaths }}
