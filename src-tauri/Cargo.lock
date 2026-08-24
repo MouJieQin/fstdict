@@ -1325,7 +1325,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict"
-version = "0.0.27"
+version = "0.0.28"
 dependencies = [
  "ctrlc",
  "dirs 5.0.1",
@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict-helper"
-version = "0.0.27"
+version = "0.0.28"
 dependencies = [
  "fstdict_common",
  "futures-util",
