@@ -147,20 +147,12 @@ jobs:
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
                   tagName: ${{ github.ref_name }}
+                  releaseName: "App Release ${{ github.ref_name }}" # ✨ ADDED THIS LINE
+                  releaseBody: "Automated release for version ${{ github.ref_name }}" # ✨ ADDED THIS LINE
                   generateReleaseNotes: true
                   uploadUpdaterJson: true
                   uploadUpdaterSignatures: true
                   prerelease: false
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  TAURI_TARGET: ${{ matrix.rust_target }}
-                  # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
-                  TMPDIR: ${{ github.workspace }}/tmp_build_cache
-                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-                  # Extend library search path for embedded Shapely / GEOS native libraries
-                  # Prevents linuxdeploy "missing dependency" runtime detection failures
-                  LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
 
             # ─────────────────────────────────────────
             # Build Tauri bundle only, no GitHub Release
@@ -172,18 +164,17 @@ jobs:
               uses: tauri-apps/tauri-action@v1
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
-                  tagName: ${{ github.ref_name }}
+                  tagName: ""       # ✨ Set to empty string to skip Release creation
+                  releaseName: ""   # ✨ Set to empty string to skip Release creation
                   uploadWorkflowArtifacts: true
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   TAURI_TARGET: ${{ matrix.rust_target }}
-                  # ✨ Safely apply TMPDIR only where linuxdeploy and mksquashfs use it
                   TMPDIR: ${{ github.workspace }}/tmp_build_cache
                   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
                   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-                  # Extend library search path for embedded Shapely / GEOS native libraries
-                  # Prevents linuxdeploy "missing dependency" runtime detection failures
                   LD_LIBRARY_PATH: ${{ github.workspace }}/src-python/dist/fstdict-server/_internal:${{ github.workspace }}/src-python/dist/fstdict-server/_internal/shapely.libs:/usr/local/lib:/usr/lib
+
 
             # ─────────────────────────────────────────
             # Upload build outputs as workflow artifacts (manual dispatch only)
