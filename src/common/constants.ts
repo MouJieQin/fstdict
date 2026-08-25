@@ -79,6 +79,7 @@ export const TAURI_CMD = {
     LAUNCH_CGEVENT_SERVER: 'launch_cgevent_server',
     LAUNCH_HELPER: 'launch_helper',
     TRIGGER_NOTIFICATION: 'trigger_notification',
+    SHOW_UPDATER_WINDOW: 'show_updater_window',
 } as const
 
 // --- Tauri event names ---

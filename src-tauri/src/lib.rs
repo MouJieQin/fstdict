@@ -24,7 +24,6 @@ use ctrlc;
 use shortcuts::global::register_global_shortcuts;
 use sidecar::common::terminate_child_process;
 use sidecar::python::start_python_sidecar;
-use updater::update;
 use websocket::client::start_ws_client;
 use window::main_window::setup_main_window;
 
@@ -78,6 +77,7 @@ pub async fn run() {
 
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
@@ -91,6 +91,7 @@ pub async fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::greet,
             commands::set_theme,
+            commands::show_updater_window,
             #[cfg(target_os = "macos")]
             commands::check_accessibility,
             #[cfg(target_os = "macos")]
@@ -119,13 +120,6 @@ pub async fn run() {
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir, "fstdict-main".to_string());
-
-            let updater_app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = update(updater_app_handle).await {
-                    error!("update task failed: {:?}", e);
-                }
-            });
 
             // Share sidecar state handles with global registry for signal handler access
             let _ = GLOBAL_PYTHON_SERVER.set(app.state::<PythonServer>().0.clone());

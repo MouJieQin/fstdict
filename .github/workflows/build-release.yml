@@ -147,7 +147,7 @@ jobs:
               with:
                   args: --target ${{ matrix.rust_target }} --verbose
                   tagName: ${{ github.ref_name }}
-                  releaseName: "App Release ${{ github.ref_name }}" # ✨ ADDED THIS LINE
+                  releaseName: "${{ github.ref_name }}" # ✨ ADDED THIS LINE
                   releaseBody: "Automated release for version ${{ github.ref_name }}" # ✨ ADDED THIS LINE
                   generateReleaseNotes: true
                   uploadUpdaterJson: true

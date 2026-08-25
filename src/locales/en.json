@@ -19,6 +19,8 @@
     "settings": {
         "title": "Settings",
         "appearance": "Appearance",
+        "update": "Update",
+        "checkUpdate": "Check for Update",
         "theme": "Theme",
         "language": "Language",
         "light": "Light",

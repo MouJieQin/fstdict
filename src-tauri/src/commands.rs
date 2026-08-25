@@ -1,4 +1,5 @@
 use crate::theme::set_app_theme;
+use crate::window::updater_window::show_notification;
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -14,6 +15,11 @@ pub fn greet(name: &str) -> String {
 #[tauri::command]
 pub fn set_theme(app_handle: AppHandle, theme: &str) {
     set_app_theme(&app_handle, theme);
+}
+
+#[tauri::command]
+pub fn show_updater_window(app_handle: AppHandle) {
+    let _ = show_notification(&app_handle);
 }
 
 // ── macOS-only accessibility & launch commands ──

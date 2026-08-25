@@ -11,6 +11,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/Home.vue'),
             },
             {
+                path: 'updater',
+                name: 'Updater',
+                component: () => import('@/views/updater.vue'),
+            },
+            {
                 path: 'dict/:id',
                 name: 'Dict',
                 component: () => import('@/views/DictPage.vue'),

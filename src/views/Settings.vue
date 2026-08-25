@@ -6,6 +6,11 @@
             <!-- Appearance Section -->
             <div class="config-class">
                 <p class="config-class-title">{{ $t('settings.appearance') }}</p>
+                <el-form-item :label="$t('settings.update')">
+                    <el-button @click="openUpdater">
+                        {{ $t('settings.checkUpdate') }}
+                    </el-button>
+                </el-form-item>
                 <el-form-item :label="$t('settings.theme')">
                     <el-radio-group v-model="appTheme" size="large" fill="#6cf">
                         <el-radio-button value="light">
@@ -519,6 +524,15 @@ async function handleHelperToggle(enabled: boolean): Promise<void> {
         } catch (error) {
             console.error('Failed to launch helper sidecar:', error)
         }
+    }
+}
+
+// ─── Show Updater Window ──────────────────────────────────────────────
+async function openUpdater(): Promise<void> {
+    try {
+        await invoke(TAURI_CMD.SHOW_UPDATER_WINDOW)
+    } catch (error) {
+        console.error('Failed to show updater window:', error)
     }
 }
 
