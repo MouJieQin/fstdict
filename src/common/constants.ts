@@ -80,6 +80,7 @@ export const TAURI_CMD = {
     LAUNCH_HELPER: 'launch_helper',
     TRIGGER_NOTIFICATION: 'trigger_notification',
     SHOW_UPDATER_WINDOW: 'show_updater_window',
+    SET_UPDATER_WINDOW_SIZE: 'set_updater_window_size',
 } as const
 
 // --- Tauri event names ---

@@ -1,6 +1,7 @@
 {
     "common": {
         "cancel": "Cancel",
+        "retry": "Retry",
         "save": "Save",
         "delete": "Delete",
         "create": "Create",
@@ -141,5 +142,14 @@
         "noActiveDicts": "No active dictionaries. Click the dictionary icon to activate or add dictionaries.",
         "noResults": "No results found for「{word}」",
         "myNotes": "My Notes"
+    },
+    "updater": {
+        "CheckingForUpdates": "Checking for updates...",
+        "NewVersionAvailable": "A new version of FstDict is Available!",
+        "Installing": "Installing...",
+        "Relaunching": "Relaunching...",
+        "UpdateTip": "FstDict {version} is now available--you have {currentVersion}. Would you like to download it now?",
+        "ReleaseNotes": "Release Notes:",
+        "InstallUpdate": "Install Update"
     }
 }

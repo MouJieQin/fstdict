@@ -208,3 +208,6 @@ export type IframeMessage =
     | IframeSoundMessage
     | IframeLocationMessage
     | IframeKeydownMessage
+
+// --- Updater states ---
+export type UpdaterState = 'CHECKING' | 'CHECK_FAILED' | 'CHECKED' | 'DOWNLOADING' | 'DOWNLOADED' | 'INSTALLING' | 'RELAUNCHING'

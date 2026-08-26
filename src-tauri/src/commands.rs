@@ -1,5 +1,5 @@
 use crate::theme::set_app_theme;
-use crate::window::updater_window::show_notification;
+use crate::window::updater_window;
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -19,7 +19,12 @@ pub fn set_theme(app_handle: AppHandle, theme: &str) {
 
 #[tauri::command]
 pub fn show_updater_window(app_handle: AppHandle) {
-    let _ = show_notification(&app_handle);
+    let _ = updater_window::show_updater_window(&app_handle);
+}
+
+#[tauri::command]
+pub fn set_updater_window_size(app_handle: AppHandle, width: f64, height: f64) {
+    let _ = updater_window::set_updater_window_size(&app_handle, width, height);
 }
 
 // ── macOS-only accessibility & launch commands ──

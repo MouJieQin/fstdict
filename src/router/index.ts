@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
             {
                 path: 'updater',
                 name: 'Updater',
-                component: () => import('@/views/updater.vue'),
+                component: () => import('@/views/Updater.vue'),
             },
             {
                 path: 'dict/:id',

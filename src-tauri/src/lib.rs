@@ -92,6 +92,7 @@ pub async fn run() {
             commands::greet,
             commands::set_theme,
             commands::show_updater_window,
+            commands::set_updater_window_size,
             #[cfg(target_os = "macos")]
             commands::check_accessibility,
             #[cfg(target_os = "macos")]
