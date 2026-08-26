@@ -17,7 +17,7 @@ use fstdict_common::logger::init_logging;
 use tauri::{ActivationPolicy, Manager};
 use tokio::sync::mpsc;
 
-use app_state::{MainWindowPinState, SelectionWindowPinState};
+use app_state::{MainWindowPinState, MainWindowWsSender, SelectionWindowPinState};
 use tray::setup_tray;
 use websocket::client::start_cgevent_ws_client;
 use window::setup::setup_float_panels;
@@ -59,16 +59,19 @@ async fn main() {
             init_logging(&log_dir, "fstdict-helper".to_string());
 
             // ── WebSocket client setup ──
-            let (selection_tx, selection_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
             let (main_tx, main_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
+            let (selection_tx, selection_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
+            let (main_pin_tx, main_pin_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
 
             app.manage(SelectionWindowPinState::new(selection_tx));
-            app.manage(MainWindowPinState::new(main_tx));
+            app.manage(MainWindowPinState::new(main_pin_tx));
+            app.manage(MainWindowWsSender::new(main_tx));
 
             let app_handle = app.handle().clone();
             let ws_url = WS_ENDPOINT.to_string();
             tokio::spawn(async move {
-                start_cgevent_ws_client(&ws_url, app_handle, main_rx, selection_rx).await;
+                start_cgevent_ws_client(&ws_url, app_handle, main_rx, main_pin_rx, selection_rx)
+                    .await;
             });
 
             // ── Create floating panel windows ──

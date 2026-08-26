@@ -111,7 +111,7 @@ fn handle_toggle_selection_trigger(app: &AppHandle) {
 
     if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
         if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
-            error!("Failed to send pin state over WebSocket: {:?}", e);
+            error!("Failed to send toggle selection over WebSocket: {:?}", e);
         }
     }
 }
@@ -124,7 +124,7 @@ fn handle_start_ocr_trigger(app: &AppHandle) {
 
     if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
         if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
-            error!("Failed to send pin state over WebSocket: {:?}", e);
+            error!("Failed to send start ocr over WebSocket: {:?}", e);
         }
     }
 }

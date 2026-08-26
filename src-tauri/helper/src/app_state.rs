@@ -50,3 +50,14 @@ impl MainWindowPinState {
         self.is_pinned.store(pinned, Ordering::SeqCst);
     }
 }
+
+/// WebSocket sender for the main helper panel.
+pub struct MainWindowWsSender {
+    pub ws_sender: mpsc::Sender<String>,
+}
+
+impl MainWindowWsSender {
+    pub fn new(sender: mpsc::Sender<String>) -> Self {
+        Self { ws_sender: sender }
+    }
+}

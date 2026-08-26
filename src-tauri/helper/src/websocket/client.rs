@@ -21,16 +21,22 @@ const RECONNECT_DELAY_MS: u64 = 2000;
 /// Starts the WebSocket client loop with automatic reconnection.
 ///
 /// The client maintains two outbound channels:
-/// - `outbound_main_rx`: messages originating from the main panel
+/// - `outbound_main_pin_rx`: messages originating from the main panel
+/// - `outbound_main_pin_rx`: messages originating from the main panel fro pin
 /// - `outbound_selection_rx`: messages originating from the selection panel
 pub async fn start_cgevent_ws_client(
     ws_url: &str,
     app_handle: AppHandle,
     outbound_main_rx: mpsc::Receiver<String>,
+    outbound_main_pin_rx: mpsc::Receiver<String>,
     outbound_selection_rx: mpsc::Receiver<String>,
 ) {
     // Create merger ONCE outside the reconnection loop to avoid moving receivers twice
-    let mut outbound_merged = OutboundMerger::new(outbound_main_rx, outbound_selection_rx);
+    let mut outbound_merged = OutboundMerger::new(
+        outbound_main_rx,
+        outbound_main_pin_rx,
+        outbound_selection_rx,
+    );
 
     loop {
         info!("Connecting to CGEvent WebSocket: {}", ws_url);
@@ -208,18 +214,28 @@ where
 /// Helper that merges two MPSC receivers into a single stream.
 struct OutboundMerger {
     main: mpsc::Receiver<String>,
+    main_pin: mpsc::Receiver<String>,
     selection: mpsc::Receiver<String>,
 }
 
 impl OutboundMerger {
-    fn new(main: mpsc::Receiver<String>, selection: mpsc::Receiver<String>) -> Self {
-        Self { main, selection }
+    fn new(
+        main: mpsc::Receiver<String>,
+        main_pin: mpsc::Receiver<String>,
+        selection: mpsc::Receiver<String>,
+    ) -> Self {
+        Self {
+            main,
+            main_pin,
+            selection,
+        }
     }
 
     /// Receives the next available message from either channel.
     async fn recv(&mut self) -> Option<String> {
         tokio::select! {
             msg = self.main.recv() => msg,
+            msg = self.main_pin.recv() => msg,
             msg = self.selection.recv() => msg,
         }
     }
