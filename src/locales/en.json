@@ -144,12 +144,16 @@
         "myNotes": "My Notes"
     },
     "updater": {
-        "CheckingForUpdates": "Checking for updates...",
-        "NewVersionAvailable": "A new version of FstDict is Available!",
-        "Installing": "Installing...",
-        "Relaunching": "Relaunching...",
-        "UpdateTip": "FstDict {version} is now available--you have {currentVersion}. Would you like to download it now?",
-        "ReleaseNotes": "Release Notes:",
-        "InstallUpdate": "Install Update"
+        "checkingForUpdates": "Checking for updates...",
+        "newVersionAvailable": "A new version of FstDict is Available!",
+        "upToDate": "Your FstDict is up to date!",
+        "download": "Download",
+        "downloadAndInstall": "Download and Install",
+        "installUpdate": "Install Update",
+        "installing": "Installing...",
+        "installAndRelaunch": "Install and Relaunch",
+        "relaunch": "Relaunch",
+        "updateTip": "FstDict {version} is now available--you have {currentVersion}. Would you like to download it now?",
+        "releaseNotes": "Release Notes:"
     }
 }

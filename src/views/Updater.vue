@@ -3,33 +3,47 @@
         <img src="/icon.png" class="updater-icon-container" />
     </div>
     <div class="updater-state">
+        <p v-if="state === 'UPTODATE'" style="font-weight: bold;text-align: center;">{{ $t('updater.upToDate') }}</p>
         <p v-if="checkedAndAvailable" class="update-title">{{
-            $t('updater.NewVersionAvailable') }}</p>
-        <p v-if="checkedAndAvailable" style="font-size:10px">{{ $t('updater.UpdateTip', {
+            $t('updater.newVersionAvailable') }}</p>
+        <p v-if="checkedAndAvailable" style="font-size:10px">{{ $t('updater.updateTip', {
             version: versionAvailable,
             currentVersion: currentVersion
         }) }}</p>
         <span class="checking-update">
-            <p v-if="state === 'CHECKING' || state === 'CHECK_FAILED'">{{ $t('updater.CheckingForUpdates') }}</p>
+            <p v-if="state === 'CHECKING' || state === 'CHECK_FAILED'">{{ $t('updater.checkingForUpdates') }}</p>
             <el-button v-if="state === 'CHECK_FAILED'" @click="checkUpdate">{{ $t('common.retry') }}</el-button>
             <el-icon v-else-if="state === 'CHECKING'" class="is-loading" size="25">
                 <Loading />
             </el-icon>
-            <p v-if="state === 'INSTALLING'">{{ $t('updater.Installing') }}</p>
-            <p v-if="state === 'RELAUNCHING'">{{ $t('updater.Relaunching') }}</p>
+            <p v-if="state === 'INSTALLING'">{{ $t('updater.installing') }}</p>
+            <p v-if="state === 'RELAUNCHING'">{{ $t('updater.relaunching') }}</p>
         </span>
         <p v-if="checkedAndAvailable" class="update-title">
-            {{ $t('updater.ReleaseNotes') }}
+            {{ $t('updater.releaseNotes') }}
         </p>
         <p v-if="checkedAndAvailable" class="update-notes">
             {{ updateNotes }}
         </p>
+        <el-progress v-if="state === 'DOWNLOADING'" :percentage="progressPercentage" style="padding:10px 0" />
         <div style="display: flex;align-items: center;justify-content: flex-end;">
-            <el-button v-if="checkedAndAvailable" @click="installUpdate">{{
-                $t('updater.InstallUpdate')
+            <el-button v-if="checkedAndAvailable && isWindows()" @click="downloader">{{
+                $t('updater.download')
+            }}</el-button>
+            <el-button v-if="checkedAndAvailable && !isWindows()" @click="downloadAndInstaller">{{
+                $t('updater.downloadAndInstall')
+            }}</el-button>
+            <el-button v-if="state === 'DOWNLOADING'" @click="canceler">{{
+                $t('common.cancel')
+                }}</el-button>
+            <!-- On Windows the application is automatically exited when the install step is executed due to a limitation of Windows installers. -->
+            <el-button v-if="state === 'INSTALLED' && isWindows()" @click="installer">{{
+                $t('updater.installAndRelaunch')
+                }}</el-button>
+            <el-button v-if="state === 'INSTALLED' && !isWindows()" @click="relauncher">{{
+                $t('updater.relaunch')
                 }}</el-button>
         </div>
-        <el-progress v-if="state === 'DOWNLOADING'" :percentage="progressPercentage" :stroke-width="15" striped />
     </div>
 </template>
 
@@ -60,14 +74,18 @@ const updateAvailable = computed(() => !!update.value)
 const versionAvailable = computed(() => update.value?.version ?? '')
 const currentVersion = computed(() => update.value?.currentVersion ?? '')
 const updateNotes = computed(() => update.value?.body ?? '')
-const checkedAndAvailable = computed(() => state.value === 'CHECKED' && updateAvailable)
+const checkedAndAvailable = computed(() => state.value === 'AVAILABLE')
+
+function isWindows(): boolean {
+    return typeof window !== 'undefined' && /Windows/.test(navigator.userAgent)
+}
 
 watch(() => state.value, async (value) => {
     switch (value) {
         case 'CHECKING':
             await invoke(TAURI_CMD.SET_UPDATER_WINDOW_SIZE, { width: 360.0, height: 180 })
             break;
-        case 'CHECKED':
+        case 'AVAILABLE':
             if (updateAvailable) {
                 await invoke(TAURI_CMD.SET_UPDATER_WINDOW_SIZE, { width: 360.0, height: 360 })
             }
@@ -90,20 +108,18 @@ const checkUpdate = async () => {
         );
         return
     }
-    state.value = 'CHECKED'
-    if (update.value) {
+    if (!update.value) {
+        state.value = 'UPTODATE'
+    } else {
+        state.value = 'AVAILABLE'
         console.log(
             `found update ${update.value.version} from ${update.value.date} with notes ${update.value.body}`
         );
     }
 }
 
-const downloadAndInstall = async () => {
-    // alternatively we could also call update.download() and update.install() separately
-    if (!update.value) {
-        return
-    }
-    await update.value.downloadAndInstall((event) => {
+const downloader = async () => {
+    await update.value?.download((event) => {
         switch (event.event) {
             case 'Started':
                 contentLength.value = event.data.contentLength;
@@ -116,28 +132,43 @@ const downloadAndInstall = async () => {
                 break;
             case 'Finished':
                 console.log('download finished');
-                state.value = "INSTALLING"
+                state.value = "DOWNLOADED"
                 break;
         }
     });
 }
 
-const installUpdate = async () => {
+const canceler = async () => {
+    await update.value?.close()
+    state.value = 'CHECK_FAILED'
+}
+
+const installer = async () => {
+    await update.value?.install()
+}
+
+const downloadAndInstaller = async () => {
     state.value = 'DOWNLOADING'
     if (update.value) {
         try {
-            await downloadAndInstall()
+            await downloader()
         } catch (error) {
             console.error(
-                `downloadAndInstall error: ${error}`
+                `download error: ${error}`
             );
             state.value = 'CHECK_FAILED'
             return
         }
+        state.value = 'INSTALLING'
+        console.log('installing update');
+        await installer()
+        state.value = 'INSTALLED'
         console.log('update installed');
-        state.value = 'RELAUNCHING'
-        await relaunch();
     }
+}
+
+const relauncher = async () => {
+    await relaunch()
 }
 
 onMounted(async () => {

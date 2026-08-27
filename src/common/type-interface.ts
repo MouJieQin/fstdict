@@ -210,4 +210,4 @@ export type IframeMessage =
     | IframeKeydownMessage
 
 // --- Updater states ---
-export type UpdaterState = 'CHECKING' | 'CHECK_FAILED' | 'CHECKED' | 'DOWNLOADING' | 'DOWNLOADED' | 'INSTALLING' | 'RELAUNCHING'
+export type UpdaterState = 'CHECKING' | 'CHECK_FAILED' | 'AVAILABLE' | 'UPTODATE' | 'DOWNLOADING' | 'DOWNLOADED' | 'INSTALLING' | 'INSTALLED' | 'RELAUNCHING'
