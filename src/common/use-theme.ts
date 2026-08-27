@@ -2,8 +2,12 @@ import { ref, watch } from 'vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { invoke } from '@tauri-apps/api/core'
 import { useRoute } from 'vue-router'
+import { useDark, useStorage, useToggle } from '@vueuse/core'
+import { TAURI_ENV_VALUES } from '@/common/constants'
 
-const TAURI_ENV_VALUES = new Set(['', 'helper_main_tauri', 'selection_float_search'])
+const appTheme = useStorage('app-theme', 'auto')
+const isThemeDark = useDark()
+const toggleDark = useToggle(isThemeDark)
 
 function isTauriEnvironment(env: string): boolean {
     return TAURI_ENV_VALUES.has(env)
@@ -13,8 +17,10 @@ function getSystemTheme(): 'dark' | 'light' {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function applyDocumentTheme(isDark: boolean): void {
-    document.documentElement.classList.toggle('dark', isDark)
+function applyAppTheme(isDark: boolean): void {
+    if (isDark != isThemeDark.value) {
+        toggleDark()
+    }
 }
 
 export function useTheme() {
@@ -35,21 +41,17 @@ export function useTheme() {
     }
 
     const applyTheme = (): void => {
-        const theme = systemConfigStore.systemConfig?.appearance?.theme
-
-        if (!theme) return
-
         let isDark: boolean
 
-        if (theme === 'auto') {
+        if (appTheme.value === 'auto') {
             isDark = systemTheme.value === 'dark'
         } else {
-            isDark = theme === 'dark'
+            isDark = appTheme.value === 'dark'
         }
 
-        applyDocumentTheme(isDark)
+        applyAppTheme(isDark)
         systemConfigStore.setIsDark(isDark)
-        updateTauriTheme(theme)
+        updateTauriTheme(appTheme.value)
     }
 
     const initTheme = (): void => {
@@ -65,7 +67,7 @@ export function useTheme() {
             const theme = systemConfigStore.systemConfig?.appearance?.theme
             if (theme === 'auto') {
                 const isDark = systemTheme.value === 'dark'
-                applyDocumentTheme(isDark)
+                applyAppTheme(isDark)
                 systemConfigStore.setIsDark(isDark)
                 updateTauriTheme(theme)
             }
@@ -77,7 +79,10 @@ export function useTheme() {
     // React to config changes
     watch(
         () => systemConfigStore.systemConfig?.appearance?.theme,
-        () => applyTheme()
+        (theme) => {
+            appTheme.value = theme
+            applyTheme()
+        }
     )
 
     return {

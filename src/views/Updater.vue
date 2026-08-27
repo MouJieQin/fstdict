@@ -42,10 +42,7 @@ import { relaunch } from '@tauri-apps/plugin-process';
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { TAURI_CMD } from '@/common/constants'
-
-import type {
-    UpdaterState
-} from '@/common/type-interface'
+import type { UpdaterState } from '@/common/type-interface'
 
 const { t } = useI18n()
 const progressPercentage = computed(() =>
