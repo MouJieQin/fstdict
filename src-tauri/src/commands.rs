@@ -43,13 +43,6 @@ mod macos_impl {
     #[tauri::command]
     pub fn request_accessibility() -> bool {
         let is_trusted = accessibility::application_is_trusted_with_prompt();
-        if !is_trusted {
-            let _ = std::process::Command::new("open")
-                .arg(
-                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
-                )
-                .spawn();
-        }
         is_trusted
     }
 

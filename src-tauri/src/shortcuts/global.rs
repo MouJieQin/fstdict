@@ -1,13 +1,12 @@
 use std::str::FromStr;
 use std::time::Duration;
 
+use super::double_copy::handle_double_copy;
 use crate::app_state::MainWindowWsSender;
 use enigo::Keyboard;
 use log::{error, info};
 use tauri::{App, AppHandle, Manager, Runtime};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
-
-use super::double_copy::handle_double_copy;
 
 fn register_global_shortcut(app: &App, shortcut_keys: &str) {
     let screenshot = Shortcut::from_str(shortcut_keys).expect("Invalid shortcut string");
@@ -25,8 +24,11 @@ pub fn register_global_shortcuts(app: &App) {
     // Copy key interception (platform-specific)
     #[cfg(target_os = "macos")]
     {
-        let copy_shortcut = Shortcut::from_str("super+c").expect("Invalid shortcut string");
-        let _ = app.global_shortcut().register(copy_shortcut);
+        use macos_accessibility_client::accessibility;
+        if accessibility::application_is_trusted() {
+            let copy_shortcut = Shortcut::from_str("super+c").expect("Invalid shortcut string");
+            let _ = app.global_shortcut().register(copy_shortcut);
+        }
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -78,7 +80,6 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
         // Simulate physical keypress on the main thread (required on macOS)
         let _ = app.run_on_main_thread(move || {
             let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
-
             #[cfg(target_os = "macos")]
             {
                 let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
