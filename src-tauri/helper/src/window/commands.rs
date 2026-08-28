@@ -2,8 +2,14 @@ use log::info;
 use tauri::{AppHandle, Manager, State};
 
 use crate::app_state::{MainWindowPinState, SelectionWindowPinState};
+use fstdict_common::theme::set_app_theme;
 use fstdict_common::window::notification::show_notification;
 use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
+
+#[tauri::command]
+pub fn set_theme(app_handle: AppHandle, theme: &str) {
+    set_app_theme(&app_handle, theme);
+}
 
 /// Tauri command: update the pin state of the selection search panel.
 #[tauri::command]

@@ -2,8 +2,6 @@ mod app_state;
 mod commands;
 mod shortcuts;
 mod sidecar;
-mod theme;
-mod updater;
 mod websocket;
 mod window;
 

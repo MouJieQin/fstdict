@@ -34,6 +34,7 @@ async fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
+            window::commands::set_theme,
             window::commands::set_selection_window_pinned,
             window::commands::set_main_window_pinned,
             window::commands::hide_panel,

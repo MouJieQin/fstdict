@@ -1,5 +1,5 @@
-use crate::theme::set_app_theme;
 use crate::window::updater_window;
+use fstdict_common::theme::set_app_theme;
 use tauri::AppHandle;
 use tauri::Manager;
 

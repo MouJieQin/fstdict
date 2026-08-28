@@ -157,6 +157,11 @@ function injectKeydownHandler(doc: Document): void {
     const script = doc.createElement('script')
     script.textContent = `
     document.addEventListener('keydown', (e) => {
+    // Catch zoom shortcuts early to prevent default iframe scrolling/glitches
+      const isZoomKey = (e.key === '=' || e.key === '+' || e.key === '-');
+      if (isZoomKey && e.metaKey) {
+        e.preventDefault(); 
+      }
       window.parent.postMessage({
         type: 'KEYDOWN',
         key: e.key,

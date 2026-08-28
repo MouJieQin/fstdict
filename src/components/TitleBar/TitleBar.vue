@@ -44,7 +44,8 @@
                             <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
                                 :class="{ 'is-active': session.id === sessionId }"
                                 :command="{ cmd: 'switch', id: session.id }">
-                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)" size="20">
+                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)"
+                                    size="20">
                                     <BiUserCheck />
                                 </el-icon>
                                 <el-icon v-else>
@@ -412,6 +413,22 @@ const handleKeydownData = (data: { key: string; altKey: boolean; metaKey: boolea
     } else if (data.key === 'ArrowRight' && data.altKey) {
         goForward()
     }
+    // Handle forwarded zoom shortcuts safely
+    else if ((data.key === '=' || data.key === '+') && data.metaKey) {
+        const event = new KeyboardEvent('keydown', {
+            key: '=', code: 'Equal', metaKey: true, bubbles: true
+        });
+        // ✨ Attach flag to prevent infinite loops
+        Object.defineProperty(event, 'isSynthetic', { value: true });
+        window.dispatchEvent(event);
+    } else if (data.key === '-' && data.metaKey) {
+        const event = new KeyboardEvent('keydown', {
+            key: '-', code: 'Minus', metaKey: true, bubbles: true
+        });
+        // ✨ Attach flag to prevent infinite loops
+        Object.defineProperty(event, 'isSynthetic', { value: true });
+        window.dispatchEvent(event);
+    }
 }
 
 watch(() => props.iframeKeydownEvent, (event) => {
@@ -420,6 +437,11 @@ watch(() => props.iframeKeydownEvent, (event) => {
 
 // --- Global keyboard ---
 const handleGlobalKeydown = (e: KeyboardEvent): void => {
+    // ✨ Stop if this is our own custom event bouncing back
+    if ((e as any).isSynthetic) {
+        return;
+    }
+
     handleKeydownData({
         key: e.key,
         altKey: e.altKey,
@@ -443,7 +465,7 @@ onUnmounted(() => {
     gap: 10px;
 }
 
-:deep(.is-active){
+:deep(.is-active) {
     background-color: var(--el-color-primary-light-8);
 }
 </style>

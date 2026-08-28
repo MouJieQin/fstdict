@@ -4,22 +4,14 @@
   "description": "Capability for the main window",
   "windows": [
     "helper-main",
-    "selection-float-search",
-    "notify-layer"
+    "selection-float-search"
   ],
   "permissions": [
     "core:default",
-    "opener:default",
+    "core:webview:allow-set-webview-zoom",
     "core:window:default",
-    "core:window:allow-current-monitor",
-    "core:window:allow-cursor-position",
-    "core:window:allow-create",
-    "core:webview:allow-create-webview-window",
+    "core:window:allow-set-title",
     "core:window:allow-start-dragging",
-    "core:window:allow-toggle-maximize",
-    "core:window:allow-set-always-on-top",
-    "core:window:allow-set-visible-on-all-workspaces",
-    "core:window:allow-set-position",
-    "core:window:allow-show"
+    "core:window:allow-toggle-maximize"
   ]
 }
