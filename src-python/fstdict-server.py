@@ -25,6 +25,7 @@ from libs.ws_clients.iwin_client import IWinWsClient
 from libs.ws_clients.cgevent_client import CgEventWsClient
 from libs.handlers.cgevent_handler import CgEventHandler
 from libs.handlers.iwin_handler import IWinMessageHandler
+from libs.handlers.exit_handler import ExitHandler
 
 from libs.common.utils import Utils
 
@@ -91,28 +92,16 @@ Utils.cgevent_ws_client = CgEventWsClient(
 
 def _signal_handler(sig, frame):
     logger.info("Received shutdown signal, closing all connections...")
-    Utils.iwin_ws_client.set_do_not_retry()
-    Utils.cgevent_ws_client.set_do_not_retry()
-    logger.info("All connections marked for shutdown. Exiting.")
-    os._exit(0)
+    ExitHandler.clean_and_exit()
 
 
 signal.signal(signal.SIGINT, _signal_handler)
 signal.signal(signal.SIGTERM, _signal_handler)
 
+
 # ---------------------------------------------------------------------------
 # Server Launchers
 # ---------------------------------------------------------------------------
-
-
-def _is_port_available(port: int) -> bool:
-    """Check if a TCP port is available on localhost."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind(("127.0.0.1", port))
-            return True
-        except OSError:
-            return False
 
 
 def run_api_server():

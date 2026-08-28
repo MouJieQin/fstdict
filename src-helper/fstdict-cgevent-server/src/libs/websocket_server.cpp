@@ -236,6 +236,9 @@ void WebSocketServer::handleClient(int clientFd) {
           sendJson(clientFd, resp);
           LOG_INFO("[WebSocket] Client [{}] unsubscribed from {}", clientFd,
                    eventName);
+        } else if (type == "exit_request") {
+          LOG_INFO("[WebSocket] Receive exit request from [{}]", clientFd);
+          exit(0);
         } else {
           LOG_WARN("[WebSocket] Unknown message type '{}' from [{}]", type,
                    clientFd);

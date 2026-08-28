@@ -3,15 +3,22 @@ Router for all WebSocket endpoints.
 """
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 import time
-
+import asyncio
 from libs.handlers.session_handler import SessionMessageHandler
 from libs.handlers.main_handler import MainMessageHandler
 from libs.handlers.helper_handler import HelperMessageHandler
 from libs.common.session_manager import SessionManager
 from libs.common.utils import Utils
+from libs.handlers.exit_handler import ExitHandler
 from libs.log_config import logger
 
 router = APIRouter()
+
+
+async def delayed_exit_check():
+    await asyncio.sleep(1)
+    if not Utils.fstdict_main_websocket:
+        ExitHandler.clean_and_exit()
 
 
 @router.websocket("/ws/fstdict/main")
@@ -30,6 +37,7 @@ async def fstdict_main_websocket(websocket: WebSocket):
         logger.error(f"Main WebSocket error: {e}", exc_info=True)
     finally:
         Utils.fstdict_main_websocket = None
+        asyncio.create_task(delayed_exit_check())
 
 
 @router.websocket("/ws/fstdict/helper")

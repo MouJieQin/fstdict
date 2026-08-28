@@ -23,6 +23,15 @@ class CgEventWsClient(BaseWebSocketClient):
         """Update the list of events to auto-register on next connection."""
         self._register_events = events.copy()
 
+    async def send_exit_request(self) -> None:
+        """Send an exit request to the CGEvent server."""
+        msg = {
+            "type": "exit_request",
+            "data": {}
+        }
+        await self.send_json(msg)
+        logger.info("Send an exit request to the CGEvent serve.")
+
     async def send_register_request(self, event: str) -> None:
         """Send an event registration request to the CGEvent server."""
         msg = {

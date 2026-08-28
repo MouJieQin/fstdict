@@ -12,7 +12,7 @@ use tokio_tungstenite::tungstenite::Utf8Bytes;
 use super::protocol::{build_connect_message, InboundMessage};
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
-const RECONNECT_DELAY_MS: u64 = 2000;
+const RECONNECT_DELAY_MS: u64 = 200;
 
 /// Starts the WebSocket client loop with automatic reconnection.
 ///
@@ -25,9 +25,10 @@ pub async fn start_ws_client(
 ) {
     // Create merger ONCE outside the reconnection loop to avoid moving receivers twice
     let mut outbound_merged = OutboundMerger::new(outbound_main_rx);
-    // Create merger ONCE outside the reconnection loop to avoid moving receivers twice
+    let mut reconnect_count = 0;
     loop {
         info!("Connecting to CGEvent WebSocket: {}", ws_url);
+        reconnect_count += 1;
 
         match connect_async(ws_url).await {
             Ok((ws_stream, _)) => {
@@ -37,7 +38,6 @@ pub async fn start_ws_client(
                 // Send connection handshake
                 let handshake = WsMessage::Text(Utf8Bytes::from(build_connect_message()));
                 let _ = write.send(handshake).await;
-
                 // Main event loop
                 loop {
                     tokio::select! {
@@ -79,7 +79,7 @@ pub async fn start_ws_client(
         }
 
         // Wait before attempting reconnection
-        tokio::time::sleep(Duration::from_millis(RECONNECT_DELAY_MS)).await;
+        tokio::time::sleep(Duration::from_millis(RECONNECT_DELAY_MS * reconnect_count)).await;
     }
 }
 
