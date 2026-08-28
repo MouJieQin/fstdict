@@ -53,7 +53,7 @@ function updateDarkMode(isDark: boolean): void {
     }
 
     styleEl.textContent = isDark
-        ? `html { filter: invert(0.92) hue-rotate(180deg); }
+        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); }
        img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
         : ''
 }
@@ -73,7 +73,7 @@ function injectStyles(doc: Document): void {
     const darkStyle = doc.createElement('style')
     darkStyle.id = 'dict-custom-style'
     darkStyle.textContent = props.isDark
-        ? `html { filter: invert(0.92) hue-rotate(180deg); }
+        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); }
        img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
         : ''
     doc.head.appendChild(darkStyle)
