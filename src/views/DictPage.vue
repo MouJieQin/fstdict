@@ -452,6 +452,7 @@ const handleWebSocketMessage = (message: any): void => {
             break
         case 'search_history':
             searchHistory.value = message.data.words
+            expandWordOptions()
             break
         case 'folder_config':
             folderConfigStore.setFolderConfig(message.data)

@@ -3,7 +3,7 @@
         <el-input v-if="!showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
             autocapitalize="off" spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
             @input="onInputChange" @keydown.enter.prevent="onKeyEnter" @compositionstart="onCompositionStart"
-            @compositionend="onCompositionEnd">
+            @focus="handleFocus" @compositionend="onCompositionEnd">
             <template #prefix>
                 <SearchMethodSelect :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
@@ -15,7 +15,7 @@
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
                     spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
-                    @input="onInputChange" @focus="handleFocus" @keydown.down.prevent="handleKeyDown"
+                    @input="onInputChange" @focus="handleFocusWithPopover" @keydown.down.prevent="handleKeyDown"
                     @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter" @blur="handleBlur"
                     @keydown.escape="isDropdownVisible = false" @compositionstart="onCompositionStart"
                     @compositionend="onCompositionEnd">
@@ -106,6 +106,7 @@ const {
     handleKeyEnter: onKeyEnter,
     handleInputChange,
     handleFocus,
+    handleFocusWithPopover,
     handleBlur,
     sendLookupKeyword,
     sendKeywordOptionsSearch,

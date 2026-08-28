@@ -162,6 +162,12 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
 
     const handleFocus = () => {
         if (!keyword.value.trim()) {
+            webSocket.value?.sendSearchHistoryRequest()
+        }
+    }
+
+    const handleFocusWithPopover = () => {
+        if (!keyword.value.trim()) {
             links.value = searchHistory.value.map(item => ({
                 value: String(item.word),
                 link: String(item.word),
@@ -203,6 +209,7 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
         handleKeyEnter,
         handleInputChange,
         handleFocus,
+        handleFocusWithPopover,
         handleBlur,
         sendLookupKeyword,
         sendKeywordOptionsSearch,
