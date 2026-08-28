@@ -77,7 +77,7 @@
                         </el-collapse>
 
                         <!-- Empty state -->
-                        <div v-show="!keyword && !hasResultLastSearch" class="empty-state">
+                        <div v-show="!keyword && !lastSearchKeyword && !hasResultLastSearch" class="empty-state">
                             <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
                             <br />
                             <p v-if="showAddDictInfo" class="dict-homepage-type-p">
@@ -88,7 +88,7 @@
                             </p>
                         </div>
 
-                        <div v-show="keyword && lastSearchKeyword && !hasResultLastSearch" class="empty-state">
+                        <div v-show="lastSearchKeyword && !hasResultLastSearch" class="empty-state">
                             <p class="dict-homepage-type-p">
                                 {{ $t('dictPage.noResults', { word: lastSearchKeyword }) }}
                             </p>
