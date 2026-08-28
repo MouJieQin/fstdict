@@ -1,6 +1,9 @@
 # npm related
 ./**/node_modules
 ./**/dist
+auto-imports.d.ts
+components.d.ts
+stats.html
 
 ./**/.DS_Store
 .DS_Store
