@@ -6,7 +6,7 @@ members = [
 
 [package]
 name = "fstdict"
-version = "0.0.33"
+version = "0.0.34"
 description = "A dictionary app using fstdx/fstdd"
 authors = ["Moujie Qin"]
 edition = "2021"
