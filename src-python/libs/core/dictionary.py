@@ -27,7 +27,7 @@ class DictionarySearcher:
             logger.info(f"Loading dictionary: {dict_name}")
             fstdx_path = dict_info["path"]
             self._load_dictionary(dict_name, fstdx_path)
-        logger.info("All dictionaries loaded")
+        logger.info(f"All dictionaries ({len(Utils.DICT_INFO)}) loaded")
         self.reload_priority_suffixes()
 
     def _load_dictionary(self, name: str, path: str) -> None:

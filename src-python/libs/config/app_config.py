@@ -51,6 +51,7 @@ class UtilsBase:
 
     # FST search engine instance
     fstd_engine = fstd.FstdxSearcher()
+    fstd.set_log_level(3)
 
     # Configuration state
     DEFAULT_CONFIG: Dict = {}
@@ -63,9 +64,7 @@ class UtilsBase:
 
     # WebSocket connection state maps
     electron_websockets: Dict[int, WebSocket] = {}
-    spa_websockets: Dict[int, WebSocket] = {}
     session_websockets: Dict[int, Dict[int, WebSocket]] = {}
-    windows_websockets: Dict[int, WebSocket] = {}
 
     fstdict_helper_websocket: WebSocket | None = None
     fstdict_main_websocket: WebSocket | None = None
