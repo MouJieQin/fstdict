@@ -134,6 +134,7 @@ import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick
 import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { isTauri } from '@tauri-apps/api/core'
 import MarkdownIt from 'markdown-it'
 
 // Icons
@@ -163,6 +164,8 @@ import type {
     FolderWords,
     WordInfoWithLastSearch,
 } from '@/common/type-interface'
+
+import { ENV } from '@/common/constants'
 
 // add import at top
 import { setAppLocale } from '@/i18n'
@@ -218,13 +221,6 @@ const showPopoverWordOptions = ref(false)
 
 const isFloatingWindowPinned = computed(
     () => sessionConfig.value?.pin?.is_pinned || false
-)
-
-// --- Computed ---
-const isTauriEnv = computed(
-    () => envFromRoute.value === '' ||
-        envFromRoute.value === 'helper_main_tauri' ||
-        envFromRoute.value === 'selection_float_search'
 )
 
 const activeDictionaries = computed(() =>
@@ -307,11 +303,11 @@ const handleSessionsNameId = (data: any): void => {
     const config = systemConfigStore.systemConfig
     let targetId: number | undefined
 
-    if (env === '') {
+    if (env === ENV.MAIN) {
         targetId = config?.app?.session?.id
-    } else if (env === 'helper_main_tauri') {
+    } else if (env === ENV.HELPER) {
         targetId = config?.ocr?.session?.id
-    } else if (env === 'selection_float_search') {
+    } else if (env === ENV.SELECTION) {
         targetId = config?.app?.helper_selection?.session?.id
     }
 
@@ -390,14 +386,14 @@ const handleToggleFloatPin = (message: any): void => {
 }
 
 const handleCgevent = (data: any): void => {
-    if (envFromRoute.value !== 'selection_float_search') return
+    if (envFromRoute.value !== ENV.SELECTION) return
     if (data.type === 'kHandlerTextSelection') {
         redirectWord.value = data.text_selected
     }
 }
 
 const handleTauriNotification = (data: any): void => {
-    if (envFromRoute.value !== 'floating_tauri') return
+    if (envFromRoute.value !== ENV.HELPER) return
     import('@tauri-apps/api/core').then(({ invoke }) => {
         invoke('trigger_notification', { message: data.message || '' })
     })
@@ -586,7 +582,7 @@ watch(
 )
 
 watch(() => lastSearchKeyword.value, async (val) => {
-    if (isTauriEnv.value) {
+    if (isTauri()) {
         try {
             await getCurrentWindow().setTitle(val)
         } catch (error) {

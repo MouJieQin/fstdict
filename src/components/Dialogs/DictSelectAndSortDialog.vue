@@ -106,6 +106,7 @@ import { useDictSetOptions } from '@/composables/useDictSetOptions'
 import type { SessionConfig } from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { useDictConfigStore } from '@/stores/dictConfig'
+import { ENV } from '@/common/constants'
 
 const props = defineProps({
     dictSSDialogVisible: {
@@ -150,7 +151,7 @@ const dragOver = ref(false)
 let unlistenDragDrop: (() => void) | null = null
 
 // --- Computed ---
-const isTauriEnv = computed(() => props.env === '')
+const isTauriEnv = computed(() => props.env === ENV.MAIN)
 
 const isAddDictDone = computed(() => {
     const msgs = props.addDictMsgs

@@ -25,7 +25,7 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
             .title("FstDict")
             .inner_size(state.width, state.height)
-            .min_inner_size(200.0, 300.0)
+            .min_inner_size(400.0, 300.0)
             .accept_first_mouse(true);
 
     // Platform-specific window builder configuration

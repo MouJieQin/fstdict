@@ -13,10 +13,17 @@
     width: 100%;
     display: flex;
     align-items: center;
-    padding: 0 15px 0 0px;
     box-sizing: border-box;
     overflow: hidden;
     /* Remove justify-content: space-between — we use auto margin instead */
+}
+
+.floating-window-titlebar.not-helper-mode {
+    padding: 0 15px 0 0px;
+}
+
+.floating-window-titlebar.helper-mode {
+    padding: 0 15px 0 60px;
 }
 
 /* Search wrapper: the actual flex child that grows/shrinks */

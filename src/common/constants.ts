@@ -67,7 +67,6 @@ export const ENV = {
     SELECTION: 'selection_float_search',
     IWIN: 'iwin',
     ANKI: 'anki',
-    FLOATING: 'floating_tauri',
 } as const
 
 // --- Tauri command names ---

@@ -1,7 +1,10 @@
 <template>
     <div>
         <!-- macOS-style title bar with drag region -->
-        <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
+        <div data-tauri-drag-region class="floating-window-titlebar" :class="{
+            'not-helper-mode': !isHelperMode,
+            'helper-mode': isHelperMode
+        }" @click="blurActiveInput">
             <div @mousedown.stop class="search-wrapper">
                 <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                     :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
@@ -156,6 +159,7 @@ import type {
     DictInfo,
     SessionNameId,
 } from '@/common/type-interface'
+import { ENV } from '@/common/constants'
 
 // Props & emits
 const props = defineProps({
@@ -352,6 +356,10 @@ const favoriteWords = computed(() => {
     const folderId = props.sessionConfig.default_folder.id ?? 0
     return props.folderWords[folderId] || []
 })
+
+const isHelperMode = computed(() =>
+    props.env === ENV.SELECTION || props.env === ENV.HELPER
+)
 
 const toggleFavorite = (): void => {
     props.webSocket?.sendToggleFavor(
