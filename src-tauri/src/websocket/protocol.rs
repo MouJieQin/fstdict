@@ -9,6 +9,9 @@ pub enum InboundMessage {
 
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
+
+    #[serde(rename = "exit_request")]
+    ExitRequest,
 }
 
 #[derive(Debug, Deserialize)]

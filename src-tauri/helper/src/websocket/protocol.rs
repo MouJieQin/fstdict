@@ -15,6 +15,9 @@ pub enum InboundMessage {
 
     #[serde(rename = "kCGEventLeftMouseDown")]
     LeftMouseDown,
+
+    #[serde(rename = "exit_request")]
+    ExitRequest,
 }
 
 #[derive(Debug, Deserialize)]

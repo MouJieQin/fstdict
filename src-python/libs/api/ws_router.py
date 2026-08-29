@@ -15,9 +15,9 @@ from libs.log_config import logger
 router = APIRouter()
 
 
-async def delayed_exit_check():
+async def delayed_exit_check(ws: WebSocket | None):
     await asyncio.sleep(1)
-    if not Utils.fstdict_main_websocket:
+    if not ws:
         ExitHandler.clean_and_exit()
 
 
@@ -37,7 +37,7 @@ async def fstdict_main_websocket(websocket: WebSocket):
         logger.error(f"Main WebSocket error: {e}", exc_info=True)
     finally:
         Utils.fstdict_main_websocket = None
-        asyncio.create_task(delayed_exit_check())
+        asyncio.create_task(delayed_exit_check(Utils.fstdict_main_websocket))
 
 
 @router.websocket("/ws/fstdict/helper")
@@ -56,6 +56,7 @@ async def fstdict_helper_websocket(websocket: WebSocket):
         logger.error(f"Helper WebSocket error: {e}", exc_info=True)
     finally:
         Utils.fstdict_helper_websocket = None
+        asyncio.create_task(delayed_exit_check(Utils.fstdict_helper_websocket))
 
 
 @router.websocket("/ws/dictionary/session/{client_id}")

@@ -203,11 +203,6 @@ pub async fn run() {
         match event {
             // Handle both normal close and forced termination (Cmd+Q on macOS)
             RunEvent::ExitRequested { .. } | RunEvent::Exit => {
-                // Terminate Python server
-                if let Ok(mut guard) = app_handle.state::<PythonServer>().0.lock() {
-                    terminate_child_process(&mut guard, "Python server");
-                }
-
                 // Terminate macOS helper processes
                 #[cfg(target_os = "macos")]
                 {
@@ -217,6 +212,11 @@ pub async fn run() {
                     if let Ok(mut guard) = app_handle.state::<CGEventHelperProcess>().0.lock() {
                         terminate_child_process(&mut guard, "CGEvent server");
                     }
+                }
+
+                // Terminate Python server
+                if let Ok(mut guard) = app_handle.state::<PythonServer>().0.lock() {
+                    terminate_child_process(&mut guard, "Python server");
                 }
             }
             _ => {}

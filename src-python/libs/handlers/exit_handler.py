@@ -1,7 +1,9 @@
 import os
 import asyncio
+import json
 from libs.log_config import logger
 from libs.common.utils import Utils
+from fastapi import WebSocket
 
 
 class ExitHandler:
@@ -11,10 +13,30 @@ class ExitHandler:
             await Utils.cgevent_ws_client.send_exit_request()
 
     @staticmethod
+    async def _send_exit_request(ws: WebSocket):
+        msg = {
+            "type": "exit_request",
+            "data": {}
+        }
+        await ws.send_text(json.dumps(msg))
+
+    @staticmethod
+    async def _notify_tauri_main_exit():
+        if Utils.fstdict_main_websocket:
+            await ExitHandler._send_exit_request(Utils.fstdict_main_websocket)
+
+    @staticmethod
+    async def _notify_tauri_helper_exit():
+        if Utils.fstdict_helper_websocket:
+            await ExitHandler._send_exit_request(Utils.fstdict_helper_websocket)
+
+    @staticmethod
     async def _wait_clean_and_exit():
         Utils.iwin_ws_client.set_do_not_retry()
         Utils.cgevent_ws_client.set_do_not_retry()
+        await ExitHandler._notify_tauri_helper_exit()
         await ExitHandler._notify_cgevent_server_exit()
+        await ExitHandler._notify_tauri_main_exit()
         logger.info("All connections marked for shutdown. Exiting.")
         os._exit(0)
 

@@ -16,7 +16,7 @@ use fstdict_common::window::notification::show_notification;
 use fstdict_common::window::positioning::is_cursor_over_window;
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
-const RECONNECT_DELAY_MS: u64 = 2000;
+const RECONNECT_DELAY_MS: u64 = 200;
 
 /// Starts the WebSocket client loop with automatic reconnection.
 ///
@@ -37,9 +37,11 @@ pub async fn start_cgevent_ws_client(
         outbound_main_pin_rx,
         outbound_selection_rx,
     );
+    let mut reconnect_count = 0;
 
     loop {
         info!("Connecting to CGEvent WebSocket: {}", ws_url);
+        reconnect_count += 1;
 
         match connect_async(ws_url).await {
             Ok((ws_stream, _)) => {
@@ -92,7 +94,7 @@ pub async fn start_cgevent_ws_client(
         }
 
         // Wait before attempting reconnection
-        tokio::time::sleep(Duration::from_millis(RECONNECT_DELAY_MS)).await;
+        tokio::time::sleep(Duration::from_millis(RECONNECT_DELAY_MS * reconnect_count)).await;
     }
 }
 
@@ -171,6 +173,13 @@ where
 
         InboundMessage::LeftMouseDown => {
             handle_mouse_down(app, write).await;
+        }
+
+        InboundMessage::ExitRequest => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                app_clone.exit(0);
+            });
         }
     }
 }

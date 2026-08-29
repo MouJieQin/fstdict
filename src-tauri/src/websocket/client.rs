@@ -121,6 +121,13 @@ where
                 let _ = app_clone.emit_to("main", "cgevent-ocr", data.ocr_txt);
             });
         }
+
+        InboundMessage::ExitRequest => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                app_clone.exit(0);
+            });
+        }
     }
 }
 
