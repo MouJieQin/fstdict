@@ -5,7 +5,6 @@ Starts the API server on port 5959 and frontend static server on port 9595.
 """
 import os
 import sys
-import socket
 import signal
 import threading
 
@@ -92,7 +91,7 @@ Utils.cgevent_ws_client = CgEventWsClient(
 
 def _signal_handler(sig, frame):
     logger.info("Received shutdown signal, closing all connections...")
-    ExitHandler.clean_and_exit()
+    ExitHandler.clean_and_exit(force_exit=True)
 
 
 signal.signal(signal.SIGINT, _signal_handler)

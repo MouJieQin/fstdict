@@ -3,6 +3,7 @@ Application configuration management: loading, saving, and migration.
 """
 import json
 import os
+import sys
 import shutil
 from pathlib import Path
 from urllib.parse import quote
@@ -19,6 +20,9 @@ from libs.log_config import logger
 
 class UtilsBase:
     """Base class containing all configuration constants and state."""
+
+    # Detect PyInstaller packaged binary
+    IS_FROZEN = getattr(sys, "frozen", False)
 
     # App metadata
     APP_NAME = app_paths.APP_NAME
