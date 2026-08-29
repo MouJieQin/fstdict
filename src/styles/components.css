@@ -5,6 +5,7 @@
     -webkit-user-select: none;
 }
 
+/* Title bar flex container */
 .floating-window-titlebar {
     position: fixed;
     top: 0;
@@ -12,23 +13,41 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 15px 0 60px;
+    padding: 0 15px 0 0px;
     box-sizing: border-box;
+    overflow: hidden;
+    /* Remove justify-content: space-between — we use auto margin instead */
 }
 
+/* Search wrapper: the actual flex child that grows/shrinks */
+.search-wrapper {
+    flex: 1 1 0;
+    max-width: calc(var(--word-options-panel-width) - 1rem);
+    display: flex;
+    align-items: center;
+}
+
+/* Search container inside the wrapper */
 .floating-window-search-container {
-    flex: 1;
-    margin: 10px 0 0 20px;
+    width: 100%;
+    margin: 10px 0 0 1rem;
     display: flex;
     align-items: center;
-    flex-shrink: 0;
+    /* Remove old flex/max-width rules — they live on the wrapper now */
 }
 
+.search-input {
+    font-size: 1rem;
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Button group: pinned to right, never shrinks */
 .floating-window-titlebar-button-container {
+    flex-shrink: 0;
+    margin-left: auto; /* Critical: pushes buttons to right, absorbs leftover space */
     display: flex;
     align-items: center;
-    flex-shrink: 0;
 }
 
 .floating-window-titlebar-button {

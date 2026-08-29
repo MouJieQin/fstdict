@@ -286,10 +286,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.search-input {
-    font-size: 1rem;
-}
-
 .loader-inline {
     margin-left: 1rem;
 }

@@ -21,23 +21,21 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     #[cfg(dev)]
     let main_url = "http://localhost:9595/#/dict/1";
 
-    // Platform-specific window builder configuration
-    #[cfg(target_os = "macos")]
     let mut builder =
         WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
-            .title("main")
-            // .hidden_title(true)
+            .title("FstDict")
             .inner_size(state.width, state.height)
+            .min_inner_size(200.0, 300.0)
+            .accept_first_mouse(true);
+
+    // Platform-specific window builder configuration
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
             .title_bar_style(tauri::TitleBarStyle::Transparent);
-
-    #[cfg(not(target_os = "macos"))]
-    let mut builder =
-        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
-            .title("main")
-            .inner_size(state.width, state.height)
-            .accept_first_mouse(true);
+    }
 
     // Restore saved position if still within visible screen bounds
     if let (Some(x), Some(y)) = (state.x, state.y) {

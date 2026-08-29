@@ -245,12 +245,13 @@ const handlePanelResize = (size: number): void => {
 
 const expandWordOptions = async (): Promise<void> => {
     if (Number(wordOptionsSize.value) <= 5) {
-        wordOptionsSize.value = 300
+        const panelWidth = getComputedStyle(document.documentElement).getPropertyValue('--word-options-panel-width').trim()
+        wordOptionsSize.value = panelWidth
         await nextTick()
         if (splitterRef.value) {
             const panelEl = splitterRef.value.$el?.querySelector('.el-splitter-panel')
             if (panelEl) {
-                panelEl.style.flexBasis = '300px'
+                panelEl.style.flexBasis = panelWidth
             }
         }
     }

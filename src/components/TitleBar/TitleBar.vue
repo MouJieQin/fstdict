@@ -2,7 +2,7 @@
     <div>
         <!-- macOS-style title bar with drag region -->
         <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
-            <div @mousedown.stop>
+            <div @mousedown.stop class="search-wrapper">
                 <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                     :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
                     :session-config="sessionConfig" :search-history="searchHistory"
