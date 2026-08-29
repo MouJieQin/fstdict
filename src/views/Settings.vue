@@ -122,6 +122,22 @@
                 </div>
             </div>
 
+            <!-- Shortcuts Section -->
+            <div class="config-class">
+                <p class="config-class-title">{{ t('settings.shortcuts') }}</p>
+
+                <el-form-item :label="t('settings.toggleHelper')">
+                    <HotkeyInput v-model="localSystemConfig.shortcuts.toggle_selection"
+                        @update:modelValue="updateToggleSelectShortcuts" />
+                </el-form-item>
+
+                <el-form-item :label="t('settings.screenshotOcr')">
+                    <HotkeyInput v-model="localSystemConfig.shortcuts.screenshot_ocr"
+                        @update:modelValue="updateScreenshotOcrShortcuts" />
+                </el-form-item>
+            </div>
+
+
             <!-- OCR Section -->
             <div class="config-class">
                 <p class="config-class-title">{{ $t('settings.ocr') }}</p>
@@ -217,6 +233,8 @@ import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
 import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility'
 import { invoke } from '@tauri-apps/api/core'
 import { safeDeepClone } from '@/common/utility'
+import HotkeyInput from '@/components/HotkeyInput.vue'
+import { initPlatformDetection } from '@/common/hotkey'
 import { setAppLocale } from '@/i18n'
 
 // Types & constants
@@ -527,6 +545,17 @@ async function handleHelperToggle(enabled: boolean): Promise<void> {
     }
 }
 
+// ─── Handle update shortcuts ──────────────────────────────────────────────
+const updateToggleSelectShortcuts = (shortcuts: string[]) => {
+    localSystemConfig.value.shortcuts.toggle_selection = shortcuts
+    persistSystemConfig()
+}
+
+const updateScreenshotOcrShortcuts = (shortcuts: string[]) => {
+    localSystemConfig.value.shortcuts.screenshot_ocr = shortcuts
+    persistSystemConfig()
+}
+
 // ─── Show Updater Window ──────────────────────────────────────────────
 async function openUpdater(): Promise<void> {
     try {
@@ -572,6 +601,7 @@ watch(
 // ─── Lifecycle ──────────────────────────────────────────────────
 onBeforeMount(() => {
     props.webSocket?.sendFolderConfig()
+    initPlatformDetection()
 })
 </script>
 

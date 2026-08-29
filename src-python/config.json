@@ -14,6 +14,18 @@
             "한국어": "korean"
         }
     },
+    "shortcuts": {
+        "toggle_selection": [
+            "shift",
+            "alt",
+            "S"
+        ],
+        "screenshot_ocr": [
+            "shift",
+            "alt",
+            "O"
+        ]
+    },
     "app": {
         "session": {
             "id": 1
@@ -62,8 +74,5 @@
             "하다",
             "다"
         ]
-    },
-    "dict_set_options": {
-        "default": []
     }
 }

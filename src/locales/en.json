@@ -7,6 +7,7 @@
         "create": "Create",
         "rename": "Rename",
         "close": "Close",
+        "clear": "Clear",
         "loading": "Loading",
         "done": "Done.",
         "search": "Search",
@@ -51,7 +52,12 @@
         "deleteButton": "Delete",
         "viewWords": "View words",
         "deleteFolder": "Delete folder",
-        "editFolderAction": "Edit folder"
+        "editFolderAction": "Edit folder",
+        "shortcuts": "Keyboard Shortcuts",
+        "clickToSet": "Click to set shortcut",
+        "pressKeys": "Press desired key combination...",
+        "toggleHelper": "Toggle Helper Window",
+        "screenshotOcr": "Screenshot OCR"
     },
     "dictSettings": {
         "createTitle": "Create Preset",
