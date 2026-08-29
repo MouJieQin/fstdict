@@ -26,6 +26,8 @@
             {{ updateNotes }}
         </p>
         <el-progress v-if="state === 'DOWNLOADING'" :percentage="progressPercentage" style="padding:10px 0" />
+        <el-progress v-if="state === 'DOWNLOADED' || state === 'INSTALLING' || state === 'INSTALLED'" :percentage="100"
+            status="success" />
         <div style="display: flex;align-items: center;justify-content: flex-end;">
             <el-button v-if="checkedAndAvailable && isWindows()" @click="downloader">{{
                 $t('updater.download')
@@ -37,7 +39,7 @@
                 $t('common.cancel')
                 }}</el-button>
             <!-- On Windows the application is automatically exited when the install step is executed due to a limitation of Windows installers. -->
-            <el-button v-if="state === 'INSTALLED' && isWindows()" @click="installer">{{
+            <el-button v-if="state === 'DOWNLOADED' && isWindows()" @click="installer">{{
                 $t('updater.installAndRelaunch')
                 }}</el-button>
             <el-button v-if="state === 'INSTALLED' && !isWindows()" @click="relauncher">{{
