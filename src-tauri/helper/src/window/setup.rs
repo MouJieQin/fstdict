@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use super::commands;
 use crate::panels::{FloatSearchPanel, PublicPanelEventHandler};
 use fstdict_common::window::state::{create_debounced_saver, WindowState};
 use log::{info, warn};
@@ -121,8 +122,10 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
         );
     });
 
-    handler.window_did_resign_key(|_| {
+    let app_clone = app_handle.clone();
+    handler.window_did_resign_key(move |_| {
         info!("Panel resigned key window status");
+        let _ = commands::hide_window_if_unpinned_and_outside(&app_clone, config.label);
     });
 
     panel.set_level(PanelLevel::ModalPanel.value());

@@ -77,6 +77,7 @@ fn show_helper_panel(app_handle: &AppHandle, label: &str) {
             }
         }
         let _ = w.show();
+        let _ = w.set_focus();
         let payload = build_event_request("register_request", "kCGEventLeftMouseDown", label);
         if let Some(ws_state) = app_handle.try_state::<MainWindowWsSender>() {
             if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
