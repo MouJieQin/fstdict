@@ -1332,6 +1332,7 @@ dependencies = [
  "enigo",
  "fstdict_common",
  "futures-util",
+ "ghost-permissions",
  "libc",
  "log",
  "macos-accessibility-client",
@@ -1622,6 +1623,12 @@ dependencies = [
  "wasip2",
  "wasip3",
 ]
+
+[[package]]
+name = "ghost-permissions"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "183cca14cf150a9d7c6e916266309439e0f7ec9351729d4f7c989077e01c9c87"
 
 [[package]]
 name = "gio"

@@ -93,6 +93,10 @@ pub async fn run() {
             commands::show_updater_window,
             commands::set_updater_window_size,
             #[cfg(target_os = "macos")]
+            commands::check_screen_recording,
+            #[cfg(target_os = "macos")]
+            commands::request_screen_recording,
+            #[cfg(target_os = "macos")]
             commands::check_accessibility,
             #[cfg(target_os = "macos")]
             commands::request_accessibility,
@@ -184,15 +188,15 @@ pub async fn run() {
                             return Err(e);
                         }
                     }
+                }
 
-                    // Start floating helper app
-                    match start_helper() {
-                        Ok(Some(child)) => {
-                            *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
-                        }
-                        Ok(None) => warn!("Helper binary not found at startup"),
-                        Err(e) => error!("Failed to start helper at launch: {}", e),
+                // Start floating helper app
+                match start_helper() {
+                    Ok(Some(child)) => {
+                        *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
                     }
+                    Ok(None) => warn!("Helper binary not found at startup"),
+                    Err(e) => error!("Failed to start helper at launch: {}", e),
                 }
             }
 

@@ -41,6 +41,7 @@ futures-util = "0.3.34"
 ctrlc = "3.5.2"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-os = "2.3.2"
+ghost-permissions = "0.1.14"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-accessibility-client = "0.0.2"

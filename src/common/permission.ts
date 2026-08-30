@@ -37,6 +37,22 @@ export async function requestAccessibilitySafe(): Promise<boolean> {
     }
 }
 
+export async function checkScreenRecordingSafe(): Promise<boolean> {
+    try {
+        return await invoke<boolean>(TAURI_CMD.CHECK_SCREEN_RECORDING)
+    } catch {
+        return false
+    }
+}
+
+export async function requestScreenRecordingSafe(): Promise<boolean> {
+    try {
+        return await invoke<boolean>(TAURI_CMD.REQUEST_SCREEN_RECORDING)
+    } catch {
+        return false
+    }
+}
+
 export async function showPerssionWindow(): Promise<boolean> {
     if (!isMacOS()) return true
     try {

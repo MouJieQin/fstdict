@@ -1,5 +1,5 @@
-use crate::window::updater_window;
 use crate::window::permission_window;
+use crate::window::updater_window;
 use fstdict_common::theme::set_app_theme;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -32,6 +32,7 @@ pub fn set_updater_window_size(app_handle: AppHandle, width: f64, height: f64) {
 #[cfg(target_os = "macos")]
 mod macos_impl {
     use super::*;
+    use ghost_permissions;
     use macos_accessibility_client::accessibility;
 
     /// Checks whether the app has been granted Accessibility permissions.
@@ -48,7 +49,23 @@ mod macos_impl {
     }
 
     #[tauri::command]
-    pub fn show_permission_window(app_handle: AppHandle)-> Result<(), tauri::Error>{
+    pub fn check_screen_recording() -> bool {
+        ghost_permissions::screen_recording_granted()
+    }
+
+    #[tauri::command]
+    pub fn request_screen_recording() -> bool {
+        let granted = ghost_permissions::screen_recording_granted();
+        // ghost_permissions::request_screen_recording()
+        // open System Settings "Screen & System Audio Recording" pane
+        if !granted {
+            open_screen_audio_settings();
+        }
+        granted
+    }
+
+    #[tauri::command]
+    pub fn show_permission_window(app_handle: AppHandle) -> Result<(), tauri::Error> {
         permission_window::show_permission_window(&app_handle)
     }
 
@@ -100,6 +117,14 @@ mod macos_impl {
             Ok(None) => Err("Sidecar binary could not be located on disk.".into()),
             Err(e) => Err(format!("Failed to spawn sidecar process: {}", e)),
         }
+    }
+
+    /// Open System Settings > Privacy & Security > Screen & System Audio Recording
+    fn open_screen_audio_settings() {
+        // URL scheme for Screen & System Audio Recording pane (macOS Ventura+)
+        let _ = std::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+            .spawn();
     }
 }
 

@@ -521,13 +521,13 @@ let unlistenOcrResult: (() => void) | null = null
 
 const setupTauriListeners = async (): Promise<void> => {
     try {
-        if (envFromRoute.value === 'selection_float_search' || envFromRoute.value === '') {
+        if (envFromRoute.value === ENV.SELECTION || envFromRoute.value === ENV.MAIN) {
             unlistenTextSelected = await listen('cgevent-select', (event) => {
                 redirectWord.value = event.payload as string
             })
         }
 
-        if (envFromRoute.value === 'helper_main_tauri' || envFromRoute.value === '') {
+        if (envFromRoute.value === ENV.HELPER || envFromRoute.value === ENV.MAIN) {
             unlistenOcrResult = await listen('cgevent-ocr', (event) => {
                 redirectWord.value = event.payload as string
             })

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
 <plist version="1.0">
-<dict>
-    <key>NSAccessibilityUsageDescription</key>
-    <string>FstDict needs accessibility permissions to monitor system events and provide swift dictionary lookups.</string>
-</dict>
+    <dict>
+        <key>NSAccessibilityUsageDescription</key>
+        <string>FstDict needs accessibility permissions to monitor system events and provide swift dictionary lookups.</string>
+        <key>NSScreenCaptureUsageDescription</key>
+        <string>Need screen capture permission to make a screenshot for OCR</string>
+    </dict>
 </plist>

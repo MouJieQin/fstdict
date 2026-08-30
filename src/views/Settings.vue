@@ -535,12 +535,12 @@ async function handleHelperToggle(enabled: boolean): Promise<void> {
             return
         }
 
-        // try {
-        //     await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
-        //     await invoke(TAURI_CMD.LAUNCH_HELPER)
-        // } catch (error) {
-        //     console.error('Failed to launch helper sidecar:', error)
-        // }
+        try {
+            await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
+            await invoke(TAURI_CMD.LAUNCH_HELPER)
+        } catch (error) {
+            console.error('Failed to launch helper sidecar:', error)
+        }
     }
 }
 

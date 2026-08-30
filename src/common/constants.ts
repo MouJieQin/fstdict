@@ -79,6 +79,8 @@ export const TAURI_CMD = {
     SET_THEME: 'set_theme',
     CHECK_ACCESSIBILITY: 'check_accessibility',
     REQUEST_ACCESSIBILITY: 'request_accessibility',
+    CHECK_SCREEN_RECORDING: 'check_screen_recording',
+    REQUEST_SCREEN_RECORDING: 'request_screen_recording',
     SHOW_PERMISSION_WINDOW: 'show_permission_window',
     LAUNCH_CGEVENT_SERVER: 'launch_cgevent_server',
     LAUNCH_HELPER: 'launch_helper',
