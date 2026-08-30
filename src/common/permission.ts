@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { TAURI_CMD } from '@/common/constants'
 
 /**
  * Detects macOS from the user agent string.
@@ -16,7 +17,7 @@ export async function checkAccessibilitySafe(): Promise<boolean> {
     if (!isMacOS()) return true
 
     try {
-        return await invoke<boolean>('check_accessibility')
+        return await invoke<boolean>(TAURI_CMD.CHECK_ACCESSIBILITY)
     } catch {
         return false
     }
@@ -30,7 +31,16 @@ export async function requestAccessibilitySafe(): Promise<boolean> {
     if (!isMacOS()) return true
 
     try {
-        return await invoke<boolean>('request_accessibility')
+        return await invoke<boolean>(TAURI_CMD.REQUEST_ACCESSIBILITY)
+    } catch {
+        return false
+    }
+}
+
+export async function showPerssionWindow(): Promise<boolean> {
+    if (!isMacOS()) return true
+    try {
+        return await invoke<boolean>(TAURI_CMD.SHOW_PERMISSION_WINDOW)
     } catch {
         return false
     }

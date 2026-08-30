@@ -152,7 +152,7 @@
             <div class="config-class">
                 <p class="config-class-title">{{ $t('settings.helper') }}</p>
                 <p class="config-class-desc">{{ $t('settings.helperPermission') }}</p>
-                <el-switch v-model="helperEnabled" @change="handleHelperToggle" />
+                <el-switch v-model="localSystemConfig.app.helper_selection.enabled" @change="handleHelperToggle" />
             </div>
         </el-form>
 
@@ -230,7 +230,7 @@ import AnkiProgress from '@/components/Dialogs/AnkiProgress.vue'
 
 // Stores & utilities
 import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
-import { isMacOS, checkAccessibilitySafe, requestAccessibilitySafe } from '@/common/accessibility'
+import { isMacOS, checkAccessibilitySafe, showPerssionWindow } from '@/common/permission'
 import { invoke } from '@tauri-apps/api/core'
 import { safeDeepClone } from '@/common/utility'
 import HotkeyInput from '@/components/HotkeyInput.vue'
@@ -294,7 +294,6 @@ const localSystemConfig = ref<any>(null)
 const ankiProgresses = ref<Record<string, any>>({})
 
 const selectedFolders = ref<FolderInfo[]>([])
-const helperEnabled = ref(false)
 
 // Folder dialog state
 const folderDialogVisible = ref(false)
@@ -531,17 +530,17 @@ async function handleHelperToggle(enabled: boolean): Promise<void> {
     if (isMacOS()) {
         const hasAccess = await checkAccessibilitySafe()
         if (!hasAccess) {
-            await requestAccessibilitySafe()
-            helperEnabled.value = false
+            await showPerssionWindow()
+            localSystemConfig.value.app.helper_selection.enabled = false
             return
         }
 
-        try {
-            await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
-            await invoke(TAURI_CMD.LAUNCH_HELPER)
-        } catch (error) {
-            console.error('Failed to launch helper sidecar:', error)
-        }
+        // try {
+        //     await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
+        //     await invoke(TAURI_CMD.LAUNCH_HELPER)
+        // } catch (error) {
+        //     console.error('Failed to launch helper sidecar:', error)
+        // }
     }
 }
 

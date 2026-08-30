@@ -161,5 +161,12 @@
         "relaunch": "Relaunch",
         "updateTip": "FstDict {version} is now available--you have {currentVersion}. Would you like to download it now?",
         "releaseNotes": "Release Notes:"
+    },
+    "permission": {
+        "accessibilityPermission": "Accessibility Permission",
+        "accessibilityPurpose": "用于获取鼠标划词/取词状态",
+        "screenshotPermission": "Screenshot Permission",
+        "screenshotPurpose": "用于截屏取词",
+        "grantPermission": "Grant Permission"
     }
 }

@@ -97,6 +97,8 @@ pub async fn run() {
             #[cfg(target_os = "macos")]
             commands::request_accessibility,
             #[cfg(target_os = "macos")]
+            commands::show_permission_window,
+            #[cfg(target_os = "macos")]
             commands::launch_helper,
             #[cfg(target_os = "macos")]
             commands::launch_cgevent_server

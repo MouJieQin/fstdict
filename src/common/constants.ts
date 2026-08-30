@@ -11,6 +11,9 @@ export const WS_RECONNECT_BASE_DELAY = 500
 export const WS_RECONNECT_MAX_DELAY = 5000
 export const WS_RECONNECT_THRESHOLD = 10
 
+// --- Permission ---
+export const CHECK_PERMISSION_INTERVAL = 1000
+
 // --- Search / Autocomplete ---
 export const DEBOUNCE_SEARCH_MS = 300
 export const AUTOCOMPLETE_ITEM_HEIGHT = 35
@@ -76,6 +79,7 @@ export const TAURI_CMD = {
     SET_THEME: 'set_theme',
     CHECK_ACCESSIBILITY: 'check_accessibility',
     REQUEST_ACCESSIBILITY: 'request_accessibility',
+    SHOW_PERMISSION_WINDOW: 'show_permission_window',
     LAUNCH_CGEVENT_SERVER: 'launch_cgevent_server',
     LAUNCH_HELPER: 'launch_helper',
     TRIGGER_NOTIFICATION: 'trigger_notification',

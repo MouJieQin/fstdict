@@ -1,0 +1,21 @@
+.center-icon-container {
+    padding-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+.center-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+.window-center-icon {
+    width: 48px;
+    height: 48px;
+}

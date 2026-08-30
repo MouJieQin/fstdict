@@ -334,7 +334,6 @@
 }
 
 .update-notes {
-    /* height: clamp(300px, 10vh, 800px); */
     height: 80px;
     overflow-y: scroll;
     font-size: 10px;
@@ -354,15 +353,36 @@
     justify-content: space-between;
 }
 
-.updater-icon-container {
-    width: 48px;
-    height: 48px;
+/* ============= Permission ============= */
+.permission-card {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    flex-shrink: 0;
+    justify-content: space-between;
+    margin: 10px auto 25px;
+    width: 90vw;
+    padding: 10px;
+    border-radius: var(--el-border-radius-base);
+    box-shadow: var(--el-box-shadow);
 }
+
+.permission-help {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin-right: 30px;
+}
+
+.permision-title {
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.permision-purpose {
+    font-size: 0.7rem;
+    opacity: 0.5;
+}
+
+
 
 /* ============= Settings ============= */
 .setting-container {

@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <img src="/icon.png" class="updater-icon-container" />
+    <div class="center-icon-container">
+        <img src="/icon.png" class="window-center-icon" />
     </div>
     <div class="updater-state">
         <p v-if="state === 'UPTODATE'" style="font-weight: bold;text-align: center;">{{ $t('updater.upToDate') }}</p>

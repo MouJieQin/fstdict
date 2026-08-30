@@ -1,4 +1,5 @@
 use crate::window::updater_window;
+use crate::window::permission_window;
 use fstdict_common::theme::set_app_theme;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -44,6 +45,11 @@ mod macos_impl {
     pub fn request_accessibility() -> bool {
         let is_trusted = accessibility::application_is_trusted_with_prompt();
         is_trusted
+    }
+
+    #[tauri::command]
+    pub fn show_permission_window(app_handle: AppHandle)-> Result<(), tauri::Error>{
+        permission_window::show_permission_window(&app_handle)
     }
 
     /// Launches the floating helper application.

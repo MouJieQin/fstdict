@@ -16,6 +16,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/Updater.vue'),
             },
             {
+                path: 'permission',
+                name: 'Permission',
+                component: () => import('@/views/Permission.vue'),
+            },
+            {
                 path: 'dict/:id',
                 name: 'Dict',
                 component: () => import('@/views/DictPage.vue'),
