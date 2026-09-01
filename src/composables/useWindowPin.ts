@@ -10,7 +10,6 @@ import { useRoute } from 'vue-router'
 
 
 interface UseWindowPinOptions {
-    sessionId: () => number
     isPinned: () => boolean
     sessionConfig: Ref<SessionConfig>
     webSocket: Ref<SessionWebSocketService | null>
@@ -18,7 +17,7 @@ interface UseWindowPinOptions {
 }
 
 export function useWindowPin(options: UseWindowPinOptions) {
-    const { sessionId, isPinned, sessionConfig, webSocket } = options
+    const { isPinned, sessionConfig, webSocket } = options
 
     const tauriWindow = ref<ReturnType<typeof getCurrentWindow> | null>(null)
     const route = useRoute()
@@ -45,7 +44,6 @@ export function useWindowPin(options: UseWindowPinOptions) {
     }
 
     const togglePin = (): void => {
-        const e = env()
         const newPinned = !isPinned()
 
         const config = safeDeepClone(sessionConfig.value)
@@ -58,7 +56,7 @@ export function useWindowPin(options: UseWindowPinOptions) {
     })
 
     onMounted(async () => {
-        if (env() === '') {
+        if (env() === ENV.MAIN) {
             tauriWindow.value = getCurrentWindow()
             await applyPinState(isPinned())
         }

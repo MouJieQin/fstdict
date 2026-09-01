@@ -304,11 +304,11 @@ const handleSessionsNameId = (data: any): void => {
     let targetId: number | undefined
 
     if (env === ENV.MAIN) {
-        targetId = config?.app?.session?.id
+        targetId = config?.app?.windows?.main?.session_id
     } else if (env === ENV.HELPER) {
-        targetId = config?.ocr?.session?.id
+        targetId = config?.app?.windows?.helper_main?.session_id
     } else if (env === ENV.SELECTION) {
-        targetId = config?.app?.helper_selection?.session?.id
+        targetId = config?.app?.windows?.helper_selection?.session_id
     }
 
     if (targetId !== undefined && targetId !== sessionId.value) {

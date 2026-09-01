@@ -321,7 +321,6 @@ watch(() => props.sessionsNameId, (val) => {
 const isPinnedRef = () => props.isPinned
 
 const { showPinButton, togglePin } = useWindowPin({
-    sessionId: sessionIdRef,
     isPinned: isPinnedRef,
     sessionConfig: configRef,
     webSocket: wsRef,

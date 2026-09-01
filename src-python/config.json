@@ -27,13 +27,18 @@
         ]
     },
     "app": {
-        "session": {
-            "id": 1
-        },
-        "helper_selection": {
-            "enabled": false,
-            "session": {
-                "id": 95
+        "windows": {
+            "main": {
+                "session_id": 1,
+                "pinned": false
+            },
+            "helper_main": {
+                "session_id": 39,
+                "pinned": false
+            },
+            "helper_selection": {
+                "session_id": 95,
+                "pinned": false
             }
         },
         "prior_suffix": {

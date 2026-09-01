@@ -334,7 +334,11 @@ def initialize_config() -> None:
         UtilsBase.CONFIG,
         UtilsBase.DEFAULT_CONFIG,
         UtilsBase.CONFIG_FILE,
-        [["schema_version"], ["dict_set_options"]]
+        [
+            ["schema_version"], ["dict_set_options"],
+            ["ocr", "session"],
+            ["app", "seesion"], ["app", "helper_selection", "session"]
+        ]
     )
     migrate_config(
         UtilsBase.DICT_CONFIG,

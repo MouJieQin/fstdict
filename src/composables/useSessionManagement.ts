@@ -6,6 +6,7 @@ import { getDefaultSessionConfig } from '@/common/utility'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useRouter } from 'vue-router'
 import { safeDeepClone } from '@/common/utility'
+import { ENV } from '@/common/constants'
 import { useI18n } from 'vue-i18n'
 
 const MAX_SESSION_NAME_LENGTH = 30
@@ -25,14 +26,14 @@ export function useSessionManagement(
         const systemConfig = safeDeepClone(systemConfigStore.systemConfig)
         const envValue = env()
 
-        if (envValue === '') {
-            systemConfig.app.session.id = sessionId
+        if (envValue === ENV.MAIN) {
+            systemConfig.app.windows.main.session_id = sessionId
             webSocket()?.sendUpdateSystemConfig(systemConfig)
-        } else if (envValue === 'helper_main_tauri') {
-            systemConfig.ocr.session.id = sessionId
+        } else if (envValue === ENV.HELPER) {
+            systemConfig.app.windows.helper_main.session_id = sessionId
             webSocket()?.sendUpdateSystemConfig(systemConfig)
-        } else if (envValue === 'selection_float_search') {
-            systemConfig.app.helper_selection.session.id = sessionId
+        } else if (envValue === ENV.SELECTION) {
+            systemConfig.app.windows.helper_selection.session_id = sessionId
             webSocket()?.sendUpdateSystemConfig(systemConfig)
         }
 
