@@ -1,23 +1,20 @@
-import { watch, ref, onMounted } from 'vue'
+import { watch, ref, onMounted, computed } from 'vue'
 import type { Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig } from '@/common/type-interface'
 import { safeDeepClone } from '@/common/utility'
-import { ENV } from '@/common/constants'
+import { ENV, TAURI_CMD } from '@/common/constants'
 import { useRoute } from 'vue-router'
 
 
 interface UseWindowPinOptions {
-    isPinned: () => boolean
-    sessionConfig: Ref<SessionConfig>
+    systemConfig: Ref<any>
     webSocket: Ref<SessionWebSocketService | null>
-
 }
 
 export function useWindowPin(options: UseWindowPinOptions) {
-    const { isPinned, sessionConfig, webSocket } = options
+    const { webSocket, systemConfig } = options
 
     const tauriWindow = ref<ReturnType<typeof getCurrentWindow> | null>(null)
     const route = useRoute()
@@ -35,36 +32,59 @@ export function useWindowPin(options: UseWindowPinOptions) {
         const e = env()
 
         if (e === ENV.SELECTION) {
-            await invoke('set_selection_window_pinned', { pinned })
+            await invoke(TAURI_CMD.SET_SELECTION_WINDOW_PINNED, { pinned })
         } else if (e === ENV.HELPER) {
-            await invoke('set_main_window_pinned', { pinned })
-        } else if (tauriWindow.value) {
-            await tauriWindow.value.setAlwaysOnTop(pinned)
+            await invoke(TAURI_CMD.SET_MAIN_WINDOW_PINNED, { pinned })
+        } else if (e === ENV.MAIN) {
+            await getCurrentWindow().setAlwaysOnTop(pinned)
         }
     }
 
-    const togglePin = (): void => {
-        const newPinned = !isPinned()
-
-        const config = safeDeepClone(sessionConfig.value)
-        config.pin = { is_pinned: newPinned }
-        webSocket.value?.sendSessionConfig(config)
+    const togglePin = async () => {
+        const newPinned = !isPinned.value
+        const e = env()
+        const config = safeDeepClone(systemConfig.value)
+        if (e === ENV.SELECTION) {
+            config.app.windows.helper_selection.pinned = newPinned
+        } else if (e === ENV.HELPER) {
+            config.app.windows.helper_main.pinned = newPinned
+        } else if (e === ENV.MAIN) {
+            config.app.windows.main.pinned = newPinned
+        }
+        webSocket.value?.sendUpdateSystemConfig(config)
     }
 
-    watch(isPinned, (val) => {
-        applyPinState(val)
+    const isPinned = computed(() => {
+        const e = env()
+        const config = safeDeepClone(systemConfig.value)
+        try {
+            if (e === ENV.SELECTION) {
+                return config.app.windows.helper_selection.pinned
+            } else if (e === ENV.HELPER) {
+                return config.app.windows.helper_main.pinned
+            } else if (e === ENV.MAIN) {
+                return config.app.windows.main.pinned
+            }
+        } catch (e) {
+            return false
+        }
+        return false
+    })
+
+    watch(isPinned, async (val) => {
+        await applyPinState(val)
     })
 
     onMounted(async () => {
         if (env() === ENV.MAIN) {
             tauriWindow.value = getCurrentWindow()
-            await applyPinState(isPinned())
+            await applyPinState(isPinned.value)
         }
     })
 
     return {
         showPinButton,
-        togglePin,
-        applyPinState,
+        isPinned,
+        togglePin
     }
 }

@@ -145,7 +145,8 @@ import Settings from '@/views/Settings.vue'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 
 // Composables & stores
-import { useFolderConfigStore } from '@/stores/folderConfig'
+import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
+import { safeDeepClone } from '@/common/utility'
 import { useHistoryNavigation } from '@/composables/useHistoryNavigation'
 import { useSessionManagement } from '@/composables/useSessionManagement'
 import { useWindowPin } from '@/composables/useWindowPin'
@@ -234,10 +235,6 @@ const props = defineProps({
         required: true,
         default: '',
     },
-    isPinned: {
-        type: Boolean,
-        default: true,
-    },
     iframeKeydownEvent: {
         type: Object as PropType<unknown>,
         default: null,
@@ -268,6 +265,7 @@ const emit = defineEmits<{
 
 // --- Stores ---
 const folderConfigStore = useFolderConfigStore()
+const systemConfigStore = useSystemConfigStore()
 
 // --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
@@ -281,6 +279,7 @@ const noteContent = ref(props.noteContent)
 // --- History navigation ---
 const wsRef = computed(() => props.webSocket)
 const configRef = computed(() => props.sessionConfig)
+const systemConfigRef = computed(() => systemConfigStore.systemConfig)
 const historyRef = computed(() => props.searchHistory)
 const leftHistoryRef = computed(() => props.leftHistory)
 const hasResultRef = computed(() => props.hasResultLastSearch)
@@ -318,11 +317,8 @@ watch(() => props.sessionsNameId, (val) => {
 }, { immediate: true, deep: true })
 
 // --- Window pin ---
-const isPinnedRef = () => props.isPinned
-
-const { showPinButton, togglePin } = useWindowPin({
-    isPinned: isPinnedRef,
-    sessionConfig: configRef,
+const { showPinButton, isPinned, togglePin } = useWindowPin({
+    systemConfig: systemConfigRef,
     webSocket: wsRef,
 })
 

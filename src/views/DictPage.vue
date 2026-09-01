@@ -4,10 +4,9 @@
             <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
                 :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
                 :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
-                :search-history="searchHistory" :is-pinned="isFloatingWindowPinned"
-                :last-search-keyword="lastSearchKeyword" :has-result-last-search="hasResultLastSearch"
-                :note-content="noteContent" :word-options="wordOptions" :redirect-word="redirectWord"
-                @change:keyword="keyword = $event" @clear:add-dict-msgs="addDictMsgs = []"
+                :search-history="searchHistory" :last-search-keyword="lastSearchKeyword"
+                :has-result-last-search="hasResultLastSearch" :note-content="noteContent" :word-options="wordOptions"
+                :redirect-word="redirectWord" @change:keyword="keyword = $event" @clear:add-dict-msgs="addDictMsgs = []"
                 :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress" :add-dict-msgs="addDictMsgs"
                 :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
                 :show-popover-word-options="showPopoverWordOptions" />
@@ -218,10 +217,6 @@ const addDictMsgs = ref<any[]>([])
 const showAddDictInfo = ref(false)
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
-
-const isFloatingWindowPinned = computed(
-    () => sessionConfig.value?.pin?.is_pinned || false
-)
 
 const activeDictionaries = computed(() =>
     sessionDictsSettingInfo.value.filter((d) => d.is_enabled)

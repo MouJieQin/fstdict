@@ -48,10 +48,6 @@ export interface SessionDefaultSearchMethod {
     method: string
 }
 
-export interface SessionPin {
-    is_pinned: boolean
-}
-
 export interface SessionNameId {
     id: number
     name: string
@@ -63,7 +59,6 @@ export interface SessionConfig {
     default_folder: SessionDefaultFolder
     default_search_method: SessionDefaultSearchMethod
     ocr_lang_type: string
-    pin?: SessionPin
 }
 
 // --- Folder configuration ---

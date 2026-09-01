@@ -337,7 +337,7 @@ def initialize_config() -> None:
         [
             ["schema_version"], ["dict_set_options"],
             ["ocr", "session"],
-            ["app", "seesion"], ["app", "helper_selection", "session"]
+            ["app", "session"], ["app", "helper_selection", "session"]
         ]
     )
     migrate_config(
