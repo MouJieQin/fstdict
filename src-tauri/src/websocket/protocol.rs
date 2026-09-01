@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-/// Inbound message types from the CGEvent WebSocket server.
+/// Inbound message types from the Python WebSocket server.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum InboundMessage {

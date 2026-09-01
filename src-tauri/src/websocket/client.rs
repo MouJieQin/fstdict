@@ -27,12 +27,12 @@ pub async fn start_ws_client(
     let mut outbound_merged = OutboundMerger::new(outbound_main_rx);
     let mut reconnect_count = 0;
     loop {
-        info!("Connecting to CGEvent WebSocket: {}", ws_url);
+        info!("Connecting to Python WebSocket: {}", ws_url);
         reconnect_count += 1;
 
         match connect_async(ws_url).await {
             Ok((ws_stream, _)) => {
-                info!("CGEvent WebSocket connected");
+                info!("Python WebSocket connected");
                 let (mut write, mut read) = ws_stream.split();
 
                 // Send connection handshake
@@ -49,6 +49,11 @@ pub async fn start_ws_client(
                                 }
                                 Some(Ok(WsMessage::Close(_))) => {
                                     info!("WebSocket closed by server");
+                                    let app_clone = app_handle.clone();
+                                    let _ = app_handle.run_on_main_thread(move || {
+                                        info!("Received exit request from WebSocket. Exiting application.");
+                                        app_clone.exit(0);
+                                    });
                                     break;
                                 }
                                 Some(Err(e)) => {
@@ -125,6 +130,7 @@ where
         InboundMessage::ExitRequest => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
+                info!("Received exit request from WebSocket. Exiting application.");
                 app_clone.exit(0);
             });
         }

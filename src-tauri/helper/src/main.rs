@@ -19,7 +19,7 @@ use tokio::sync::mpsc;
 
 use app_state::{MainWindowPinState, MainWindowWsSender, SelectionWindowPinState};
 use tray::setup_tray;
-use websocket::client::start_cgevent_ws_client;
+use websocket::client::start_python_ws_client;
 use window::setup::setup_float_panels;
 
 /// WebSocket server endpoint for the CGEvent helper service.
@@ -71,7 +71,7 @@ async fn main() {
             let app_handle = app.handle().clone();
             let ws_url = WS_ENDPOINT.to_string();
             tokio::spawn(async move {
-                start_cgevent_ws_client(&ws_url, app_handle, main_rx, main_pin_rx, selection_rx)
+                start_python_ws_client(&ws_url, app_handle, main_rx, main_pin_rx, selection_rx)
                     .await;
             });
 
