@@ -3,7 +3,7 @@
         <el-input v-if="!showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
             autocapitalize="off" spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
             @input="onInputChange" @keydown.enter.prevent="onKeyEnter" @compositionstart="onCompositionStart"
-            @focus="handleFocus" @compositionend="onCompositionEnd">
+            @focus="handleInputFocus" @blur="handleInputBlur" @compositionend="onCompositionEnd">
             <template #prefix>
                 <SearchMethodSelect :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
@@ -62,7 +62,10 @@ import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 import { useAutocomplete } from '@/composables/useAutocomplete'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import { invoke } from '@tauri-apps/api/core'
+import { TAURI_CMD } from '@/common/constants'
 import { useI18n } from 'vue-i18n'
+
 
 const props = defineProps<{
     webSocket: SessionWebSocketService | null
@@ -73,16 +76,21 @@ const props = defineProps<{
     searchHistory: WordInfoWithLastSearch[]
     wordOptions: string[]
     showPopoverWordOptions: boolean
+    focusInputFlag: boolean
+    firstChar: string,
+    firstKeyCode: string
 }>()
 
 const emit = defineEmits<{
     (e: 'change:keyword', keyword: string): void
+    (e: 'change:inputFocus', focus: boolean): void
 }>()
 
 const inputRef = ref<InstanceType<typeof ElInput> | null>(null)
 const popoverRef = ref<unknown>(null)
 const virtualListRef = ref<unknown>(null)
 const popoverWidth = ref(300)
+const isInputFocused = ref(false)
 
 let resizeObserver: ResizeObserver | null = null
 let rafId: number | null = null
@@ -199,6 +207,55 @@ const scrollToActiveItem = () => {
     }
 }
 
+// function isInputFocused(): boolean {
+//     if (!inputRef.value) return false
+//     const nativeInput = inputRef.value.input
+//     if (!nativeInput) return false
+//     return nativeInput === document.activeElement
+// }
+
+// State to track if we are waiting for focus to settle
+const awaitingImeTrigger = ref(false);
+
+// 2. The Focus Handler (Bind this to your el-input or input)
+const handleInputFocus = async () => {
+    isInputFocused.value = true
+    emit('change:inputFocus', true)
+    if (awaitingImeTrigger.value) {
+        // Reset flag immediately
+        awaitingImeTrigger.value = false;
+
+        // Wait one tick for the browser renderer to paint the cursor
+        await nextTick();
+
+        // Now invoke Rust - the input is guaranteed to be the active element
+        if (props.firstChar && props.firstChar.length === 1) {
+            if (props.firstChar[0] >= 'a' && props.firstChar[0] <= 'z' || props.firstChar[0] >= 'A' && props.firstChar[0] <= 'Z') {
+                await invoke(TAURI_CMD.SIMULATE_KEY_PRESS, { keyCodeStr: props.firstKeyCode });
+            } else {
+                keyword.value = props.firstChar;
+            }
+        }
+    }
+}
+
+const handleInputBlur = () => {
+    emit('change:inputFocus', false)
+    isInputFocused.value = false
+}
+
+async function focusAndClearInput() {
+    // if (isInputFocused()) return
+    if (isInputFocused.value) return
+    inputRef.value?.clear()
+    awaitingImeTrigger.value = true;
+    inputRef.value?.focus();
+}
+
+watch(() => props.focusInputFlag, async () => {
+    await focusAndClearInput()
+})
+
 // Sync scroll when active index changes
 watch(activeIndex, scrollToActiveItem)
 
@@ -249,36 +306,11 @@ watch(
     { immediate: true }
 )
 
-
-// --- Global keyboard shortcut: type anywhere to focus search ---
-const handleGlobalKeydown = (e: KeyboardEvent) => {
-    const active = document.activeElement as HTMLElement | null
-    if (active) {
-        const tag = active.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || active.isContentEditable) {
-            return
-        }
-    }
-
-    // Ignore modifier combos and navigation keys
-    if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Escape' || e.key === 'Tab') {
-        return
-    }
-
-    // Single printable character: focus and start typing
-    if (e.key.length === 1 && inputRef.value) {
-        keyword.value = ''
-        inputRef.value.focus()
-    }
-}
-
 // --- Lifecycle: resize observer for popover width ---
 onMounted(() => {
-    window.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleGlobalKeydown)
     if (rafId) cancelAnimationFrame(rafId)
     resizeObserver?.disconnect()
     resizeObserver = null

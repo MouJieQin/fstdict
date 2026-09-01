@@ -76,6 +76,7 @@ export const TAURI_CMD = {
     SET_SELECTION_WINDOW_PINNED: 'set_selection_window_pinned',
     SET_MAIN_WINDOW_PINNED: 'set_main_window_pinned',
     SET_THEME: 'set_theme',
+    SIMULATE_KEY_PRESS: 'simulate_key_press',
     CHECK_ACCESSIBILITY: 'check_accessibility',
     REQUEST_ACCESSIBILITY: 'request_accessibility',
     CHECK_SCREEN_RECORDING: 'check_screen_recording',

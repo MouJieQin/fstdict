@@ -9,8 +9,9 @@
                 <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                     :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
                     :session-config="sessionConfig" :search-history="searchHistory"
-                    @change:keyword="emit('change:keyword', $event)"
-                    :show-popover-word-options="showPopoverWordOptions" />
+                    @change:keyword="emit('change:keyword', $event)" @change:input-focus="isInputFocused = $event"
+                    :show-popover-word-options="showPopoverWordOptions" :focus-input-flag="focusInputFlag"
+                    :first-char="firstChar" :first-key-code="firstKeyCode" />
             </div>
 
             <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
@@ -311,6 +312,12 @@ const {
     envRef
 )
 
+// --- Focus input ---
+const focusInputFlag = ref(false)
+const isInputFocused = ref(false)
+const firstChar = ref('')
+const firstKeyCode = ref('')
+
 // Sync external sessions list
 watch(() => props.sessionsNameId, (val) => {
     sessionsNameId.value = val
@@ -408,13 +415,15 @@ watch(favoriteWordsDialogVisible, (visible) => {
 })
 
 // --- Keyboard shortcuts from iframe ---
-const handleKeydownData = (data: { key: string; altKey: boolean; metaKey: boolean }): void => {
+const handleKeydownData = (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }, e: KeyboardEvent | null = null): void => {
     if (data.key === '/' && data.metaKey) {
         favoriteWordsDialogVisible.value = !favoriteWordsDialogVisible.value
     } else if (data.key === 'ArrowLeft' && data.altKey) {
         goBack()
     } else if (data.key === 'ArrowRight' && data.altKey) {
         goForward()
+    } else if (data.key === 'v' && data.metaKey) {
+        focusInputFlag.value = !focusInputFlag.value
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {
@@ -431,6 +440,11 @@ const handleKeydownData = (data: { key: string; altKey: boolean; metaKey: boolea
         // ✨ Attach flag to prevent infinite loops
         Object.defineProperty(event, 'isSynthetic', { value: true });
         window.dispatchEvent(event);
+    } else if (!isInputFocused.value && !data.ctrlKey && !data.metaKey && !data.altKey && data.key !== 'Escape') {
+        if (e) e.preventDefault()
+        firstChar.value = data.key
+        firstKeyCode.value = data.code
+        focusInputFlag.value = !focusInputFlag.value
     }
 }
 
@@ -447,9 +461,12 @@ const handleGlobalKeydown = (e: KeyboardEvent): void => {
 
     handleKeydownData({
         key: e.key,
+        code: e.code,
+        ctrlKey: e.ctrlKey,
+        shiftKey: e.shiftKey,
         altKey: e.altKey,
         metaKey: e.metaKey,
-    })
+    }, e)
 }
 
 onMounted(() => {
