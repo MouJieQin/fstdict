@@ -358,31 +358,11 @@ const handleSessionConfig = (message: any): void => {
     setupOcrLangType()
 
     if (message.data.is_right_after_connection) {
-        if (envFromRoute.value === 'iwin') {
-            webSocket.value?.sendFloatingWindowPinClick(
-                sessionId.value,
-                sessionConfig.value?.pin?.is_pinned || false
-            )
-        }
-
         const keywordFromRoute = route.query.keyword as string
         if (keywordFromRoute) {
             webSocket.value?.sendLookupKeywordRequest(keywordFromRoute)
         }
     }
-}
-
-const handleToggleFloatPin = (message: any): void => {
-    const pinned = message.data.is_pinned
-
-    if (sessionConfig.value?.pin) {
-        if (sessionConfig.value.pin.is_pinned === pinned) return
-        sessionConfig.value.pin.is_pinned = pinned
-    } else {
-        sessionConfig.value.pin = { is_pinned: pinned }
-    }
-
-    webSocket.value?.sendSessionConfig(sessionConfig.value)
 }
 
 const handleCgevent = (data: any): void => {
@@ -437,9 +417,6 @@ const handleWebSocketMessage = (message: any): void => {
             break
         case 'sessions_name_id':
             handleSessionsNameId(message.data)
-            break
-        case 'toggle_floating_pin':
-            handleToggleFloatPin(message)
             break
         case 'toggle_favor':
             handleToggleFavor(message.data)

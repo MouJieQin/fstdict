@@ -37,7 +37,6 @@ class ExitHandler:
 
     @staticmethod
     async def _wait_clean_and_exit(force_exit=False):
-        Utils.iwin_ws_client.set_do_not_retry()
         Utils.cgevent_ws_client.set_do_not_retry()
         await ExitHandler._notify_tauri_helper_exit()
         await ExitHandler._notify_cgevent_server_exit()

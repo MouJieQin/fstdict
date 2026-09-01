@@ -117,12 +117,6 @@ export class SessionWebSocketService extends WebSocketService {
     }
 
     // --- Floating window ---
-    public sendFloatingWindowPinClick(sessionId: number, isPinned: boolean): void {
-        this.sendTyped('toggle_floating_pin', {
-            session_id: sessionId,
-            is_pinned: isPinned,
-        })
-    }
 
     public sendNoteIsEditing(isEditing: boolean): void {
         this.sendTyped('note_is_editing', { is_editing: isEditing })

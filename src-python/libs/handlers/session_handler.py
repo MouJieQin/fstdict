@@ -42,35 +42,20 @@ class SessionMessageHandler:
     # Window control messages
     # -----------------------------------------------------------------------
 
-    @staticmethod
-    async def _handle_toggle_floating_pin(
-        websocket: WebSocket, session_id: int, connection_id: int, message: dict
-    ):
-        """Forward floating pin toggle to iWin window manager."""
-        msg = {
-            "type": "toggle_floating_pin",
-            "data": {
-                "session_id": session_id,
-                "connection_id": connection_id,
-                "is_pinned": message["data"]["is_pinned"],
-            },
-        }
-        await Utils.iwin_ws_client.send(msg)
-
-    @staticmethod
-    async def _handle_note_is_editing(
-        websocket: WebSocket, session_id: int, connection_id: int, message: dict
-    ):
-        """Forward note editing state to iWin window manager."""
-        msg = {
-            "type": "note_is_editing",
-            "data": {
-                "session_id": session_id,
-                "connection_id": connection_id,
-                "is_editing": message["data"]["is_editing"],
-            },
-        }
-        await Utils.iwin_ws_client.send(msg)
+    # @staticmethod
+    # async def _handle_note_is_editing(
+    #     websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    # ):
+    #     """Forward note editing state to iWin window manager."""
+    #     msg = {
+    #         "type": "note_is_editing",
+    #         "data": {
+    #             "session_id": session_id,
+    #             "connection_id": connection_id,
+    #             "is_editing": message["data"]["is_editing"],
+    #         },
+    #     }
+    #     await Utils.iwin_ws_client.send(msg)
 
     # -----------------------------------------------------------------------
     # Dictionary search messages
@@ -556,8 +541,7 @@ class SessionMessageHandler:
 # ---------------------------------------------------------------------------
 _HANDLER_MAP = {
     # Window control
-    "toggle_floating_pin": SessionMessageHandler._handle_toggle_floating_pin,
-    "note_is_editing": SessionMessageHandler._handle_note_is_editing,
+    # "note_is_editing": SessionMessageHandler._handle_note_is_editing,
 
     # Search
     "keyword_options_search": SessionMessageHandler._handle_search_suggestions,

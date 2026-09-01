@@ -20,10 +20,8 @@ from libs.api.download_router import router as download_router
 from libs.api.connection_router import router as connection_router
 from libs.api.command_router import router as command_router
 from libs.api.ws_router import router as ws_router
-from libs.ws_clients.iwin_client import IWinWsClient
 from libs.ws_clients.cgevent_client import CgEventWsClient
 from libs.handlers.cgevent_handler import CgEventHandler
-from libs.handlers.iwin_handler import IWinMessageHandler
 from libs.handlers.exit_handler import ExitHandler
 
 from libs.common.utils import Utils
@@ -75,10 +73,6 @@ async def serve_spa(full_path: str):
 # ---------------------------------------------------------------------------
 # WebSocket Client
 # ---------------------------------------------------------------------------
-Utils.iwin_ws_client = IWinWsClient(
-    "ws://127.0.0.1:9999/ws/fstdict", IWinMessageHandler.handle
-)
-
 Utils.cgevent_ws_client = CgEventWsClient(
     "ws://127.0.0.1:5995", Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION,
     CgEventHandler.handle

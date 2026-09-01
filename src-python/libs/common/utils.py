@@ -7,7 +7,6 @@ import os
 import subprocess
 
 from libs.config.app_config import UtilsBase
-from libs.ws_clients.iwin_client import IWinWsClient
 from libs.ws_clients.cgevent_client import CgEventWsClient
 from libs.core.database import FstDictDatabase
 
@@ -19,7 +18,6 @@ class Utils(UtilsBase):
     db = FstDictDatabase(UtilsBase.FSTDICT_DATABASE_PATH)
 
     # WebSocket client instances (initialized at app startup)
-    iwin_ws_client: IWinWsClient
     cgevent_ws_client: CgEventWsClient
 
     @staticmethod

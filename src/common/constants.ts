@@ -68,7 +68,6 @@ export const ENV = {
     MAIN: '',
     HELPER: 'helper_main_tauri',
     SELECTION: 'selection_float_search',
-    IWIN: 'iwin',
     ANKI: 'anki',
 } as const
 
@@ -105,7 +104,6 @@ export const WS_MSG = {
     CREATE_SESSION: 'create_session',
     SESSION_CONFIG: 'session_config',
     SESSIONS_NAME_ID: 'sessions_name_id',
-    TOGGLE_FLOATING_PIN: 'toggle_floating_pin',
     TOGGLE_FAVOR: 'toggle_favor',
     FAVORITE_WORDS: 'favorite_words',
     SEARCH_HISTORY: 'search_history',

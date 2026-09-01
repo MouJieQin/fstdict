@@ -5,6 +5,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig } from '@/common/type-interface'
 import { safeDeepClone } from '@/common/utility'
+import { ENV } from '@/common/constants'
 import { useRoute } from 'vue-router'
 
 
@@ -28,15 +29,15 @@ export function useWindowPin(options: UseWindowPinOptions) {
 
     const showPinButton = (): boolean => {
         const e = env()
-        return e === '' || e === 'selection_float_search' || e === 'helper_main_tauri' || e === 'iwin'
+        return e === ENV.MAIN || e === ENV.SELECTION || e === ENV.HELPER
     }
 
     const applyPinState = async (pinned: boolean): Promise<void> => {
         const e = env()
 
-        if (e === 'selection_float_search') {
+        if (e === ENV.SELECTION) {
             await invoke('set_selection_window_pinned', { pinned })
-        } else if (e === 'helper_main_tauri') {
+        } else if (e === ENV.HELPER) {
             await invoke('set_main_window_pinned', { pinned })
         } else if (tauriWindow.value) {
             await tauriWindow.value.setAlwaysOnTop(pinned)
@@ -50,9 +51,6 @@ export function useWindowPin(options: UseWindowPinOptions) {
         const config = safeDeepClone(sessionConfig.value)
         config.pin = { is_pinned: newPinned }
         webSocket.value?.sendSessionConfig(config)
-        if (e === 'iwin') {
-            webSocket.value?.sendFloatingWindowPinClick(sessionId(), newPinned)
-        }
     }
 
     watch(isPinned, (val) => {
