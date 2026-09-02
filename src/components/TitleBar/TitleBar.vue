@@ -147,7 +147,6 @@ import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 
 // Composables & stores
 import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
-import { safeDeepClone } from '@/common/utility'
 import { useHistoryNavigation } from '@/composables/useHistoryNavigation'
 import { useSessionManagement } from '@/composables/useSessionManagement'
 import { useWindowPin } from '@/composables/useWindowPin'

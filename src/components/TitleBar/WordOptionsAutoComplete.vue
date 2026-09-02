@@ -3,22 +3,22 @@
         <el-input v-if="!showPopoverWordOptions" ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off"
             autocapitalize="off" spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
             @input="onInputChange" @keydown.enter.prevent="onKeyEnter" @compositionstart="onCompositionStart"
-            @focus="handleInputFocus" @blur="handleInputBlur" @compositionend="onCompositionEnd">
+            @focus="handleFocus(emit)" @blur="handleBlur(emit)" @compositionend="onCompositionEnd">
             <template #prefix>
                 <SearchMethodSelect :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
             </template>
         </el-input>
 
-        <el-popover v-else ref="popoverRef" trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
+        <el-popover v-else trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
             :width="popoverWidth" :show-arrow="false" popper-class="virtual-autocomplete-popper" :teleported="true">
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
                     spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
-                    @input="onInputChange" @focus="handleFocusWithPopover" @keydown.down.prevent="handleKeyDown"
-                    @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter" @blur="handleBlur"
-                    @keydown.escape="isDropdownVisible = false" @compositionstart="onCompositionStart"
-                    @compositionend="onCompositionEnd">
+                    @input="onInputChange" @focus="handleFocusWithPopover(emit)" @keydown.down.prevent="handleKeyDown"
+                    @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="onKeyEnter"
+                    @blur="handleBlurWithPopover(emit)" @keydown.escape="isDropdownVisible = false"
+                    @compositionstart="onCompositionStart" @compositionend="onCompositionEnd">
                     <template #prefix>
                         <SearchMethodSelect
                             :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
@@ -62,8 +62,6 @@ import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 import { useAutocomplete } from '@/composables/useAutocomplete'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
-import { invoke } from '@tauri-apps/api/core'
-import { TAURI_CMD } from '@/common/constants'
 import { useI18n } from 'vue-i18n'
 
 
@@ -87,10 +85,11 @@ const emit = defineEmits<{
 }>()
 
 const inputRef = ref<InstanceType<typeof ElInput> | null>(null)
-const popoverRef = ref<unknown>(null)
 const virtualListRef = ref<unknown>(null)
 const popoverWidth = ref(300)
 const isInputFocused = ref(false)
+// State to track if we are waiting for focus to settle
+const awaitingImeTrigger = ref(false);
 
 let resizeObserver: ResizeObserver | null = null
 let rafId: number | null = null
@@ -101,6 +100,9 @@ const configRef = computed(() => props.sessionConfig)
 const historyRef = computed(() => props.searchHistory)
 const optionsRef = computed(() => props.wordOptions)
 const showPopoverRef = computed(() => props.showPopoverWordOptions)
+const firstCharRef = computed(() => props.firstChar)
+const firstKeyCodeRef = computed(() => props.firstKeyCode)
+
 const { t } = useI18n()
 
 const {
@@ -116,6 +118,7 @@ const {
     handleFocus,
     handleFocusWithPopover,
     handleBlur,
+    handleBlurWithPopover,
     sendLookupKeyword,
     sendKeywordOptionsSearch,
     AUTOCOMPLETE_ITEM_HEIGHT,
@@ -125,6 +128,10 @@ const {
     searchHistory: historyRef,
     wordOptions: optionsRef,
     showPopover: showPopoverRef,
+    firstChar: firstCharRef,
+    firstKeyCode: firstKeyCodeRef,
+    isInputFocused: isInputFocused,
+    awaitingImeTrigger: awaitingImeTrigger
 })
 
 // --- Computed state flags for template clarity ---
@@ -207,46 +214,15 @@ const scrollToActiveItem = () => {
     }
 }
 
-// State to track if we are waiting for focus to settle
-const awaitingImeTrigger = ref(false);
-
-// 2. The Focus Handler (Bind this to your el-input or input)
-const handleInputFocus = async () => {
-    isInputFocused.value = true
-    emit('change:inputFocus', true)
-    if (awaitingImeTrigger.value) {
-        // Reset flag immediately
-        awaitingImeTrigger.value = false;
-
-        // Wait one tick for the browser renderer to paint the cursor
-        await nextTick();
-
-        // Now invoke Rust - the input is guaranteed to be the active element
-        if (props.firstChar && props.firstChar.length === 1) {
-            if (props.firstChar[0] >= 'a' && props.firstChar[0] <= 'z' || props.firstChar[0] >= 'A' && props.firstChar[0] <= 'Z') {
-                props.webSocket?.sendSimulateKeyPress(props.firstKeyCode);
-            } else {
-                keyword.value = props.firstChar;
-            }
-        }
-    }
-}
-
-const handleInputBlur = () => {
-    emit('change:inputFocus', false)
-    isInputFocused.value = false
-}
-
-async function focusAndClearInput() {
-    // if (isInputFocused()) return
+const focusAndClearInput = () => {
     if (isInputFocused.value) return
     inputRef.value?.clear()
     awaitingImeTrigger.value = true;
     inputRef.value?.focus();
 }
 
-watch(() => props.focusInputFlag, async () => {
-    await focusAndClearInput()
+watch(() => props.focusInputFlag, () => {
+    focusAndClearInput()
 })
 
 // Sync scroll when active index changes
@@ -273,33 +249,40 @@ watch(() => props.redirectHistoryWord, (newVal) => {
     keyword.value = newVal
 })
 
+const resizePopoverObserver = (el: HTMLElement | null) => {
+    // clear previous
+    if (rafId) cancelAnimationFrame(rafId)
+    resizeObserver?.disconnect()
 
+    if (!el) return
+
+    resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0]
+        if (!entry) return
+        const w = entry.contentRect.width
+
+        rafId = requestAnimationFrame(() => {
+            popoverWidth.value = w
+        })
+    })
+
+    resizeObserver.observe(el)
+    popoverWidth.value = el.getBoundingClientRect().width
+}
+
+
+// --- Resize observer for popover width ---
 watch(
     () => inputRef.value?.$el as HTMLElement | null,
     (el) => {
-        // clear previous
-        if (rafId) cancelAnimationFrame(rafId)
-        resizeObserver?.disconnect()
+        resizePopoverObserver(el)
 
-        if (!el) return
-
-        resizeObserver = new ResizeObserver((entries) => {
-            const entry = entries[0]
-            if (!entry) return
-            const w = entry.contentRect.width
-
-            rafId = requestAnimationFrame(() => {
-                popoverWidth.value = w
-            })
-        })
-
-        resizeObserver.observe(el)
-        popoverWidth.value = el.getBoundingClientRect().width
+        emit('change:inputFocus', false)
+        isInputFocused.value = false
     },
     { immediate: true }
 )
 
-// --- Lifecycle: resize observer for popover width ---
 onMounted(() => {
 })
 

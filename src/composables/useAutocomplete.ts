@@ -1,5 +1,6 @@
 import { ref, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
+import type { ElInput } from 'element-plus'
 import { willScanAllFstNodes, getDictSettingsForLookup } from '@/common/utility'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
@@ -22,10 +23,14 @@ interface UseAutocompleteOptions {
     searchHistory: Ref<WordInfoWithLastSearch[]>
     wordOptions: Ref<string[]>
     showPopover: Ref<boolean>
+    firstChar: Ref<string>
+    firstKeyCode: Ref<string>
+    isInputFocused: Ref<boolean>
+    awaitingImeTrigger: Ref<boolean>
 }
 
 export function useAutocomplete(options: UseAutocompleteOptions) {
-    const { webSocket, sessionConfig, searchHistory, wordOptions, showPopover } = options
+    const { webSocket, sessionConfig, searchHistory, wordOptions, showPopover, firstChar, firstKeyCode, isInputFocused, awaitingImeTrigger } = options
     const { t } = useI18n()
 
     const keyword = ref('')
@@ -152,6 +157,34 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
         }
     }
 
+    // The Focus Handler (Bind this to your el-input or input)
+    const handleInputFocus = async (emit: (e: 'change:inputFocus', v: boolean) => void) => {
+        isInputFocused.value = true
+        emit('change:inputFocus', true)
+        if (awaitingImeTrigger.value) {
+            // Reset flag immediately
+            awaitingImeTrigger.value = false;
+
+            // Wait one tick for the browser renderer to paint the cursor
+            await nextTick();
+
+            // Now invoke Rust - the input is guaranteed to be the active element
+            if (firstChar.value && firstChar.value.length === 1) {
+                if (firstChar.value[0] >= 'a' && firstChar.value[0] <= 'z' || firstChar.value[0] >= 'A' && firstChar.value[0] <= 'Z') {
+                    webSocket.value?.sendSimulateKeyPress(firstKeyCode.value);
+                } else {
+                    keyword.value = firstChar.value;
+                }
+            }
+        }
+    }
+
+    const handleInputBlur = (emit: (e: 'change:inputFocus', v: boolean) => void) => {
+        emit('change:inputFocus', false)
+        isInputFocused.value = false
+    }
+
+
     const handleInputChange = (emit: (e: 'change:keyword', v: string) => void) => {
         if (showPopover.value) {
             isDropdownVisible.value = true
@@ -160,13 +193,14 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
         triggerAsyncSearch()
     }
 
-    const handleFocus = () => {
+    const handleFocus = async (emit: (e: 'change:inputFocus', v: boolean) => void) => {
         if (!keyword.value.trim()) {
             webSocket.value?.sendSearchHistoryRequest()
         }
+        await handleInputFocus(emit)
     }
 
-    const handleFocusWithPopover = () => {
+    const handleFocusWithPopover = async (emit: (e: 'change:inputFocus', v: boolean) => void) => {
         if (!keyword.value.trim()) {
             links.value = searchHistory.value.map(item => ({
                 value: String(item.word),
@@ -175,11 +209,19 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
         }
         activeIndex.value = links.value.length > 0 ? 0 : -1
         isDropdownVisible.value = true
+
+        await handleInputFocus(emit)
     }
 
-    const handleBlur = () => {
-        isDropdownVisible.value = false
+    const handleBlur = (emit: (e: 'change:inputFocus', v: boolean) => void) => {
+        handleInputBlur(emit)
     }
+
+    const handleBlurWithPopover = (emit: (e: 'change:inputFocus', v: boolean) => void) => {
+        isDropdownVisible.value = false
+        handleInputBlur(emit)
+    }
+
 
     // Watchers
     watch(wordOptions, () => {
@@ -211,6 +253,7 @@ export function useAutocomplete(options: UseAutocompleteOptions) {
         handleFocus,
         handleFocusWithPopover,
         handleBlur,
+        handleBlurWithPopover,
         sendLookupKeyword,
         sendKeywordOptionsSearch,
         AUTOCOMPLETE_ITEM_HEIGHT,
