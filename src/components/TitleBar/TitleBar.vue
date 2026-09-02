@@ -423,6 +423,7 @@ const handleKeydownData = (data: { key: string; code: string; ctrlKey: boolean; 
         goForward()
     } else if (data.key === 'v' && data.metaKey) {
         focusInputFlag.value = !focusInputFlag.value
+        firstChar.value = ''
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {
