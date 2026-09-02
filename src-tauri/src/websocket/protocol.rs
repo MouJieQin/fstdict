@@ -10,6 +10,9 @@ pub enum InboundMessage {
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
 
+    #[serde(rename = "simulate_key_press")]
+    SimulateKeyPress { data: SimulateKeyData },
+
     #[serde(rename = "exit_request")]
     ExitRequest,
 }
@@ -22,6 +25,11 @@ pub struct NotificationData {
 #[derive(Debug, Deserialize)]
 pub struct OcrResultData {
     pub ocr_txt: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SimulateKeyData {
+    pub key: String,
 }
 
 /// Builds the initial connection handshake message.

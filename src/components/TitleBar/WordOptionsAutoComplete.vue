@@ -207,13 +207,6 @@ const scrollToActiveItem = () => {
     }
 }
 
-// function isInputFocused(): boolean {
-//     if (!inputRef.value) return false
-//     const nativeInput = inputRef.value.input
-//     if (!nativeInput) return false
-//     return nativeInput === document.activeElement
-// }
-
 // State to track if we are waiting for focus to settle
 const awaitingImeTrigger = ref(false);
 
@@ -231,7 +224,7 @@ const handleInputFocus = async () => {
         // Now invoke Rust - the input is guaranteed to be the active element
         if (props.firstChar && props.firstChar.length === 1) {
             if (props.firstChar[0] >= 'a' && props.firstChar[0] <= 'z' || props.firstChar[0] >= 'A' && props.firstChar[0] <= 'Z') {
-                await invoke(TAURI_CMD.SIMULATE_KEY_PRESS, { keyCodeStr: props.firstKeyCode });
+                props.webSocket?.sendSimulateKeyPress(props.firstKeyCode);
             } else {
                 keyword.value = props.firstChar;
             }

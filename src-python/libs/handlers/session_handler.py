@@ -535,6 +535,14 @@ class SessionMessageHandler:
         logger.info("Anki update cancellation requested")
         anki_manager.set_cancel_flag(True)
 
+    @staticmethod
+    async def _handle_simulate_key_press(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        """Simulate a key press."""
+        if Utils.fstdict_main_websocket:
+            await Utils.fstdict_main_websocket.send_text(json.dumps(message))
+
 
 # ---------------------------------------------------------------------------
 # Message type to handler routing table
@@ -583,4 +591,7 @@ _HANDLER_MAP = {
     # Anki integration
     "update_to_anki": SessionMessageHandler._handle_update_to_anki,
     "cancel_anki_update": SessionMessageHandler._handle_cancel_anki_update,
+
+    # keyboard simulation
+    "simulate_key_press": SessionMessageHandler._handle_simulate_key_press,
 }

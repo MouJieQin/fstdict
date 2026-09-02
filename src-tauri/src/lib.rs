@@ -90,7 +90,6 @@ pub async fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::greet,
             commands::set_theme,
-            commands::simulate_key_press,
             commands::show_updater_window,
             commands::set_updater_window_size,
             #[cfg(target_os = "macos")]

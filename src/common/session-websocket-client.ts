@@ -161,10 +161,11 @@ export class SessionWebSocketService extends WebSocketService {
         this.sendTyped('cancel_anki_update')
     }
 
-    // --- Legacy alias ---
-    public sendToggleFloatingWindowPin(fullPath: string): void {
-        this.sendTyped('toggle_float_pin', { full_path: fullPath })
+    // --- keyboard ---
+    public sendSimulateKeyPress(key: string): void {
+        this.sendTyped('simulate_key_press', { key })
     }
+
 }
 
 export function useSessionWebSocket(id: number): SessionWebSocketService {

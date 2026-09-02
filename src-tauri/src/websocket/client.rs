@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use super::keyboard::simulate_key_press;
 use fstdict_common::window::notification::show_notification;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
@@ -125,6 +126,11 @@ where
                 }
                 let _ = app_clone.emit_to("main", "cgevent-ocr", data.ocr_txt);
             });
+        }
+
+        InboundMessage::SimulateKeyPress { data } => {
+            let key = data.key;
+            let _ = app.run_on_main_thread(|| simulate_key_press(key));
         }
 
         InboundMessage::ExitRequest => {
