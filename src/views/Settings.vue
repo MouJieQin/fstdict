@@ -137,6 +137,12 @@
                 </el-form-item>
             </div>
 
+            <!-- Helper Section -->
+            <div class="config-class">
+                <p class="config-class-title">{{ $t('settings.helper') }}</p>
+                <p class="config-class-desc">{{ $t('settings.helperPermission') }}</p>
+                <el-switch v-model="localSystemConfig.app.helper_selection.enabled" @change="handleHelperToggle" />
+            </div>
 
             <!-- OCR Section -->
             <div class="config-class">
@@ -148,12 +154,6 @@
                 </el-select>
             </div>
 
-            <!-- Helper Section -->
-            <div class="config-class">
-                <p class="config-class-title">{{ $t('settings.helper') }}</p>
-                <p class="config-class-desc">{{ $t('settings.helperPermission') }}</p>
-                <el-switch v-model="localSystemConfig.app.helper_selection.enabled" @change="handleHelperToggle" />
-            </div>
         </el-form>
 
         <!-- Create / Edit Folder Dialog -->
@@ -525,24 +525,42 @@ async function cancelAnkiExport(): Promise<void> {
 
 // ─── Helper Toggle ──────────────────────────────────────────────
 async function handleHelperToggle(enabled: boolean): Promise<void> {
-    if (!enabled) return
-
-    if (isMacOS()) {
-        const hasAccess = await checkAccessibilitySafe()
-        if (!hasAccess) {
-            await showPerssionWindow()
-            localSystemConfig.value.app.helper_selection.enabled = false
-            return
-        }
-
-        try {
-            await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
-            await invoke(TAURI_CMD.LAUNCH_HELPER)
-        } catch (error) {
-            console.error('Failed to launch helper sidecar:', error)
+    if (!enabled) {
+        localSystemConfig.value.app.helper_selection.enabled = false
+        persistSystemConfig()
+    } else {
+        if (isMacOS()) {
+            const hasAccess = await checkAccessibilitySafe()
+            if (hasAccess) {
+                localSystemConfig.value.app.helper_selection.enabled = true
+                persistSystemConfig()
+            } else {
+                await showPerssionWindow()
+                localSystemConfig.value.app.helper_selection.enabled = false
+                persistSystemConfig()
+                return
+            }
+            try {
+                await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
+            } catch (error) {
+                console.error('Failed to launch helper sidecar:', error)
+            }
         }
     }
 }
+
+// ─── Permission Check ──────────────────────────────────────────────
+async function checkHelperPermission(): Promise<void> {
+    if (!isMacOS()) return
+    if (localSystemConfig.value.app.helper_selection.enabled) {
+        const hasAccess = await checkAccessibilitySafe()
+        if (!hasAccess) {
+            localSystemConfig.value.app.helper_selection.enabled = false
+            persistSystemConfig()
+        }
+    }
+}
+
 
 // ─── Handle update shortcuts ──────────────────────────────────────────────
 const updateToggleSelectShortcuts = (shortcuts: string[]) => {
@@ -566,6 +584,13 @@ async function openUpdater(): Promise<void> {
 
 // ─── Watchers ───────────────────────────────────────────────────
 watch(
+    () => props.settingDialogVisible,
+    async () => {
+        await checkHelperPermission()
+    }
+)
+
+watch(
     () => folderConfigStore.folderConfig,
     (value) => {
         localFolderConfig.value = safeDeepClone(value)
@@ -583,8 +608,9 @@ watch(
 
 watch(
     () => systemConfigStore.systemConfig,
-    (value) => {
+    async (value) => {
         localSystemConfig.value = safeDeepClone(value)
+
     },
     { deep: true, immediate: true }
 )
@@ -598,7 +624,7 @@ watch(
 )
 
 // ─── Lifecycle ──────────────────────────────────────────────────
-onBeforeMount(() => {
+onBeforeMount(async () => {
     props.webSocket?.sendFolderConfig()
     initPlatformDetection()
 })

@@ -19,7 +19,7 @@
         </el-icon>
         <el-button v-else type="primary" round @click="requestAccessibilitySafe" size="small">{{
             $t('permission.grantPermission')
-            }}</el-button>
+        }}</el-button>
     </div>
     <div class="permission-card">
         <el-icon size="35">
@@ -34,7 +34,7 @@
         </el-icon>
         <el-button v-else type="primary" round @click="requestScreenRecordingSafe" size="small">{{
             $t('permission.grantPermission')
-            }}</el-button>
+        }}</el-button>
     </div>
 </template>
 
@@ -43,7 +43,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { Mouse, CircleCheckFilled } from '@element-plus/icons-vue'
 import { BiScreenshot, BiHelpCircle } from 'vue-icons-plus/bi'
 import { checkAccessibilitySafe, requestAccessibilitySafe, checkScreenRecordingSafe, requestScreenRecordingSafe } from '@/common/permission'
-import { CHECK_PERMISSION_INTERVAL } from '@/common/constants'
+import { CHECK_PERMISSION_INTERVAL, TAURI_CMD } from '@/common/constants'
+import { invoke } from '@tauri-apps/api/core'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -52,6 +53,7 @@ const checkAccessibilityTimer = ref<number | null>(null)
 const hasAccessibility = ref(false)
 const checkScreenRecordTimer = ref<number | null>(null)
 const hasScreenRecord = ref(false)
+const hasTryedLaunchCgeventServer = ref(false)
 
 const clearTimer = () => {
     if (checkAccessibilityTimer.value) {
@@ -67,6 +69,10 @@ onMounted(() => {
 
     checkAccessibilityTimer.value = setInterval(async () => {
         hasAccessibility.value = await checkAccessibilitySafe()
+        if (!hasTryedLaunchCgeventServer.value && hasAccessibility.value) {
+            hasTryedLaunchCgeventServer.value = true
+            await invoke(TAURI_CMD.LAUNCH_CGEVENT_SERVER)
+        }
     }, CHECK_PERMISSION_INTERVAL)
 
     checkScreenRecordTimer.value = setInterval(async () => {
