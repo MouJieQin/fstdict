@@ -162,22 +162,28 @@ where
         }
 
         InboundMessage::CheckAccessibility => {
-            let app_clone = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                let granted = check_accessibility();
-                if !granted {
-                    let _ = show_permission_window(app_clone);
-                }
-            });
+            #[cfg(target_os = "macos")]
+            {
+                let app_clone = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    let granted = check_accessibility();
+                    if !granted {
+                        let _ = show_permission_window(app_clone);
+                    }
+                });
+            }
         }
         InboundMessage::CheckScreenRecording => {
-            let app_clone = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                let granted = check_screen_recording();
-                if !granted {
-                    let _ = show_permission_window(app_clone);
-                }
-            });
+            #[cfg(target_os = "macos")]
+            {
+                let app_clone = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    let granted = check_screen_recording();
+                    if !granted {
+                        let _ = show_permission_window(app_clone);
+                    }
+                });
+            }
         }
 
         InboundMessage::ExitRequest => {
