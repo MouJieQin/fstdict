@@ -462,7 +462,7 @@
 @media (max-width: 700px) {
     #titlebar-setting-button,
     #titlebar-dictss-button,
-    #titlebar-sessions-button,
+    /* #titlebar-sessions-button, */
     #titlebar-history-back-button,
     #titlebar-history-forward-button {
         display: none;

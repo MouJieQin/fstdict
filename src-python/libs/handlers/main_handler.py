@@ -71,8 +71,10 @@ class MainMessageHandler:
         shortcut_name = Utils.shortcut_map[shortcut]
         # Handle specific shortcuts
         if shortcut_name == "toggle_selection":
+            await websocket.send_text(json.dumps({"type": "check_accessibility", "data": {}}))
             await MainMessageHandler._toggle_selection_monitoring()
         elif shortcut_name == "screenshot_ocr":
+            await websocket.send_text(json.dumps({"type": "check_screen_recording", "data": {}}))
             await MainMessageHandler._handle_ocr_request(websocket)
         else:
             logger.warning(f"Unhandled shortcut: {shortcut}")

@@ -12,12 +12,12 @@ from fastapi import WebSocket
 
 import libs.config.paths as app_paths
 from libs.log_config import logger
-from libs.common.utils import UtilsBase
+from libs.common.utilbase import UtilBase
 from libs.ws_clients.cgevent_client import CgEventWsClient
 from libs.core.database import FstDictDatabase
 
 
-class Utils(UtilsBase):
+class Utils(UtilBase):
     """Base class containing all configuration constants and state."""
 
     # Detect PyInstaller packaged binary

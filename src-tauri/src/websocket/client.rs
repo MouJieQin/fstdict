@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use super::keyboard::simulate_key_press;
+use crate::commands::{check_accessibility, check_screen_recording, show_permission_window};
 use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
 use fstdict_common::window::notification::show_notification;
 use futures_util::{SinkExt, StreamExt};
@@ -156,6 +157,25 @@ where
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
                 unregister_global_shortcut(&app_clone, &shortcut);
+            });
+        }
+
+        InboundMessage::CheckAccessibility => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                let granted = check_accessibility();
+                if !granted {
+                    let _ = show_permission_window(app_clone);
+                }
+            });
+        }
+        InboundMessage::CheckScreenRecording => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                let granted = check_screen_recording();
+                if !granted {
+                    let _ = show_permission_window(app_clone);
+                }
             });
         }
 

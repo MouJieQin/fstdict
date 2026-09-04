@@ -63,7 +63,7 @@ class OcrEngine:
 
     def _get_configured_language(self) -> str:
         """Get the configured OCR language from session settings."""
-        session_id = Utils.CONFIG["ocr"]["session"]["id"]
+        session_id = Utils.CONFIG["app"]["windows"]["helper_main"]["session_id"]
         config = Utils.db.get_session_config(session_id)
         if not config:
             return self._current_lang
@@ -131,9 +131,9 @@ class OcrEngine:
             return ""
 
         self._is_ocr_active = True
-        self.set_language(self._get_configured_language())
 
         try:
+            self.set_language(self._get_configured_language())
             if sys.platform == "darwin":
                 return self._capture_screenshot_macos()
             elif sys.platform.startswith("win"):

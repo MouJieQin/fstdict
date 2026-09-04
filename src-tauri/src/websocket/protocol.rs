@@ -22,6 +22,12 @@ pub enum InboundMessage {
     #[serde(rename = "unregister_shortcut")]
     UnregisterShortcut { data: RegisterShortcutData },
 
+    #[serde(rename = "check_accessibility")]
+    CheckAccessibility,
+
+    #[serde(rename = "check_screen_recording")]
+    CheckScreenRecording,
+
     #[serde(rename = "exit_request")]
     ExitRequest,
 }

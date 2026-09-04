@@ -15,6 +15,7 @@
     "version:sync": "node scripts/sync-version.js",
     "clean": "node scripts/cargo-clean.js",
     "tauri:dev": "npm run build && npm run dev:sidecar && tauri dev --no-watch",
+    "tauri:main": "tauri dev --no-watch",
     "dev:helper": "node scripts/build-helper.js --dev",
     "dev:sidecar": "node scripts/build-sidecar.js --dev",
     "dev:all": "npm run build && npm run dev:sidecar && npm run dev",

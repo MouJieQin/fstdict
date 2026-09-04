@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 
 
-class UtilsBase:
+class UtilBase:
     """Global utility"""
 
     # --- File system utilities ---
