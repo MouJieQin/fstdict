@@ -10,7 +10,7 @@ from fastapi import WebSocket
 from libs.log_config import logger
 from libs.core.dictionary import dictionary_searcher
 from libs.common.session_manager import SessionManager
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 from libs.anki.anki_manager import anki_manager
 
 

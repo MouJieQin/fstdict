@@ -4,7 +4,7 @@ Router for managing external WebSocket connections (CGEvent).
 import asyncio
 from fastapi import APIRouter
 
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 from libs.log_config import logger
 
 router = APIRouter()

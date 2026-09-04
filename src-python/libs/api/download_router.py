@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 
 from libs.config.paths import DICTIONARIES_DIR, FFMPEG_BINARY, AUDIO_EXTENSIONS
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 from libs.log_config import logger
 
 router = APIRouter()

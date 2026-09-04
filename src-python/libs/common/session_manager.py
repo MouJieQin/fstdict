@@ -3,7 +3,7 @@ WebSocket session management: broadcasting and targeted messaging.
 """
 import json
 from libs.log_config import logger
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 
 
 class SessionManager:

@@ -4,21 +4,20 @@ Application configuration management: loading, saving, and migration.
 import json
 import os
 import sys
-import shutil
+import fstd
 from pathlib import Path
 from urllib.parse import quote
 from typing import Dict, List
 from fastapi import WebSocket
 
-
-import fstd
-
 import libs.config.paths as app_paths
-# from libs.config.paths import *
 from libs.log_config import logger
+from libs.common.utils import UtilsBase
+from libs.ws_clients.cgevent_client import CgEventWsClient
+from libs.core.database import FstDictDatabase
 
 
-class UtilsBase:
+class Utils(UtilsBase):
     """Base class containing all configuration constants and state."""
 
     # Detect PyInstaller packaged binary
@@ -77,43 +76,35 @@ class UtilsBase:
     fstdict_main_websocket: WebSocket | None = None
     cgevent_register_map: Dict = {}
 
+    # Database instance
+    db = FstDictDatabase(FSTDICT_DATABASE_PATH)
+
+    # WebSocket client instances (initialized at app startup)
+    cgevent_ws_client: CgEventWsClient
+
     # --- File system utilities ---
 
     @staticmethod
-    def createDirIfnotExists(path: str) -> None:
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-    @staticmethod
-    def copyFile(src: str, dst: str) -> None:
-        shutil.copy2(src, dst)
-
-    @staticmethod
-    def removeDirIfExists(path: str) -> None:
-        if os.path.exists(path):
-            shutil.rmtree(path)
-
-    @staticmethod
     def getDictDir(dict_name: str) -> str:
-        return os.path.join(UtilsBase.DICTIONARYS_PATH, dict_name)
+        return os.path.join(Utils.DICTIONARYS_PATH, dict_name)
 
     @staticmethod
     def getDictPath(dict_name: str) -> str:
-        return os.path.join(UtilsBase.getDictDir(dict_name), f"{dict_name}.fstdx")
+        return os.path.join(Utils.getDictDir(dict_name), f"{dict_name}.fstdx")
 
     @staticmethod
-    def removeFileIfExists(path: str) -> None:
-        if os.path.exists(path):
-            os.remove(path)
+    def delete_dictionary(dict_name: str) -> None:
+        """Delete a dictionary directory and update configuration."""
+        dict_dir = Utils.getDictDir(dict_name)
+        Utils.removeDirIfExists(dict_dir)
+        Utils.Config.removeDictInfo(dict_name)
+        Utils.Config.renew_dict_set_options()
 
     @staticmethod
-    def find_files_by_postfix(root_dir: str, dict_name: str, postfix: str) -> List[str]:
-        """Find all files with a given extension in a directory."""
-        files = []
-        for item in Path(root_dir).iterdir():
-            if item.is_file() and item.name.lower().endswith(postfix):
-                files.append(f"{dict_name}/{item.name}")
-        return files
+    def reveal_dict_in_file_manager(dict_name: str) -> bool:
+        """Open file manager and highlight the dictionary file."""
+        dict_path = Utils.getDictPath(dict_name)
+        return Utils.reveal_in_file_manager(dict_path)
 
     class Config:
         """Configuration management inner class."""
@@ -126,23 +117,23 @@ class UtilsBase:
 
         @staticmethod
         def syncConfig() -> None:
-            UtilsBase.Config.syncConfigFile(UtilsBase.CONFIG, UtilsBase.CONFIG_FILE)
+            Utils.Config.syncConfigFile(Utils.CONFIG, Utils.CONFIG_FILE)
 
         @staticmethod
         def syncDictConfig() -> None:
-            UtilsBase.Config.syncConfigFile(
-                UtilsBase.DICT_CONFIG, UtilsBase.DICT_CONFIG_FILE
+            Utils.Config.syncConfigFile(
+                Utils.DICT_CONFIG, Utils.DICT_CONFIG_FILE
             )
 
         @staticmethod
         def init_config(config: Dict) -> None:
-            UtilsBase.CONFIG = config
-            UtilsBase.Config.syncConfig()
+            Utils.CONFIG = config
+            Utils.Config.syncConfig()
 
         @staticmethod
         def init_dict_config(config: Dict) -> None:
-            UtilsBase.DICT_CONFIG = config
-            UtilsBase.Config.syncDictConfig()
+            Utils.DICT_CONFIG = config
+            Utils.Config.syncDictConfig()
 
         @staticmethod
         def make_shorcut(shortcut_keys: List[str]) -> str:
@@ -152,32 +143,30 @@ class UtilsBase:
         @staticmethod
         def init_shortcut_map() -> None:
             """Initialize the shortcut map from the configuration."""
-            shortcuts = UtilsBase.CONFIG.get("shortcuts", {})
+            shortcuts = Utils.CONFIG.get("shortcuts", {})
             for sc_name, sc_keys in shortcuts.items():
-                shortcut = UtilsBase.Config.make_shorcut(sc_keys)
-                UtilsBase.shortcut_map[shortcut] = sc_name
+                shortcut = Utils.Config.make_shorcut(sc_keys)
+                Utils.shortcut_map[shortcut] = sc_name
 
         @staticmethod
         async def update_shortcut(shortcut_name: str, shortcut_keys: List[str]) -> None:
             """Update a specific shortcut in the configuration and map."""
-            old_keys = UtilsBase.CONFIG["shortcuts"].get(shortcut_name, [])
-            old_shortcut = UtilsBase.Config.make_shorcut(old_keys)
-            if old_shortcut in UtilsBase.shortcut_map:
-                del UtilsBase.shortcut_map[old_shortcut]
-            UtilsBase.CONFIG["shortcuts"][shortcut_name] = shortcut_keys
-            UtilsBase.Config.syncConfig()
-            shortcut = UtilsBase.Config.make_shorcut(shortcut_keys)
-            UtilsBase.shortcut_map[shortcut] = shortcut_name
-            logger.info(f"Updating shortcut '{shortcut_name}' to '{shortcut}'")
-            if UtilsBase.fstdict_main_websocket:
-                logger.info(f"Sending update shortcut message for '{shortcut_name}' to '{shortcut}'")
-                await UtilsBase.fstdict_main_websocket.send_text(json.dumps({
+            old_keys = Utils.CONFIG["shortcuts"].get(shortcut_name, [])
+            old_shortcut = Utils.Config.make_shorcut(old_keys)
+            if old_shortcut in Utils.shortcut_map:
+                del Utils.shortcut_map[old_shortcut]
+            Utils.CONFIG["shortcuts"][shortcut_name] = shortcut_keys
+            Utils.Config.syncConfig()
+            shortcut = Utils.Config.make_shorcut(shortcut_keys)
+            Utils.shortcut_map[shortcut] = shortcut_name
+            if Utils.fstdict_main_websocket:
+                await Utils.fstdict_main_websocket.send_text(json.dumps({
                     "type": "unregister_shortcut",
                     "data": {
                         "shortcut": old_shortcut
                     }
                 }))
-                await UtilsBase.fstdict_main_websocket.send_text(json.dumps({
+                await Utils.fstdict_main_websocket.send_text(json.dumps({
                     "type": "register_shortcut",
                     "data": {
                         "shortcut": shortcut
@@ -186,34 +175,34 @@ class UtilsBase:
 
         @staticmethod
         def create_dict_set_option(option_name: str) -> bool:
-            dict_set_options: Dict = UtilsBase.DICT_CONFIG["dict_set_options"]
+            dict_set_options: Dict = Utils.DICT_CONFIG["dict_set_options"]
             if option_name not in dict_set_options:
                 dict_set_options[option_name] = json.loads(
                     json.dumps(dict_set_options["default"], ensure_ascii=False)
                 )
-                UtilsBase.Config.syncDictConfig()
+                Utils.Config.syncDictConfig()
                 return True
             return False
 
         @staticmethod
         def remove_dict_set_option(option_name: str) -> bool:
-            dict_set_options: Dict = UtilsBase.DICT_CONFIG["dict_set_options"]
+            dict_set_options: Dict = Utils.DICT_CONFIG["dict_set_options"]
             if option_name != "default" and option_name in dict_set_options:
                 del dict_set_options[option_name]
-                UtilsBase.Config.syncDictConfig()
+                Utils.Config.syncDictConfig()
                 return True
             return False
 
         @staticmethod
         def rename_dict_set_option(old_name: str, new_name: str) -> bool:
-            dict_set_options: Dict = UtilsBase.DICT_CONFIG["dict_set_options"]
+            dict_set_options: Dict = Utils.DICT_CONFIG["dict_set_options"]
             if old_name != "default" and old_name in dict_set_options:
                 option = json.loads(
                     json.dumps(dict_set_options[old_name], ensure_ascii=False)
                 )
                 del dict_set_options[old_name]
                 dict_set_options[new_name] = option
-                UtilsBase.Config.syncDictConfig()
+                Utils.Config.syncDictConfig()
                 return True
             return False
 
@@ -226,14 +215,14 @@ class UtilsBase:
             if not fstdx_path.is_file():
                 return
 
-            UtilsBase.DICT_INFO[dict_name] = {
+            Utils.DICT_INFO[dict_name] = {
                 "name": dict_name,
                 "root": str(directory.absolute()),
                 "path": str(fstdx_path.absolute()),
-                "css": UtilsBase.find_files_by_postfix(
+                "css": Utils.find_files_by_postfix(
                     str(directory.absolute()), dict_name, ".css"
                 ),
-                "js": UtilsBase.find_files_by_postfix(
+                "js": Utils.find_files_by_postfix(
                     str(directory.absolute()), dict_name, ".js"
                 ),
                 "data": "",
@@ -244,7 +233,7 @@ class UtilsBase:
             # Check for data directory
             data_path = directory.absolute() / "data"
             if data_path.is_dir():
-                UtilsBase.DICT_INFO[dict_name]["data"] = str(data_path.absolute())
+                Utils.DICT_INFO[dict_name]["data"] = str(data_path.absolute())
 
             # Look for cover image
             for img_file in directory.iterdir():
@@ -252,8 +241,8 @@ class UtilsBase:
                     ".jpg", ".jpeg", ".png", ".gif"
                 ]:
                     cover_rel_path = f"{dict_name}/{img_file.name}"
-                    UtilsBase.DICT_INFO[dict_name]["cover"] = cover_rel_path
-                    UtilsBase.DICT_INFO[dict_name]["cover_url"] = (
+                    Utils.DICT_INFO[dict_name]["cover"] = cover_rel_path
+                    Utils.DICT_INFO[dict_name]["cover_url"] = (
                         f"http://127.0.0.1:5959/api/dictionaries/{quote(cover_rel_path)}"
                     )
                     break
@@ -261,22 +250,22 @@ class UtilsBase:
         @staticmethod
         def removeDictInfo(dict_name: str) -> None:
             """Remove dictionary metadata from DICT_INFO."""
-            UtilsBase.DICT_INFO.pop(dict_name, None)
+            Utils.DICT_INFO.pop(dict_name, None)
 
         @staticmethod
         def _renew_dict_set_option(old_option: List) -> List:
             """Update a dictionary set option with newly discovered dictionaries."""
-            old_names = [item["name"] for item in old_option if item["name"] in UtilsBase.DICT_INFO]
+            old_names = [item["name"] for item in old_option if item["name"] in Utils.DICT_INFO]
             new_options = []
 
             # Add new dictionaries not in the old set
-            for dict_name in UtilsBase.DICT_INFO:
+            for dict_name in Utils.DICT_INFO:
                 if dict_name not in old_names:
                     new_options.append({"name": dict_name, "is_enabled": False})
 
             # Keep existing dictionary settings
             for item in old_option:
-                if item["name"] in UtilsBase.DICT_INFO:
+                if item["name"] in Utils.DICT_INFO:
                     new_options.append(item)
 
             return new_options
@@ -284,11 +273,11 @@ class UtilsBase:
         @staticmethod
         def renew_dict_set_options() -> None:
             """Refresh all dictionary set options with current dictionary list."""
-            old_options: Dict = UtilsBase.DICT_CONFIG["dict_set_options"]
+            old_options: Dict = Utils.DICT_CONFIG["dict_set_options"]
             new_options = {}
             for key, option in old_options.items():
-                new_options[key] = UtilsBase.Config._renew_dict_set_option(option)
-            UtilsBase.DICT_CONFIG["dict_set_options"] = new_options
+                new_options[key] = Utils.Config._renew_dict_set_option(option)
+            Utils.DICT_CONFIG["dict_set_options"] = new_options
 
 
 def initialize_config() -> None:
@@ -296,36 +285,36 @@ def initialize_config() -> None:
     Initialize the application configuration.
     Creates directories, loads config files, applies defaults, and migrates schemas.
     """
-    logger.info(f"FstDict support path: {UtilsBase.FSTDICT_SUPPORT_PATH}")
+    logger.info(f"FstDict support path: {Utils.FSTDICT_SUPPORT_PATH}")
 
     # Ensure required directories exist
-    UtilsBase.createDirIfnotExists(UtilsBase.USER_CONFIG_DIR)
-    UtilsBase.createDirIfnotExists(UtilsBase.DATA_PATH)
-    UtilsBase.createDirIfnotExists(UtilsBase.DICTIONARYS_PATH)
-    UtilsBase.createDirIfnotExists(UtilsBase.RAPID_OCR_MODELS_PATH)
+    Utils.createDirIfnotExists(Utils.USER_CONFIG_DIR)
+    Utils.createDirIfnotExists(Utils.DATA_PATH)
+    Utils.createDirIfnotExists(Utils.DICTIONARYS_PATH)
+    Utils.createDirIfnotExists(Utils.RAPID_OCR_MODELS_PATH)
 
     # Load default config templates
-    with open(UtilsBase.DEFAULT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
-        UtilsBase.DEFAULT_CONFIG = json.load(f)
-    with open(UtilsBase.DEFAULT_DICT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
-        UtilsBase.DEFAULT_DICT_CONFIG = json.load(f)
+    with open(Utils.DEFAULT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+        Utils.DEFAULT_CONFIG = json.load(f)
+    with open(Utils.DEFAULT_DICT_CONFIG_FILE, mode="r", encoding="utf-8") as f:
+        Utils.DEFAULT_DICT_CONFIG = json.load(f)
 
     # Load user configs if they exist
     for config_file, config_attr in [
-        (UtilsBase.CONFIG_FILE, "CONFIG"),
-        (UtilsBase.DICT_CONFIG_FILE, "DICT_CONFIG"),
+        (Utils.CONFIG_FILE, "CONFIG"),
+        (Utils.DICT_CONFIG_FILE, "DICT_CONFIG"),
     ]:
         if os.path.isfile(config_file):
             with open(config_file, mode="r", encoding="utf-8") as f:
-                setattr(UtilsBase, config_attr, json.load(f))
+                setattr(Utils, config_attr, json.load(f))
         else:
-            setattr(UtilsBase, config_attr, {})
+            setattr(Utils, config_attr, {})
 
     # Scan dictionaries directory
-    dict_path = Path(UtilsBase.DICTIONARYS_PATH)
+    dict_path = Path(Utils.DICTIONARYS_PATH)
     for file in dict_path.iterdir():
         if file.is_dir():
-            UtilsBase.Config.checkDictInfo(file)
+            Utils.Config.checkDictInfo(file)
 
     # Helper: recursively set default values for missing keys
     def set_defaults(config: Dict, defaults: Dict) -> bool:
@@ -371,12 +360,12 @@ def initialize_config() -> None:
         if remove_keys(config, remove_list):
             needs_sync = True
         if needs_sync:
-            UtilsBase.Config.syncConfigFile(config, file_path)
+            Utils.Config.syncConfigFile(config, file_path)
 
     migrate_config(
-        UtilsBase.CONFIG,
-        UtilsBase.DEFAULT_CONFIG,
-        UtilsBase.CONFIG_FILE,
+        Utils.CONFIG,
+        Utils.DEFAULT_CONFIG,
+        Utils.CONFIG_FILE,
         [
             ["schema_version"], ["dict_set_options"],
             ["ocr", "session"],
@@ -384,21 +373,21 @@ def initialize_config() -> None:
         ]
     )
     migrate_config(
-        UtilsBase.DICT_CONFIG,
-        UtilsBase.DEFAULT_DICT_CONFIG,
-        UtilsBase.DICT_CONFIG_FILE,
+        Utils.DICT_CONFIG,
+        Utils.DEFAULT_DICT_CONFIG,
+        Utils.DICT_CONFIG_FILE,
         []
     )
 
     # Apply selection monitoring setting to auto-register list
-    if UtilsBase.CONFIG["app"]["helper_selection"]["enabled"]:
-        UtilsBase.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("kHandlerTextSelection")
+    if Utils.CONFIG["app"]["helper_selection"]["enabled"]:
+        Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("kHandlerTextSelection")
 
     # Final initialization steps
-    UtilsBase.Config.renew_dict_set_options()
-    UtilsBase.Config.init_config(UtilsBase.CONFIG)
-    UtilsBase.Config.init_dict_config(UtilsBase.DICT_CONFIG)
-    UtilsBase.Config.init_shortcut_map()
+    Utils.Config.renew_dict_set_options()
+    Utils.Config.init_config(Utils.CONFIG)
+    Utils.Config.init_dict_config(Utils.DICT_CONFIG)
+    Utils.Config.init_shortcut_map()
 
 
 # Run initialization on module import

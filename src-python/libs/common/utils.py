@@ -1,38 +1,41 @@
-"""
-Global utility class and shared state.
-Extends the config base class with database and runtime state.
-"""
 import sys
 import os
 import subprocess
-
-from libs.config.app_config import UtilsBase
-from libs.ws_clients.cgevent_client import CgEventWsClient
-from libs.core.database import FstDictDatabase
+import shutil
+from pathlib import Path
 
 
-class Utils(UtilsBase):
-    """Global utility and shared application state."""
+class UtilsBase:
+    """Global utility"""
 
-    # Database instance
-    db = FstDictDatabase(UtilsBase.FSTDICT_DATABASE_PATH)
-
-    # WebSocket client instances (initialized at app startup)
-    cgevent_ws_client: CgEventWsClient
+    # --- File system utilities ---
+    @staticmethod
+    def createDirIfnotExists(path: str) -> None:
+        if not os.path.exists(path):
+            os.makedirs(path)
 
     @staticmethod
-    def delete_dictionary(dict_name: str) -> None:
-        """Delete a dictionary directory and update configuration."""
-        dict_dir = Utils.getDictDir(dict_name)
-        Utils.removeDirIfExists(dict_dir)
-        Utils.Config.removeDictInfo(dict_name)
-        Utils.Config.renew_dict_set_options()
+    def copyFile(src: str, dst: str) -> None:
+        shutil.copy2(src, dst)
 
     @staticmethod
-    def reveal_dict_in_file_manager(dict_name: str) -> bool:
-        """Open file manager and highlight the dictionary file."""
-        dict_path = Utils.getDictPath(dict_name)
-        return Utils.reveal_in_file_manager(dict_path)
+    def removeDirIfExists(path: str) -> None:
+        if os.path.exists(path):
+            shutil.rmtree(path)
+
+    @staticmethod
+    def removeFileIfExists(path: str) -> None:
+        if os.path.exists(path):
+            os.remove(path)
+
+    @staticmethod
+    def find_files_by_postfix(root_dir: str, dict_name: str, postfix: str) -> list[str]:
+        """Find all files with a given extension in a directory."""
+        files = []
+        for item in Path(root_dir).iterdir():
+            if item.is_file() and item.name.lower().endswith(postfix):
+                files.append(f"{dict_name}/{item.name}")
+        return files
 
     @staticmethod
     def reveal_in_file_manager(file_path: str) -> bool:

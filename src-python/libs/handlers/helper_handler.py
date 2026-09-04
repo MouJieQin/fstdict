@@ -7,7 +7,7 @@ import urllib.request
 from fastapi import WebSocket
 
 from libs.log_config import logger
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 
 
 class HelperMessageHandler:

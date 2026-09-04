@@ -8,7 +8,7 @@ from libs.handlers.session_handler import SessionMessageHandler
 from libs.handlers.main_handler import MainMessageHandler
 from libs.handlers.helper_handler import HelperMessageHandler
 from libs.common.session_manager import SessionManager
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 from libs.handlers.exit_handler import ExitHandler
 from libs.log_config import logger
 

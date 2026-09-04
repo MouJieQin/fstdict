@@ -23,8 +23,7 @@ from libs.api.ws_router import router as ws_router
 from libs.ws_clients.cgevent_client import CgEventWsClient
 from libs.handlers.cgevent_handler import CgEventHandler
 from libs.handlers.exit_handler import ExitHandler
-
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 
 # Change working directory to script location
 os.chdir(os.path.dirname(__file__))

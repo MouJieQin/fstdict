@@ -7,7 +7,7 @@ import os
 import subprocess
 from rapidocr import EngineType, LangDet, ModelType, OCRVersion, RapidOCR
 
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 from libs.log_config import logger
 
 

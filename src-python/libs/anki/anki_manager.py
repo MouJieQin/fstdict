@@ -9,7 +9,7 @@ import queue
 import asyncio
 from typing import Callable, List, Dict
 
-from libs.config.app_config import UtilsBase
+from libs.config.app_config import Utils
 from libs.anki.anki_api import AnkiApi
 from libs.log_config import logger
 
@@ -43,8 +43,8 @@ class AnkiManager:
 
     def _load_config(self) -> None:
         """Load Anki configuration from file."""
-        if os.path.exists(UtilsBase.ANKI_CONFIG_FILE):
-            with open(UtilsBase.ANKI_CONFIG_FILE, "r") as f:
+        if os.path.exists(Utils.ANKI_CONFIG_FILE):
+            with open(Utils.ANKI_CONFIG_FILE, "r") as f:
                 self.config = json.load(f)
         else:
             self.config = {
@@ -57,7 +57,7 @@ class AnkiManager:
             self._save_config()
 
     def _save_config(self) -> None:
-        with open(UtilsBase.ANKI_CONFIG_FILE, mode="w", encoding="utf-8") as f:
+        with open(Utils.ANKI_CONFIG_FILE, mode="w", encoding="utf-8") as f:
             f.write(json.dumps(self.config, ensure_ascii=False, indent=4))
 
     @staticmethod

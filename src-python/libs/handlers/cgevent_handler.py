@@ -5,7 +5,7 @@ import json
 from websockets.asyncio.client import ClientConnection
 
 from libs.log_config import logger
-from libs.common.utils import Utils
+from libs.config.app_config import Utils
 
 
 class CgEventHandler:
