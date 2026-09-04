@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 use crate::window::permission_window;
 use crate::window::updater_window;
 use fstdict_common::theme::set_app_theme;

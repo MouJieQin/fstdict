@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use super::keyboard::simulate_key_press;
+#[cfg(target_os = "macos")]
 use crate::commands::{check_accessibility, check_screen_recording, show_permission_window};
 use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
 use fstdict_common::window::notification::show_notification;
