@@ -5,35 +5,72 @@ use super::double_copy::handle_double_copy;
 use crate::app_state::MainWindowWsSender;
 use enigo::Keyboard;
 use log::{error, info};
-use tauri::{App, AppHandle, Manager, Runtime};
+#[cfg(target_os = "macos")]
+use macos_accessibility_client::accessibility;
+use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
 
-fn register_global_shortcut(app: &App, shortcut_keys: &str) {
-    let screenshot = Shortcut::from_str(shortcut_keys).expect("Invalid shortcut string");
-    app.global_shortcut()
-        .register(screenshot)
-        .expect("Failed to register screenshot shortcut");
+pub fn register_global_shortcut(app: &AppHandle, shortcut_keys: &str) {
+    match Shortcut::from_str(shortcut_keys) {
+        Ok(shortcut) => {
+            if let Err(e) = app.global_shortcut().register(shortcut) {
+                error!(
+                    "Failed to register global shortcut '{}': {:?}",
+                    shortcut_keys, e
+                );
+            } else {
+                info!("Successfully registered global shortcut: {}", shortcut_keys);
+            }
+        }
+        Err(e) => {
+            error!(
+                "Invalid global shortcut string '{}': {:?}",
+                shortcut_keys, e
+            );
+        }
+    }
+}
+
+pub fn unregister_global_shortcut(app: &AppHandle, shortcut_keys: &str) {
+    match Shortcut::from_str(shortcut_keys) {
+        Ok(shortcut) => {
+            if let Err(e) = app.global_shortcut().unregister(shortcut) {
+                error!(
+                    "Failed to unregister global shortcut '{}': {:?}",
+                    shortcut_keys, e
+                );
+            } else {
+                info!(
+                    "Successfully unregistered global shortcut: {}",
+                    shortcut_keys
+                );
+            }
+        }
+        Err(e) => {
+            error!(
+                "Invalid global shortcut string '{}': {:?}",
+                shortcut_keys, e
+            );
+        }
+    }
 }
 
 /// Registers all global system shortcuts.
-pub fn register_global_shortcuts(app: &App) {
-    // Screenshot / OCR trigger
-    register_global_shortcut(app, "alt+shift+s");
-    register_global_shortcut(app, "alt+shift+o");
-
+pub fn register_global_shortcuts(app: &AppHandle) {
     // Copy key interception (platform-specific)
     #[cfg(target_os = "macos")]
     {
-        use macos_accessibility_client::accessibility;
         if accessibility::application_is_trusted() {
-            let copy_shortcut = Shortcut::from_str("super+c").expect("Invalid shortcut string");
+            let copy_shortcut =
+                Shortcut::from_str("super+c").expect("Invalid keyboard shortcut string");
             let _ = app.global_shortcut().register(copy_shortcut);
         }
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        let copy_shortcut = Shortcut::from_str("control+c").expect("Invalid shortcut string");
+        let copy_shortcut =
+            Shortcut::from_str("control+c").expect("Invalid keyboard shortcut string");
         let _ = app.global_shortcut().register(copy_shortcut);
     }
 }
@@ -56,13 +93,12 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
                 handle_double_copy(ws_state, app);
             }
         }
-        "shift+alt+KeyS" => {
-            handle_toggle_selection_trigger(app);
+        // "shift+alt+KeyO" => {
+        //     handle_start_ocr_trigger(app);
+        // }
+        _ => {
+            send_shortcut_event(app, &shortcut_str);
         }
-        "shift+alt+KeyO" => {
-            handle_start_ocr_trigger(app);
-        }
-        _ => {}
     }
 }
 
@@ -79,16 +115,19 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
 
         // Simulate physical keypress on the main thread (required on macOS)
         let _ = app.run_on_main_thread(move || {
-            let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
             #[cfg(target_os = "macos")]
             {
-                let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
-                let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
-                let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Release);
+                if accessibility::application_is_trusted() {
+                    let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
+                    let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
+                    let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
+                    let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Release);
+                }
             }
 
             #[cfg(not(target_os = "macos"))]
             {
+                let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
                 let _ = enigo.key(enigo::Key::Control, enigo::Direction::Press);
                 let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
                 let _ = enigo.key(enigo::Key::Control, enigo::Direction::Release);
@@ -103,29 +142,18 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
     });
 }
 
-fn handle_toggle_selection_trigger(app: &AppHandle) {
-    // toggle_selection
+fn send_shortcut_event(app: &AppHandle, shortcut_str: &str) {
     let payload = serde_json::json!({
-        "type": "toggle_selection",
-        "data": {}
+        "type": "shortcut_triggered",
+        "data": {
+            "shortcut": shortcut_str
+        }
     });
 
     if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
         if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
-            error!("Failed to send toggle selection over WebSocket: {:?}", e);
+            error!("Failed to send shortcut triggered over WebSocket: {:?}", e);
         }
     }
 }
 
-fn handle_start_ocr_trigger(app: &AppHandle) {
-    let payload = serde_json::json!({
-        "type": "start_ocr",
-        "data": {}
-    });
-
-    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
-        if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
-            error!("Failed to send start ocr over WebSocket: {:?}", e);
-        }
-    }
-}

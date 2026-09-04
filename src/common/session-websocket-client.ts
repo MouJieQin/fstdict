@@ -52,6 +52,10 @@ export class SessionWebSocketService extends WebSocketService {
         this.sendTyped('update_system_config', { system_config: systemConfig })
     }
 
+    public sendUpdateShortcutSystemConfig(shortcutName: string, shortcuts: string[]): void {
+        this.sendTyped('update_shortcut_config', { shortcut_name: shortcutName, shortcuts})
+    }
+
     // --- Favorites ---
     public sendToggleFavor(keyword: string, folderId: number | null): void {
         this.sendTyped('toggle_favor', { keyword, folder_id: folderId })

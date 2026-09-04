@@ -14,6 +14,21 @@ class MainMessageHandler:
     """Handles messages from the main application window WebSocket."""
 
     @staticmethod
+    async def register_shortcuts(websocket: WebSocket):
+        """Register global shortcuts based on the provided data."""
+        try:
+            sc_list = []
+            for shortcut, sc_name in Utils.shortcut_map.items():
+                sc_list.append(shortcut)
+            msg = {
+                "type": "register_shortcuts",
+                "data": {"shortcuts": sc_list}
+            }
+            await websocket.send_text(json.dumps(msg))
+        except Exception as e:
+            logger.error(f"Error registering shortcuts: {e}", exc_info=True)
+
+    @staticmethod
     async def handle_message(websocket: WebSocket, data: str):
         """Parse and route incoming main window messages."""
         try:
@@ -24,11 +39,9 @@ class MainMessageHandler:
                 selected_text = message["data"]["text"]
                 await MainMessageHandler._broadcast_text_selection(selected_text)
 
-            elif msg_type == "toggle_selection":
-                await MainMessageHandler._toggle_selection_monitoring()
-
-            elif msg_type == "start_ocr":
-                await MainMessageHandler._handle_ocr_request(websocket)
+            elif msg_type == "shortcut_triggered":
+                shortcut = message["data"]["shortcut"]
+                await MainMessageHandler._handle_shortcut_triggered(websocket, shortcut)
 
             else:
                 logger.warning(f"Unknown main message type: {msg_type}")
@@ -45,6 +58,24 @@ class MainMessageHandler:
         }
         if Utils.fstdict_helper_websocket:
             await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
+
+    @staticmethod
+    async def _handle_shortcut_triggered(websocket: WebSocket, shortcut: str):
+        """Handle a shortcut triggered event."""
+        logger.info(f"Shortcut triggered: {shortcut}")
+
+        if shortcut not in Utils.shortcut_map:
+            logger.warning(f"Shortcut '{shortcut}' not found in shortcut map")
+            return
+
+        shortcut_name = Utils.shortcut_map[shortcut]
+        # Handle specific shortcuts
+        if shortcut_name == "toggle_selection":
+            await MainMessageHandler._toggle_selection_monitoring()
+        elif shortcut_name == "screenshot_ocr":
+            await MainMessageHandler._handle_ocr_request(websocket)
+        else:
+            logger.warning(f"Unhandled shortcut: {shortcut}")
 
     @staticmethod
     async def _toggle_selection_monitoring():

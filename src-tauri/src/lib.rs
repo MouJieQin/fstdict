@@ -146,7 +146,7 @@ pub async fn run() {
             setup_main_window(app)?;
 
             // Register system-wide keyboard shortcuts
-            register_global_shortcuts(app);
+            register_global_shortcuts(&app_handle);
 
             // Start Python backend sidecar (skipped in dev mode)
             match start_python_sidecar(app) {

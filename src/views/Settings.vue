@@ -88,10 +88,11 @@
                                 <el-button :icon="Document" size="small" @click="openFolderWords(row)"
                                     :aria-label="$t('settings.viewWords')" />
                                 <el-popconfirm :confirm-button-text="$t('common.delete')" confirm-button-type="danger"
-                                    :cancel-button-text="$t('common.cancel')" :icon="Delete" icon-color="#FF4949"
+                                    :cancel-button-text="$t('common.cancel')" 
+                                    :icon="Delete" icon-color="var(--el-color-danger)"
                                     :title="$t('settings.deleteFolder')" @confirm="deleteFolder(row.id)">
                                     <template #reference>
-                                        <el-button :icon="Delete" size="small" type="danger"
+                                        <el-button :icon="Delete" size="small"
                                             :aria-label="$t('settings.deleteFolder')" />
                                     </template>
                                 </el-popconfirm>
@@ -207,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed, onBeforeMount } from 'vue'
+import { reactive, ref, watch, computed, onBeforeMount, Text } from 'vue'
 import type { PropType, FormInstance, FormRules } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -413,6 +414,10 @@ function persistSessionConfig(): void {
     props.webSocket?.sendSessionConfig(localSessionConfig.value)
 }
 
+function persistShortcutConfig(shortcutName: string, shortcuts: string[]): void {
+    props.webSocket?.sendUpdateShortcutSystemConfig(shortcutName, shortcuts)
+}
+
 // ─── Folder Actions ─────────────────────────────────────────────
 function openCreateFolder(): void {
     isCreatingFolder.value = true
@@ -564,13 +569,11 @@ async function checkHelperPermission(): Promise<void> {
 
 // ─── Handle update shortcuts ──────────────────────────────────────────────
 const updateToggleSelectShortcuts = (shortcuts: string[]) => {
-    localSystemConfig.value.shortcuts.toggle_selection = shortcuts
-    persistSystemConfig()
+    persistShortcutConfig('toggle_selection', shortcuts)
 }
 
 const updateScreenshotOcrShortcuts = (shortcuts: string[]) => {
-    localSystemConfig.value.shortcuts.screenshot_ocr = shortcuts
-    persistSystemConfig()
+    persistShortcutConfig('screenshot_ocr', shortcuts)
 }
 
 // ─── Show Updater Window ──────────────────────────────────────────────

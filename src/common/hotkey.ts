@@ -1,7 +1,7 @@
 import { type as osType } from '@tauri-apps/plugin-os'
 
 // Standardized internal key names (always stored in config, platform-agnostic)
-export type ModifierKey = 'meta' | 'ctrl' | 'alt' | 'shift'
+export type ModifierKey = 'shift' | 'ctrl' | 'alt' | 'super'
 export type NormalizedKey = ModifierKey | string
 
 // Cached platform state
@@ -31,6 +31,18 @@ export async function initPlatformDetection(): Promise<void> {
   }
 }
 
+function stripKeyDigitPrefix(key: NormalizedKey): string {
+  // Letter keys: KeyA -> A, KeyL -> L
+  if (key.startsWith('Key')) {
+    return key.replace('Key', '').toUpperCase()
+  }
+  // Digit: Digit0 -> 0
+  if (key.startsWith('Digit')) {
+    return key.replace('Digit', '')
+  }
+  return key
+}
+
 /**
  * Normalize from KeyboardEvent.code (physical key, FOR SHORTCUT CAPTURE)
  * e.code like KeyL, Digit1, ArrowUp
@@ -39,11 +51,11 @@ export function normalizeKeyFromCode(code: string): NormalizedKey | null {
   if (!code) return null
   // Letter keys: KeyA -> A, KeyL -> L
   if (code.startsWith('Key')) {
-    return code.replace('Key', '')
+    return code
   }
   // Digit: Digit0 -> 0
   if (code.startsWith('Digit')) {
-    return code.replace('Digit', '')
+    return code
   }
   // Function keys
   if (code.startsWith('F')) {
@@ -75,7 +87,7 @@ export function normalizeKey(rawKey: string): NormalizedKey {
     case 'os':
     case 'command':
     case 'cmd':
-      return 'meta'
+      return 'super'
     case 'control':
       return 'ctrl'
     case 'alt':
@@ -112,11 +124,11 @@ export function normalizeKey(rawKey: string): NormalizedKey {
  * Check if a key is a modifier key
  */
 export function isModifier(key: NormalizedKey): boolean {
-  return ['meta', 'ctrl', 'alt', 'shift'].includes(key as ModifierKey)
+  return ['shift', 'ctrl', 'alt', 'super'].includes(key as ModifierKey)
 }
 
 /**
- * Sort keys in standard order: Meta → Ctrl → Alt → Shift → Primary key
+ * Sort keys in standard order: Shift → Ctrl → Alt → Super → Primary key
  */
 export function sortHotkey(keys: NormalizedKey[]): NormalizedKey[] {
   const modifiers: ModifierKey[] = []
@@ -130,7 +142,7 @@ export function sortHotkey(keys: NormalizedKey[]): NormalizedKey[] {
     }
   }
 
-  const modifierOrder: ModifierKey[] = ['meta', 'ctrl', 'alt', 'shift']
+  const modifierOrder: ModifierKey[] = ['shift', 'ctrl', 'alt', 'super']
   modifiers.sort((a, b) => modifierOrder.indexOf(a) - modifierOrder.indexOf(b))
 
   return [...modifiers, ...others]
@@ -143,7 +155,7 @@ export function sortHotkey(keys: NormalizedKey[]): NormalizedKey[] {
 export function formatHotkey(keys: NormalizedKey[]): string[] {
   const isWin = isWindowsSync()
   const symbolMap: Record<ModifierKey, { mac: string; win: string }> = {
-    meta: { mac: '⌘', win: '⊞' },
+    super: { mac: '⌘', win: '⊞' },
     ctrl: { mac: '⌃', win: 'Ctrl' },
     alt: { mac: '⌥', win: 'Alt' },
     shift: { mac: '⇧', win: 'Shift' },
@@ -167,6 +179,6 @@ export function formatHotkey(keys: NormalizedKey[]): string[] {
       Delete: '⌦',
       Tab: '⇥',
     }
-    return specialLabels[key] || key.toUpperCase()
+    return specialLabels[key] || stripKeyDigitPrefix(key)
   })
 }

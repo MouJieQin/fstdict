@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use super::keyboard::simulate_key_press;
+use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
 use fstdict_common::window::notification::show_notification;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
@@ -131,6 +132,31 @@ where
         InboundMessage::SimulateKeyPress { data } => {
             let key = data.key;
             let _ = app.run_on_main_thread(|| simulate_key_press(key));
+        }
+
+        InboundMessage::RegisterShortcut { data } => {
+            let shortcut = data.shortcut;
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                register_global_shortcut(&app_clone, &shortcut);
+            });
+        }
+        InboundMessage::RegisterShortcuts { data } => {
+            let shortcuts = data.shortcuts;
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                info!("Registering multiple shortcuts: {:?}", shortcuts);
+                for shortcut in shortcuts {
+                    register_global_shortcut(&app_clone, &shortcut);
+                }
+            });
+        }
+        InboundMessage::UnregisterShortcut { data } => {
+            let shortcut = data.shortcut;
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                unregister_global_shortcut(&app_clone, &shortcut);
+            });
         }
 
         InboundMessage::ExitRequest => {

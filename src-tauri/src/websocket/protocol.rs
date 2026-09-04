@@ -13,6 +13,15 @@ pub enum InboundMessage {
     #[serde(rename = "simulate_key_press")]
     SimulateKeyPress { data: SimulateKeyData },
 
+    #[serde(rename = "register_shortcut")]
+    RegisterShortcut { data: RegisterShortcutData },
+
+    #[serde(rename = "register_shortcuts")]
+    RegisterShortcuts { data: RegisterShortcutsData },
+
+    #[serde(rename = "unregister_shortcut")]
+    UnregisterShortcut { data: RegisterShortcutData },
+
     #[serde(rename = "exit_request")]
     ExitRequest,
 }
@@ -30,6 +39,16 @@ pub struct OcrResultData {
 #[derive(Debug, Deserialize)]
 pub struct SimulateKeyData {
     pub key: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegisterShortcutsData {
+    pub shortcuts: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegisterShortcutData {
+    pub shortcut: String,
 }
 
 /// Builds the initial connection handshake message.

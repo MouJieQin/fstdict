@@ -53,10 +53,6 @@ class UtilsBase:
 
     AUDIO_SUFFIX = app_paths.AUDIO_EXTENSIONS
 
-    # FST search engine instance
-    fstd_engine = fstd.FstdxSearcher()
-    fstd.set_log_level(3)
-
     # Configuration state
     DEFAULT_CONFIG: Dict = {}
     CONFIG: Dict = {}
@@ -65,6 +61,13 @@ class UtilsBase:
 
     REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION: List[str] = []
     DICT_INFO: Dict = {}
+
+    # FST search engine instance
+    fstd_engine = fstd.FstdxSearcher()
+    fstd.set_log_level(3)
+
+    # Shortcut configuration state
+    shortcut_map: Dict = {}
 
     # WebSocket connection state maps
     electron_websockets: Dict[int, WebSocket] = {}
@@ -140,6 +143,46 @@ class UtilsBase:
         def init_dict_config(config: Dict) -> None:
             UtilsBase.DICT_CONFIG = config
             UtilsBase.Config.syncDictConfig()
+
+        @staticmethod
+        def make_shorcut(shortcut_keys: List[str]) -> str:
+            """Convert a list of shortcut keys into a standardized string format."""
+            return "+".join(shortcut_keys)
+
+        @staticmethod
+        def init_shortcut_map() -> None:
+            """Initialize the shortcut map from the configuration."""
+            shortcuts = UtilsBase.CONFIG.get("shortcuts", {})
+            for sc_name, sc_keys in shortcuts.items():
+                shortcut = UtilsBase.Config.make_shorcut(sc_keys)
+                UtilsBase.shortcut_map[shortcut] = sc_name
+
+        @staticmethod
+        async def update_shortcut(shortcut_name: str, shortcut_keys: List[str]) -> None:
+            """Update a specific shortcut in the configuration and map."""
+            old_keys = UtilsBase.CONFIG["shortcuts"].get(shortcut_name, [])
+            old_shortcut = UtilsBase.Config.make_shorcut(old_keys)
+            if old_shortcut in UtilsBase.shortcut_map:
+                del UtilsBase.shortcut_map[old_shortcut]
+            UtilsBase.CONFIG["shortcuts"][shortcut_name] = shortcut_keys
+            UtilsBase.Config.syncConfig()
+            shortcut = UtilsBase.Config.make_shorcut(shortcut_keys)
+            UtilsBase.shortcut_map[shortcut] = shortcut_name
+            logger.info(f"Updating shortcut '{shortcut_name}' to '{shortcut}'")
+            if UtilsBase.fstdict_main_websocket:
+                logger.info(f"Sending update shortcut message for '{shortcut_name}' to '{shortcut}'")
+                await UtilsBase.fstdict_main_websocket.send_text(json.dumps({
+                    "type": "unregister_shortcut",
+                    "data": {
+                        "shortcut": old_shortcut
+                    }
+                }))
+                await UtilsBase.fstdict_main_websocket.send_text(json.dumps({
+                    "type": "register_shortcut",
+                    "data": {
+                        "shortcut": shortcut
+                    }
+                }))
 
         @staticmethod
         def create_dict_set_option(option_name: str) -> bool:
@@ -355,6 +398,7 @@ def initialize_config() -> None:
     UtilsBase.Config.renew_dict_set_options()
     UtilsBase.Config.init_config(UtilsBase.CONFIG)
     UtilsBase.Config.init_dict_config(UtilsBase.DICT_CONFIG)
+    UtilsBase.Config.init_shortcut_map()
 
 
 # Run initialization on module import

@@ -543,6 +543,17 @@ class SessionMessageHandler:
         if Utils.fstdict_main_websocket:
             await Utils.fstdict_main_websocket.send_text(json.dumps(message))
 
+    @staticmethod
+    async def _handle_update_shortcut_config(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        """Update global shortcut configuration."""
+        shortcut_name = message["data"]["shortcut_name"]
+        shortcuts = message["data"]["shortcuts"]
+
+        await Utils.Config.update_shortcut(shortcut_name, shortcuts)
+        await SessionManager.broadcast_all_system_config()
+
 
 # ---------------------------------------------------------------------------
 # Message type to handler routing table
@@ -594,4 +605,7 @@ _HANDLER_MAP = {
 
     # keyboard simulation
     "simulate_key_press": SessionMessageHandler._handle_simulate_key_press,
+
+    # keyboard shortcuts
+    "update_shortcut_config": SessionMessageHandler._handle_update_shortcut_config,
 }

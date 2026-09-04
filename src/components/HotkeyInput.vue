@@ -89,7 +89,7 @@ function handleKeyDown(e: KeyboardEvent): void {
 
     // Build modifier set from event flags
     const activeModifiers: NormalizedKey[] = []
-    if (e.metaKey) activeModifiers.push('meta')
+    if (e.metaKey) activeModifiers.push('super')
     if (e.ctrlKey) activeModifiers.push('ctrl')
     if (e.altKey) activeModifiers.push('alt')
     if (e.shiftKey) activeModifiers.push('shift')
