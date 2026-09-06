@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "notify-layer",
-  "description": "Capability for the main window",
+  "description": "Capability for the notify layer common window",
   "windows": [
     "notify-layer"
   ],

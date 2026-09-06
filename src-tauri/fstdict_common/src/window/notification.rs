@@ -84,7 +84,12 @@ fn create_notification_panel(
     task_id: u64,
 ) -> Result<(), tauri::Error> {
     let encoded = urlencoding::encode(&message);
-    let target_url = format!("notification.html?message={}", encoded);
+
+    #[cfg(not(debug_assertions))]
+    let base_url = "tauri://localhost";
+    #[cfg(debug_assertions)]
+    let base_url = "http://localhost:9595";
+    let target_url = format!("{}/#/notification?message={}", base_url, encoded);
 
     let win = WebviewWindowBuilder::new(app, "notify-layer", WebviewUrl::App(target_url.into()))
         .inner_size(NOTIFICATION_INNER_WIDTH, NOTIFICATION_INNER_HEIGHT)

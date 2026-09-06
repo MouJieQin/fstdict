@@ -11,6 +11,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/Home.vue'),
             },
             {
+                path: 'notification',
+                name: 'Notification',
+                component: () => import('@/views/Notification.vue'),
+            },
+            {
                 path: 'updater',
                 name: 'Updater',
                 component: () => import('@/views/Updater.vue'),

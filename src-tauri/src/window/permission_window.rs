@@ -24,7 +24,6 @@ fn create_permission_window(app: &AppHandle) -> Result<(), tauri::Error> {
         .always_on_top(true)
         .visible_on_all_workspaces(true)
         .build()?;
-
     let _ = win.show();
     Ok(())
 }
