@@ -3,7 +3,9 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": [
-    "main"
+    "main",
+    "helper-main",
+    "selection-float-search"
   ],
   "permissions": [
     "core:default",

@@ -164,7 +164,7 @@ import type {
     WordInfoWithLastSearch,
 } from '@/common/type-interface'
 
-import { ENV } from '@/common/constants'
+import { ENV, TAURI_EVENT } from '@/common/constants'
 
 // add import at top
 import { setAppLocale } from '@/i18n'
@@ -493,14 +493,14 @@ let unlistenOcrResult: (() => void) | null = null
 
 const setupTauriListeners = async (): Promise<void> => {
     try {
-        if (envFromRoute.value === ENV.SELECTION || envFromRoute.value === ENV.MAIN) {
-            unlistenTextSelected = await listen('cgevent-select', (event) => {
+        if (envFromRoute.value === ENV.SELECTION) {
+            unlistenTextSelected = await listen(TAURI_EVENT.TEXT_SELECTED, (event) => {
                 redirectWord.value = event.payload as string
             })
         }
 
         if (envFromRoute.value === ENV.HELPER || envFromRoute.value === ENV.MAIN) {
-            unlistenOcrResult = await listen('cgevent-ocr', (event) => {
+            unlistenOcrResult = await listen(TAURI_EVENT.OCR_RESULT, (event) => {
                 redirectWord.value = event.payload as string
             })
         }

@@ -42,6 +42,7 @@ ctrlc = "3.5.2"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-os = "2.3.2"
 ghost-permissions = "0.1.14"
+monio = { version = "0.1.1", features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-accessibility-client = "0.0.2"

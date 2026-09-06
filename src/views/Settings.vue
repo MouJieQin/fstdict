@@ -2,7 +2,7 @@
     <div class="setting-container">
         <p class="system-config-title">{{ $t('settings.title') }}</p>
 
-        <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="150px" class="config-form">
+        <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="auto" class="config-form">
             <!-- Appearance Section -->
             <div class="config-class">
                 <p class="config-class-title">{{ $t('settings.appearance') }}</p>
