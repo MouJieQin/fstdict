@@ -21,9 +21,9 @@ use std::time::{Duration, Instant};
 /// Poll interval for clipboard changeCount detection.
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
 // Tier-specific timeouts
-const TIER2_AXCOPY_TIMEOUT: Duration = Duration::from_millis(100); // AXCopy unreliable; fail fast
+const TIER2_AXCOPY_TIMEOUT: Duration = Duration::from_millis(30); // AXCopy unreliable; fail fast
 const TIER3_CGEVENT_TIMEOUT: Duration = Duration::from_millis(500); // WKWebView needs ~100-300ms
-const POST_CHANGE_DELAY: Duration = Duration::from_millis(100); // Wait for promised data fulfillment
+const POST_CHANGE_DELAY: Duration = Duration::from_millis(50); // Wait for promised data fulfillment
 
 pub fn get_text() -> String {
     // Tier 1: AXSelectedText (works for native text fields, not WKWebView)

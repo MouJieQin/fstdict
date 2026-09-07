@@ -93,9 +93,6 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
                 handle_double_copy(ws_state, app);
             }
         }
-        // "shift+alt+KeyO" => {
-        //     handle_start_ocr_trigger(app);
-        // }
         _ => {
             send_shortcut_event(app, &shortcut_str);
         }
@@ -110,34 +107,41 @@ fn passthrough_native_copy<R: Runtime>(app: AppHandle<R>, shortcut: Shortcut) {
         let gs = app.global_shortcut();
         let _ = gs.unregister(shortcut);
 
-        // Brief delay to let the unregister propagate
+        // Let unregister propagate to the event tap
         tokio::time::sleep(Duration::from_millis(5)).await;
 
-        // Simulate physical keypress on the main thread (required on macOS)
+        // Simulate on main thread, then WAIT for completion via oneshot.
+        // Without this, enigo may execute AFTER re-register, and the
+        // simulated Cmd+C gets captured by our own interceptor.
+        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
         let _ = app.run_on_main_thread(move || {
             #[cfg(target_os = "macos")]
             {
                 if accessibility::application_is_trusted() {
-                    let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
-                    let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
-                    let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
-                    let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Release);
+                    if let Ok(mut enigo) = enigo::Enigo::new(&enigo::Settings::default()) {
+                        let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Press);
+                        let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
+                        let _ = enigo.key(enigo::Key::Meta, enigo::Direction::Release);
+                    }
                 }
             }
-
             #[cfg(not(target_os = "macos"))]
             {
-                let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
-                let _ = enigo.key(enigo::Key::Control, enigo::Direction::Press);
-                let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
-                let _ = enigo.key(enigo::Key::Control, enigo::Direction::Release);
+                if let Ok(mut enigo) = enigo::Enigo::new(&enigo::Settings::default()) {
+                    let _ = enigo.key(enigo::Key::Control, enigo::Direction::Press);
+                    let _ = enigo.key(enigo::Key::Unicode('c'), enigo::Direction::Click);
+                    let _ = enigo.key(enigo::Key::Control, enigo::Direction::Release);
+                }
             }
+            let _ = tx.send(());
         });
 
-        // Allow the target app time to process the copy and update the clipboard
-        tokio::time::sleep(Duration::from_millis(20)).await;
+        // Block until enigo has actually finished on the main thread
+        let _ = rx.await;
 
-        // Re-register the shortcut interceptor
+        // Give the target app time to process the copy
+        tokio::time::sleep(Duration::from_millis(30)).await;
+
         let _ = gs.register(shortcut);
     });
 }
@@ -156,4 +160,3 @@ fn send_shortcut_event(app: &AppHandle, shortcut_str: &str) {
         }
     }
 }
-
