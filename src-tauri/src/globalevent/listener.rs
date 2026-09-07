@@ -1,7 +1,7 @@
 // src/globalevent/listener.rs
 use crate::commands;
 use crate::websocket::client::try_ws_send;
-use log::{debug, info, warn};
+use log::{info, warn};
 use monio::channel::listen_async_channel;
 use monio::{Button, Event, EventType};
 use selection::get_text;
@@ -100,14 +100,6 @@ pub fn enable_selection_float_hide() {
 
 pub fn disable_selection_float_hide() {
     toggle_subscriber(SUB_SELECTION_FLOAT_HIDE, false);
-}
-
-pub fn enable_text_selection_capture() {
-    toggle_subscriber(SUB_TEXT_SELECTION_CAPTURE, true);
-}
-
-pub fn disable_text_selection_capture() {
-    toggle_subscriber(SUB_TEXT_SELECTION_CAPTURE, false);
 }
 
 pub fn toggle_text_selection_capture(enabled: bool) {

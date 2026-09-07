@@ -155,5 +155,8 @@ class MainMessageHandler:
         if sys.platform == "darwin":
             if Utils.fstdict_helper_websocket:
                 await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
+            else:
+                # debug linux and windows on macOS
+                await websocket.send_text(json.dumps(msg))
         else:
             await websocket.send_text(json.dumps(msg))

@@ -150,7 +150,8 @@ where
                     let _ = show_notification(&app_clone, "No valid OCR result detected".into());
                     return;
                 }
-                let _ = app_clone.emit_to("main", "cgevent-ocr", data.ocr_txt);
+                let _ = commands::show_main_panel(&app_clone);
+                let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
             });
         }
 

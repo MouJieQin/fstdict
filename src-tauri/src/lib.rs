@@ -10,7 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use fstdict_common::logger::init_logging;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use tauri::{Manager, RunEvent};
 use tokio::sync::mpsc;
 
@@ -110,7 +110,11 @@ pub async fn run() {
             #[cfg(target_os = "macos")]
             commands::launch_helper,
             #[cfg(target_os = "macos")]
-            commands::launch_cgevent_server
+            commands::launch_cgevent_server,
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            commands::set_selection_window_pinned,
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            commands::set_main_window_pinned,
         ])
         .manage(DoubleCopyTracker::default())
         .manage(PythonServer::default());
@@ -193,7 +197,7 @@ pub async fn run() {
             #[cfg(target_os = "macos")]
             {
                 use macos_accessibility_client::accessibility::application_is_trusted;
-                use sidecar::{cgevent::start_cgevent_sidecar, helper::start_helper};
+                // use sidecar::cgevent::start_cgevent_sidecar;
 
                 if application_is_trusted() {
                     // Start CGEvent server
@@ -211,6 +215,8 @@ pub async fn run() {
 
                 #[cfg(not(feature = "dev-non-macos"))]
                 {
+                    use log::warn;
+                    use sidecar::helper::start_helper;
                     // Start floating helper app
                     match start_helper() {
                         Ok(Some(child)) => {

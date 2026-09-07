@@ -7,7 +7,7 @@ use enigo::Keyboard;
 use log::{error, info};
 #[cfg(target_os = "macos")]
 use macos_accessibility_client::accessibility;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
 
 pub fn register_global_shortcut(app: &AppHandle, shortcut_keys: &str) {
