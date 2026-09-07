@@ -336,8 +336,6 @@ fn handle_mouse_released(app: &AppHandle, event: &Event, subscribers: u8) {
     if distance >= SELECTION_MIN_DRAG_PX && duration_ms >= SELECTION_MIN_DURATION_MS {
         info!("Text-selection gesture detected (dist={distance:.1}px, {duration_ms}ms)");
         try_get_selected_text(app);
-        // Notify frontend, you can emit tauri event here
-        // let _ = app.emit("text-selection-detected", ());
     }
 }
 

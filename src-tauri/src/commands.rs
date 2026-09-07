@@ -1,14 +1,9 @@
-use crate::globalevent::listener;
 #[cfg(target_os = "macos")]
 use crate::window::permission_window;
 use crate::window::updater_window;
-use log::info;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
-#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
-use crate::app_state::{HelperMainWindowPinState, HelperSelectionWindowPinState};
 use fstdict_common::theme::set_app_theme;
-use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
 
 #[cfg(target_os = "macos")]
 use crate::app_state::{CGEventHelperProcess, HelperProcess};
@@ -134,6 +129,11 @@ pub use macos_impl::*;
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 mod non_macos_impl {
     use super::*;
+    use crate::app_state::{HelperMainWindowPinState, HelperSelectionWindowPinState};
+    use crate::globalevent::listener;
+    use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
+    use log::info;
+    use tauri::State;
 
     /// Tauri command: update the pin state of the selection search panel.
     #[tauri::command]

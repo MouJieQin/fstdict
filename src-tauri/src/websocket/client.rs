@@ -144,15 +144,19 @@ where
         }
 
         InboundMessage::OcrResult { data } => {
-            let app_clone = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                if data.ocr_txt.is_empty() {
-                    let _ = show_notification(&app_clone, "No valid OCR result detected".into());
-                    return;
-                }
-                let _ = commands::show_main_panel(&app_clone);
-                let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
-            });
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            {
+                let app_clone = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    if data.ocr_txt.is_empty() {
+                        let _ =
+                            show_notification(&app_clone, "No valid OCR result detected".into());
+                        return;
+                    }
+                    let _ = commands::show_main_panel(&app_clone);
+                    let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
+                });
+            }
         }
 
         InboundMessage::SimulateKeyPress { data } => {
