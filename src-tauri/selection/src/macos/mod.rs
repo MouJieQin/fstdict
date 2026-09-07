@@ -19,27 +19,31 @@ use pasteboard::{current_change_count, PasteboardSnapshot};
 use std::time::{Duration, Instant};
 
 /// Poll interval for clipboard changeCount detection.
-const POLL_INTERVAL: Duration = Duration::from_millis(5);
-/// Maximum wait for clipboard to change after Cmd+C (replaces `delay 0.1`).
-const COPY_TIMEOUT: Duration = Duration::from_millis(200);
+const POLL_INTERVAL: Duration = Duration::from_millis(10);
+// Tier-specific timeouts
+const TIER2_AXCOPY_TIMEOUT: Duration = Duration::from_millis(100); // AXCopy unreliable; fail fast
+const TIER3_CGEVENT_TIMEOUT: Duration = Duration::from_millis(500); // WKWebView needs ~100-300ms
+const POST_CHANGE_DELAY: Duration = Duration::from_millis(100); // Wait for promised data fulfillment
 
-/// Public entry — same signature as the original implementation.
 pub fn get_text() -> String {
-    // ── Tier 1: direct AX attribute read ──────────────────────────────
+    // Tier 1: AXSelectedText (works for native text fields, not WKWebView)
     match ax::get_selected_text_by_ax() {
         Ok(text) if !text.is_empty() => return text,
         Ok(_) => info!("Tier 1 (AXSelectedText) returned empty"),
         Err(err) => info!("Tier 1 (AXSelectedText) failed: {err}"),
     }
 
-    // ── Tier 2: AXCopy action on focused element ──────────────────────
+    // Tier 2: AXCopy action — 100ms timeout.
+    // WKWebView returns AXError=0 for AXCopy but does NOTHING (changeCount
+    // never changes). A short timeout lets us degrade quickly instead of
+    // blocking for seconds.
     match get_text_by_ax_copy() {
         Ok(text) if !text.is_empty() => return text,
         Ok(_) => info!("Tier 2 (AXCopy action) returned empty"),
         Err(err) => info!("Tier 2 (AXCopy action) failed: {err}"),
     }
 
-    // ── Tier 3: global CGEvent fallback ────────────────────────────────
+    // Tier 3: global CGEvent Cmd+C — 500ms timeout + post-change delay
     match get_text_by_global_copy() {
         Ok(text) if !text.is_empty() => return text,
         Ok(_) => info!("Tier 3 (global CGEvent) returned empty"),
@@ -49,32 +53,30 @@ pub fn get_text() -> String {
     String::new()
 }
 
-/// Tier 2: perform AXCopy action on the focused AXUIElement,
-/// then detect success via NSPasteboard changeCount.
 fn get_text_by_ax_copy() -> Result<String, Box<dyn std::error::Error>> {
     let element = unsafe { ax::get_focused_element_raw() }
         .ok_or("No focused AXUIElement for AXCopy action")?;
 
-    // AXUIElementRef is a raw pointer (Copy), so moving it into the closure
-    // still lets us CFRelease it afterwards.
-    let result = copy_with_change_count_detection(move || {
-        if unsafe { ax::perform_ax_copy(element) } {
-            Ok(())
-        } else {
-            Err("AXCopy action not supported by this element".into())
-        }
-    });
+    let result = copy_with_change_count_detection(
+        move || {
+            if unsafe { ax::perform_ax_copy(element) } {
+                Ok(())
+            } else {
+                Err("AXCopy action not supported by this element".into())
+            }
+        },
+        TIER2_AXCOPY_TIMEOUT,
+    );
 
     unsafe { CFRelease(element as *const _) };
     result
 }
 
-/// Tier 3: global CGEvent Cmd+C.
 fn get_text_by_global_copy() -> Result<String, Box<dyn std::error::Error>> {
-    copy_with_change_count_detection(|| keyboard::send_cmd_c_global())
+    copy_with_change_count_detection(|| keyboard::send_cmd_c_global(), TIER3_CGEVENT_TIMEOUT)
 }
 
-/// Shared core for Tiers 2 & 3 — 100% behavior-aligned with the original
+/// Shared core with per-call timeout and post-change delay.
 /// AppleScript, but fully in-process:
 ///
 /// 1. Snapshot full pasteboard (all items/types) + changeCount
@@ -83,23 +85,22 @@ fn get_text_by_global_copy() -> Result<String, Box<dyn std::error::Error>> {
 /// 4. Poll for changeCount increment (not text comparison)
 /// 5. Read text on success
 /// 6. Restore full pasteboard + alert volume
-fn copy_with_change_count_detection<F>(fire_cmd_c: F) -> Result<String, Box<dyn std::error::Error>>
+fn copy_with_change_count_detection<F>(
+    fire_cmd_c: F,
+    timeout: Duration,
+) -> Result<String, Box<dyn std::error::Error>>
 where
     F: FnOnce() -> Result<(), Box<dyn std::error::Error>>,
 {
-    // 1. Snapshot clipboard (full multi-type items + changeCount)
     let snapshot = PasteboardSnapshot::capture();
     let before_count = snapshot.change_count();
 
-    // 2. Snapshot & mute alert volume (best-effort; skip on audio failure)
     let alert_vol = AlertVolumeSnapshot::capture().ok();
     if let Some(ref vol) = alert_vol {
         let _ = vol.mute();
     }
 
-    // 3. Fire copy via provided method (AXCopy action or global CGEvent)
     if let Err(e) = fire_cmd_c() {
-        // Restore on failure before returning
         if let Some(ref vol) = alert_vol {
             let _ = vol.restore();
         }
@@ -107,32 +108,31 @@ where
         return Err(e);
     }
 
-    // 4. Poll for changeCount increment — replaces AppleScript's fixed `delay 0.1`.
-    //    Using changeCount (not text equality) correctly handles the edge case
-    //    where the newly copied text is identical to the previous clipboard content.
+    // Poll for changeCount
     let start = Instant::now();
     let changed = loop {
         if current_change_count() != before_count {
             break true;
         }
-        if start.elapsed() >= COPY_TIMEOUT {
+        if start.elapsed() >= timeout {
             break false;
         }
         std::thread::sleep(POLL_INTERVAL);
     };
 
-    // 5. Read result
     let result = if changed {
+        // WKWebView registers promised pasteboard data: changeCount increments
+        // immediately, but the actual string is fulfilled asynchronously by the
+        // WebContent process. Wait before reading so the promise is fulfilled.
+        std::thread::sleep(POST_CHANGE_DELAY);
         pasteboard::read_text()
     } else {
-        info!("changeCount unchanged within {COPY_TIMEOUT:?}; no selection");
+        info!("changeCount unchanged within {timeout:?}; no selection");
         String::new()
     };
 
-    // 6. Restore full clipboard (preserves RTF/HTML/files/images — not just text)
     snapshot.restore();
 
-    // 7. Restore alert volume
     if let Some(ref vol) = alert_vol {
         let _ = vol.restore();
     }

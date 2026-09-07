@@ -1,31 +1,31 @@
-//! Native NSPasteboard wrapper: precise changeCount + full multi-type backup/restore.
+use objc2_app_kit::NSPasteboard;
+use objc2_foundation::{NSData, NSString};
+use std::sync::Mutex;
 
-use objc2::rc::Retained;
-use objc2::runtime::ProtocolObject;
-use objc2_app_kit::{NSPasteboard, NSPasteboardItem, NSPasteboardWriting};
-use objc2_foundation::{NSArray, NSString};
+/// Serialize all NSPasteboard mutations. Concurrent clear/write from
+/// multiple tokio workers can throw NSInternalInconsistencyException.
+static PASTEBOARD_LOCK: Mutex<()> = Mutex::new(());
 
-/// UTI for plain text — equivalent to AppKit's NSPasteboardTypeString.
-fn string_type() -> Retained<NSString> {
-    NSString::from_str("public.utf8-plain-text")
-}
+/// UTI for plain text (equivalent to AppKit's NSPasteboardTypeString).
+const TEXT_UTI: &str = "public.utf8-plain-text";
 
-/// Immutable snapshot: all pasteboard items (every UTI type) + changeCount.
+/// Text-only pasteboard snapshot + changeCount.
+/// Matches the original AppleScript behavior (`set savedClipboard to the clipboard`)
+/// and avoids NSData/bytes API incompatibilities across objc2 versions.
 pub struct PasteboardSnapshot {
-    items: Retained<NSArray<NSPasteboardItem>>,
+    text: Option<String>,
     change_count: isize,
 }
 
 impl PasteboardSnapshot {
-    /// Capture the current general pasteboard state.
     pub fn capture() -> Self {
+        let _guard = PASTEBOARD_LOCK.lock().unwrap();
         let pb = NSPasteboard::generalPasteboard();
-        let items = pb.pasteboardItems().unwrap_or_else(NSArray::new);
+        let text = pb
+            .stringForType(&NSString::from_str(TEXT_UTI))
+            .map(|s| s.to_string());
         let change_count = pb.changeCount();
-        Self {
-            items,
-            change_count,
-        }
+        Self { text, change_count }
     }
 
     #[inline]
@@ -33,34 +33,30 @@ impl PasteboardSnapshot {
         self.change_count
     }
 
-    /// Restore the general pasteboard to this snapshot's full contents.
-    /// Preserves ALL UTI types (RTF, HTML, file URLs, images, …) —
-    /// unlike a text-only backup/restore.
+    /// Restore plain-text content. Non-text clipboard content is not
+    /// preserved — same behavior as the original AppleScript fallback.
     pub fn restore(&self) {
+        let _guard = PASTEBOARD_LOCK.lock().unwrap();
         let pb = NSPasteboard::generalPasteboard();
         pb.clearContents();
-
-        // NSArray<T> is #[repr(transparent)] around the same NSMutableArray
-        // object pointer regardless of T. NSPasteboardItem conforms to
-        // NSPasteboardWriting, and Objective-C generics are erased at runtime,
-        // so this transmute is sound.
-        let writing_items: Retained<NSArray<ProtocolObject<dyn NSPasteboardWriting>>> =
-            unsafe { std::mem::transmute(self.items.clone()) };
-        let _ = pb.writeObjects(&writing_items);
+        if let Some(ref text) = self.text {
+            let data = NSData::from_vec(text.as_bytes().to_vec());
+            pb.setData_forType(Some(&data), &NSString::from_str(TEXT_UTI));
+        }
     }
 }
 
-/// Read plain-text content from the general pasteboard.
-#[inline]
+/// Read plain-text content (serialized via PASTEBOARD_LOCK).
 pub fn read_text() -> String {
+    let _guard = PASTEBOARD_LOCK.lock().unwrap();
     let pb = NSPasteboard::generalPasteboard();
-    match pb.stringForType(&string_type()) {
+    match pb.stringForType(&NSString::from_str(TEXT_UTI)) {
         Some(s) => s.to_string(),
         None => String::new(),
     }
 }
 
-/// Current changeCount of the general pasteboard.
+/// Current changeCount (integer read; safe without lock).
 #[inline]
 pub fn current_change_count() -> isize {
     NSPasteboard::generalPasteboard().changeCount()
