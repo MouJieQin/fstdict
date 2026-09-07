@@ -840,17 +840,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "coreaudio"
-version = "0.2.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f41d617300248197aeb54178e29d6a24033d12abd5b950f3ab0cf0daf619eee9"
-dependencies = [
- "core-foundation 0.10.1",
- "coreaudio-sys",
- "num-traits",
-]
-
-[[package]]
 name = "coreaudio-sys"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4157,7 +4146,6 @@ dependencies = [
  "arboard",
  "core-foundation 0.9.4",
  "core-graphics 0.25.0",
- "coreaudio",
  "coreaudio-sys",
  "enigo 0.2.1",
  "log",

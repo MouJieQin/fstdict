@@ -95,7 +95,6 @@ fn create_notification_panel(
         .inner_size(NOTIFICATION_INNER_WIDTH, NOTIFICATION_INNER_HEIGHT)
         .decorations(false)
         .resizable(false)
-        .hidden_title(true)
         .focusable(false)
         .transparent(true)
         .always_on_top(true)
