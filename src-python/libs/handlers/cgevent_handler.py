@@ -45,7 +45,7 @@ class CgEventHandler:
     async def _broadcast_text_selection(text: str):
         """Forward text selection event to the helper window."""
         msg = {
-            "type": "kHandlerTextSelection",
+            "type": "text_selection",
             "data": {"text_selected": text}
         }
         if Utils.fstdict_helper_websocket:

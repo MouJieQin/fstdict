@@ -11,27 +11,27 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/Home.vue'),
             },
             {
-                path: 'notification',
-                name: 'Notification',
-                component: () => import('@/views/Notification.vue'),
-            },
-            {
-                path: 'updater',
-                name: 'Updater',
-                component: () => import('@/views/Updater.vue'),
-            },
-            {
-                path: 'permission',
-                name: 'Permission',
-                component: () => import('@/views/Permission.vue'),
-            },
-            {
                 path: 'dict/:id',
                 name: 'Dict',
                 component: () => import('@/views/DictPage.vue'),
                 props: true,
             },
         ],
+    },
+    {
+        path: '/notification',
+        name: 'Notification',
+        component: () => import('@/views/Notification.vue'),
+    },
+    {
+        path: '/updater',
+        name: 'Updater',
+        component: () => import('@/views/Updater.vue'),
+    },
+    {
+        path: '/permission',
+        name: 'Permission',
+        component: () => import('@/views/Permission.vue'),
     },
 ]
 
@@ -40,11 +40,12 @@ const router = createRouter({
     routes,
 })
 
-// Redirect root path to default dictionary session
+// Redirect root to default dict page
 router.beforeEach((to) => {
     if (to.path === '/') {
         return '/dict/1'
     }
+    return true
 })
 
 export default router

@@ -29,6 +29,12 @@ class MainMessageHandler:
             logger.error(f"Error registering shortcuts: {e}", exc_info=True)
 
     @staticmethod
+    async def toggle_selection_capture(websocket: WebSocket):
+        """Toggle text selection capture."""
+        enabled = Utils.CONFIG["app"]["helper_selection"]["enabled"]
+        await MainMessageHandler._toggle_selection_capture(websocket, enabled)
+
+    @staticmethod
     async def handle_message(websocket: WebSocket, data: str):
         """Parse and route incoming main window messages."""
         try:
@@ -37,7 +43,11 @@ class MainMessageHandler:
 
             if msg_type == "double_copy":
                 selected_text = message["data"]["text"]
-                await MainMessageHandler._broadcast_text_selection(selected_text)
+                await MainMessageHandler._broadcast_text_selection(websocket, selected_text)
+
+            elif msg_type == "text_selection":
+                selected_text = message["data"]["text_selected"]
+                await MainMessageHandler._broadcast_text_selection(websocket, selected_text)
 
             elif msg_type == "shortcut_triggered":
                 shortcut = message["data"]["shortcut"]
@@ -50,12 +60,13 @@ class MainMessageHandler:
             logger.error(f"Error handling main message: {e}", exc_info=True)
 
     @staticmethod
-    async def _broadcast_text_selection(text: str):
+    async def _broadcast_text_selection(websocket: WebSocket, text: str):
         """Forward selected text to the helper window."""
         msg = {
-            "type": "kHandlerTextSelection",
+            "type": "text_selection",
             "data": {"text_selected": text}
         }
+        await websocket.send_text(json.dumps(msg))
         if Utils.fstdict_helper_websocket:
             await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
 
@@ -72,7 +83,7 @@ class MainMessageHandler:
         # Handle specific shortcuts
         if shortcut_name == "toggle_selection":
             await websocket.send_text(json.dumps({"type": "check_accessibility", "data": {}}))
-            await MainMessageHandler._toggle_selection_monitoring()
+            await MainMessageHandler._toggle_selection_monitoring(websocket)
         elif shortcut_name == "screenshot_ocr":
             await websocket.send_text(json.dumps({"type": "check_screen_recording", "data": {}}))
             await MainMessageHandler._handle_ocr_request(websocket)
@@ -80,7 +91,7 @@ class MainMessageHandler:
             logger.warning(f"Unhandled shortcut: {shortcut}")
 
     @staticmethod
-    async def _toggle_selection_monitoring():
+    async def _toggle_selection_monitoring(websocket: WebSocket):
         """Toggle text selection monitoring on/off."""
         enabled = Utils.CONFIG["app"]["helper_selection"]["enabled"]
         enabled = not enabled
@@ -111,6 +122,18 @@ class MainMessageHandler:
         }
         if Utils.fstdict_helper_websocket:
             await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
+        else:
+            await MainMessageHandler._toggle_selection_capture(websocket, enabled)
+            await websocket.send_text(json.dumps(tmsg))
+
+    @staticmethod
+    async def _toggle_selection_capture(websocket: WebSocket, enabled: bool):
+        """Toggle text selection capture on/off."""
+        msg = {
+            "type": "toggle_selection_capture",
+            "data": {"enabled": enabled}
+        }
+        await websocket.send_text(json.dumps(msg))
 
     @staticmethod
     async def _handle_ocr_request(websocket: WebSocket):

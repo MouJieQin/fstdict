@@ -28,6 +28,8 @@ async def fstdict_main_websocket(websocket: WebSocket):
     try:
         Utils.fstdict_main_websocket = websocket
         await MainMessageHandler.register_shortcuts(websocket)
+        await MainMessageHandler.toggle_selection_capture(websocket)
+
         while True:
             text = await websocket.receive_text()
             logger.debug(f"Main WebSocket received: {text}")

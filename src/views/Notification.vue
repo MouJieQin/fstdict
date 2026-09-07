@@ -72,7 +72,7 @@ body {
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    padding: 16px;
+    padding: 10px;
     background: rgba(30, 30, 30, 0.85);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
@@ -104,7 +104,7 @@ body {
 }
 
 .message {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 500;
     line-height: 1.4;
     word-break: break-word;
