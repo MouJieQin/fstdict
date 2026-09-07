@@ -55,8 +55,7 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
             .always_on_top(true)
-            .visible_on_all_workspaces(true)
-            .title_bar_style(tauri::TitleBarStyle::Overlay);
+            .visible_on_all_workspaces(true);
 
     // Platform-specific window builder configuration
     #[cfg(target_os = "macos")]
