@@ -61,14 +61,6 @@ pub fn set_main_window_pinned(state: State<'_, MainWindowPinState>, pinned: bool
     }
 }
 
-/// Tauri command: hide the selection float search panel.
-#[tauri::command]
-pub fn hide_panel(app: AppHandle) {
-    if let Some(w) = app.get_webview_window("selection-float-search") {
-        let _ = w.hide();
-    }
-}
-
 /// Tauri command: trigger a notification banner from the frontend.
 #[tauri::command]
 pub fn trigger_notification(app: AppHandle, message: String) -> Result<(), tauri::Error> {

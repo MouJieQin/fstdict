@@ -7,6 +7,9 @@ pub enum InboundMessage {
     #[serde(rename = "tauri_notification")]
     TauriNotification { data: NotificationData },
 
+    #[serde(rename = "text_selection")]
+    TextSelection { data: TextSelectionData },
+
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
 
@@ -22,6 +25,9 @@ pub enum InboundMessage {
     #[serde(rename = "unregister_shortcut")]
     UnregisterShortcut { data: RegisterShortcutData },
 
+    #[serde(rename = "toggle_selection_capture")]
+    ToggleSelectionCapture { data: ToggleSelectionCaptureData },
+
     #[serde(rename = "check_accessibility")]
     CheckAccessibility,
 
@@ -35,6 +41,11 @@ pub enum InboundMessage {
 #[derive(Debug, Deserialize)]
 pub struct NotificationData {
     pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TextSelectionData {
+    pub text_selected: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +66,11 @@ pub struct RegisterShortcutsData {
 #[derive(Debug, Deserialize)]
 pub struct RegisterShortcutData {
     pub shortcut: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ToggleSelectionCaptureData {
+    pub enabled: bool,
 }
 
 /// Builds the initial connection handshake message.

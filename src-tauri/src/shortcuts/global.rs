@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use super::double_copy::handle_double_copy;
-use crate::app_state::MainWindowWsSender;
+use crate::websocket::client::try_ws_send;
 use enigo::Keyboard;
 use log::{error, info};
 #[cfg(target_os = "macos")]
@@ -89,9 +89,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
     match shortcut_str.as_str() {
         s if s == "super+KeyC" || s == "control+KeyC" => {
             passthrough_native_copy(app.clone(), *shortcut);
-            if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
-                handle_double_copy(ws_state, app);
-            }
+            handle_double_copy(app);
         }
         _ => {
             send_shortcut_event(app, &shortcut_str);
@@ -153,10 +151,5 @@ fn send_shortcut_event(app: &AppHandle, shortcut_str: &str) {
             "shortcut": shortcut_str
         }
     });
-
-    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
-        if let Err(e) = ws_state.ws_sender.try_send(payload.to_string()) {
-            error!("Failed to send shortcut triggered over WebSocket: {:?}", e);
-        }
-    }
+    try_ws_send(app, &payload.to_string());
 }

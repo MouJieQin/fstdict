@@ -37,7 +37,6 @@ async fn main() {
             window::commands::set_theme,
             window::commands::set_selection_window_pinned,
             window::commands::set_main_window_pinned,
-            window::commands::hide_panel,
             window::commands::trigger_notification
         ])
         .setup(|app| {

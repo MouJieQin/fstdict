@@ -1,11 +1,6 @@
+use log::info;
 use std::time::{Duration, Instant};
-
-use crate::app_state::MainWindowWsSender;
-use log::{error, info};
-#[cfg(not(target_os = "macos"))]
-use tauri::Emitter;
-use tauri::{AppHandle, Manager, State};
-
+use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::app_state::DoubleCopyTracker;
@@ -14,7 +9,7 @@ use crate::app_state::DoubleCopyTracker;
 const DOUBLE_PRESS_THRESHOLD_MS: u64 = 400;
 
 /// Detects double-press of the copy shortcut and triggers lookup.
-pub fn handle_double_copy(state: State<'_, MainWindowWsSender>, app: &AppHandle) {
+pub fn handle_double_copy(app: &AppHandle) {
     let tracker = app.state::<DoubleCopyTracker>();
     let mut last_guard = tracker.last_pressed.lock().unwrap();
     let now = Instant::now();
@@ -26,21 +21,28 @@ pub fn handle_double_copy(state: State<'_, MainWindowWsSender>, app: &AppHandle)
             if let Ok(text) = app.clipboard().read_text() {
                 info!("Clipboard content: {}", text);
 
-                #[cfg(not(target_os = "macos"))]
-                let _ = app.emit_to("main", "cgevent-select", text);
-
-                #[cfg(target_os = "macos")]
+                #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
                 {
-                    let payload = serde_json::json!({
-                        "type": "double_copy",
-                        "data": {
-                            "text": text
-                        }
-                    });
+                    use crate::commands;
+                    use tauri::Emitter;
 
-                    if let Err(e) = state.ws_sender.try_send(payload.to_string()) {
-                        error!("Failed to send pin state over WebSocket: {:?}", e);
-                    }
+                    let _ = app.emit_to("selection-float-search", "cgevent-select", text);
+                    let _ = commands::show_selection_panel(app);
+                }
+
+                #[cfg(all(target_os = "macos", not(feature = "dev-non-macos")))]
+                {
+                    use crate::websocket::client::try_ws_send;
+                    try_ws_send(
+                        app,
+                        &serde_json::json!({
+                            "type": "double_copy",
+                            "data": {
+                                "text": text
+                            }
+                        })
+                        .to_string(),
+                    );
                 }
             }
             // Reset to prevent triple-press from triggering again

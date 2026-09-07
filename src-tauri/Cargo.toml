@@ -5,6 +5,11 @@ members = [
   "selection"
 ]
 
+[features]
+default = []
+dev-non-macos = []
+
+
 [package]
 name = "fstdict"
 version = "0.0.36"

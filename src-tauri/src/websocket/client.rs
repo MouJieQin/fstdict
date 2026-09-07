@@ -1,13 +1,17 @@
 use std::time::Duration;
 
 use super::keyboard::simulate_key_press;
+use crate::app_state::MainWindowWsSender;
 #[cfg(target_os = "macos")]
 use crate::commands::{check_accessibility, check_screen_recording, show_permission_window};
 use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
+use crate::{commands, globalevent::listener};
 use fstdict_common::window::notification::show_notification;
+use fstdict_common::window::positioning::is_cursor_over_window;
+
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
@@ -45,7 +49,7 @@ pub async fn start_ws_client(
                 // Main event loop
                 loop {
                     tokio::select! {
-                        // Inbound: messages from the C++ server
+                        // Inbound: messages from the Python server
                         msg = read.next() => {
                             match msg {
                                 Some(Ok(WsMessage::Text(text))) => {
@@ -120,6 +124,25 @@ where
             });
         }
 
+        InboundMessage::TextSelection { data } => {
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            {
+                let app_clone = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    if is_cursor_over_window(&app_clone, "selection-float-search") {
+                        return;
+                    }
+
+                    let _ = commands::show_selection_panel(&app_clone);
+                    let _ = app_clone.emit_to(
+                        "selection-float-search",
+                        "cgevent-select",
+                        data.text_selected,
+                    );
+                });
+            }
+        }
+
         InboundMessage::OcrResult { data } => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
@@ -158,6 +181,13 @@ where
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
                 unregister_global_shortcut(&app_clone, &shortcut);
+            });
+        }
+
+        InboundMessage::ToggleSelectionCapture { data } => {
+            let enabled = data.enabled;
+            let _ = app.run_on_main_thread(move || {
+                listener::toggle_text_selection_capture(enabled);
             });
         }
 
@@ -210,6 +240,14 @@ impl OutboundMerger {
     async fn recv(&mut self) -> Option<String> {
         tokio::select! {
             msg = self.main.recv() => msg,
+        }
+    }
+}
+
+pub fn try_ws_send(app: &AppHandle, text: &String) {
+    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
+        if let Err(e) = ws_state.ws_sender.try_send(text.to_string()) {
+            error!("Failed to send selection triggered over WebSocket: {:?}", e);
         }
     }
 }

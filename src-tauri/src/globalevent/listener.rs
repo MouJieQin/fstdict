@@ -1,12 +1,14 @@
 // src/globalevent/listener.rs
 use crate::commands;
+use crate::websocket::client::try_ws_send;
 use log::{debug, info, warn};
 use monio::channel::listen_async_channel;
 use monio::{Button, Event, EventType};
+use selection::get_text;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio::task::JoinHandle;
 
 // ---------------------------------------------------------------------------
@@ -106,6 +108,10 @@ pub fn enable_text_selection_capture() {
 
 pub fn disable_text_selection_capture() {
     toggle_subscriber(SUB_TEXT_SELECTION_CAPTURE, false);
+}
+
+pub fn toggle_text_selection_capture(enabled: bool) {
+    toggle_subscriber(SUB_TEXT_SELECTION_CAPTURE, enabled);
 }
 
 // ---------------------------------------------------------------------------
@@ -254,11 +260,13 @@ fn handle_mouse_pressed(app: &AppHandle, event: &Event, subscribers: u8) {
 
     // Subscriber 1: hide helper-main window on outside click
     if subscribers & SUB_HELPER_MAIN_HIDE != 0 {
+        #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
         commands::hide_window_if_unpinned_and_outside(app, "helper-main");
     }
 
     // Subscriber 2: hide selection-float-search window on outside click
     if subscribers & SUB_SELECTION_FLOAT_HIDE != 0 {
+        #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
         commands::hide_window_if_unpinned_and_outside(app, "selection-float-search");
     }
 
@@ -293,7 +301,7 @@ fn handle_mouse_pressed(app: &AppHandle, event: &Event, subscribers: u8) {
                 "Double-click text-selection detected at ({:.0}, {:.0})",
                 mouse.x, mouse.y
             );
-            // let _ = app.emit("text-selection-detected", ());
+            try_get_selected_text(app);
         }
 
         // --- Also record press origin for drag-select detection on release ---
@@ -335,7 +343,28 @@ fn handle_mouse_released(app: &AppHandle, event: &Event, subscribers: u8) {
     // and holding for more than an instant click.
     if distance >= SELECTION_MIN_DRAG_PX && duration_ms >= SELECTION_MIN_DURATION_MS {
         info!("Text-selection gesture detected (dist={distance:.1}px, {duration_ms}ms)");
+        try_get_selected_text(app);
         // Notify frontend, you can emit tauri event here
         // let _ = app.emit("text-selection-detected", ());
     }
+}
+
+fn try_get_selected_text(app: &AppHandle) {
+    let text = get_text();
+    info!("Selected text: {}", text);
+    if text.is_empty() {
+        return;
+    }
+    send_selection_event(app, &text);
+}
+
+fn send_selection_event(app: &AppHandle, text: &str) {
+    let payload = serde_json::json!({
+        "type": "text_selection",
+        "data": {
+            "text_selected": text
+        }
+    });
+
+    try_ws_send(app, &payload.to_string());
 }

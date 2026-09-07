@@ -1,4 +1,6 @@
 use std::process::Child;
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 use tokio::sync::mpsc;
@@ -46,5 +48,55 @@ pub struct MainWindowWsSender {
 impl MainWindowWsSender {
     pub fn new(sender: mpsc::Sender<String>) -> Self {
         Self { ws_sender: sender }
+    }
+}
+
+/// Pin state for the selection search panel.
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+pub struct HelperSelectionWindowPinState {
+    pub is_pinned: AtomicBool,
+}
+
+/// Pin state for the main helper panel.
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+pub struct HelperMainWindowPinState {
+    pub is_pinned: AtomicBool,
+}
+
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+impl HelperSelectionWindowPinState {
+    pub fn new() -> Self {
+        Self {
+            is_pinned: AtomicBool::new(false),
+        }
+    }
+
+    #[inline]
+    pub fn is_pinned(&self) -> bool {
+        self.is_pinned.load(Ordering::SeqCst)
+    }
+
+    #[inline]
+    pub fn set_pinned(&self, pinned: bool) {
+        self.is_pinned.store(pinned, Ordering::SeqCst);
+    }
+}
+
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+impl HelperMainWindowPinState {
+    pub fn new() -> Self {
+        Self {
+            is_pinned: AtomicBool::new(false),
+        }
+    }
+
+    #[inline]
+    pub fn is_pinned(&self) -> bool {
+        self.is_pinned.load(Ordering::SeqCst)
+    }
+
+    #[inline]
+    pub fn set_pinned(&self, pinned: bool) {
+        self.is_pinned.store(pinned, Ordering::SeqCst);
     }
 }

@@ -1,5 +1,6 @@
 mod app_state;
 mod commands;
+mod globalevent;
 mod shortcuts;
 mod sidecar;
 mod websocket;
@@ -17,6 +18,9 @@ use tokio::sync::mpsc;
 use app_state::{
     CGEventHelperProcess, HelperProcess, GLOBAL_CGEVENT_SERVER, GLOBAL_HELPER_PROCESS,
 };
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use app_state::{HelperMainWindowPinState, HelperSelectionWindowPinState};
+
 use app_state::{DoubleCopyTracker, MainWindowWsSender, PythonServer, GLOBAL_PYTHON_SERVER};
 use ctrlc;
 use shortcuts::global::register_global_shortcuts;
@@ -24,6 +28,8 @@ use sidecar::common::terminate_child_process;
 use sidecar::python::start_python_sidecar;
 use websocket::client::start_ws_client;
 use window::main_window::setup_main_window;
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use window::setup::setup_float_panels;
 
 const WS_ENDPOINT: &str = "ws://127.0.0.1:5959/ws/fstdict/main";
 /// Size of the bounded MPSC channel for outbound WebSocket messages.
@@ -88,7 +94,6 @@ pub async fn run() {
         )
         // Single invoke_handler call with all commands (fixes overwrite bug)
         .invoke_handler(tauri::generate_handler![
-            commands::greet,
             commands::set_theme,
             commands::show_updater_window,
             commands::set_updater_window_size,
@@ -127,6 +132,12 @@ pub async fn run() {
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
             init_logging(&log_dir, "fstdict-main".to_string());
 
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            {
+                app.manage(HelperSelectionWindowPinState::new());
+                app.manage(HelperMainWindowPinState::new());
+            }
+
             // Share sidecar state handles with global registry for signal handler access
             let _ = GLOBAL_PYTHON_SERVER.set(app.state::<PythonServer>().0.clone());
             #[cfg(target_os = "macos")]
@@ -144,6 +155,9 @@ pub async fn run() {
 
             // Create and configure main window
             setup_main_window(app)?;
+
+            // Set up global event listener
+            globalevent::listener::init(&app.handle());
 
             // Register system-wide keyboard shortcuts
             register_global_shortcuts(&app_handle);
@@ -170,6 +184,11 @@ pub async fn run() {
                 start_ws_client(&ws_url, app_handle, main_rx).await;
             });
 
+            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+            {
+                let _ = setup_float_panels(app)?;
+            }
+
             // Start macOS-specific helper processes
             #[cfg(target_os = "macos")]
             {
@@ -178,25 +197,28 @@ pub async fn run() {
 
                 if application_is_trusted() {
                     // Start CGEvent server
-                    match start_cgevent_sidecar(app.handle()) {
-                        Ok(Some(child)) => {
-                            *app.state::<CGEventHelperProcess>().0.lock().unwrap() = Some(child);
-                        }
-                        Ok(None) => warn!("CGEvent server sidecar binary not found at startup"),
-                        Err(e) => {
-                            error!("Failed to start CGEvent server: {}", e);
-                            return Err(e);
-                        }
-                    }
+                    // match start_cgevent_sidecar(app.handle()) {
+                    //     Ok(Some(child)) => {
+                    //         *app.state::<CGEventHelperProcess>().0.lock().unwrap() = Some(child);
+                    //     }
+                    //     Ok(None) => warn!("CGEvent server sidecar binary not found at startup"),
+                    //     Err(e) => {
+                    //         error!("Failed to start CGEvent server: {}", e);
+                    //         return Err(e);
+                    //     }
+                    // }
                 }
 
-                // Start floating helper app
-                match start_helper() {
-                    Ok(Some(child)) => {
-                        *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
+                #[cfg(not(feature = "dev-non-macos"))]
+                {
+                    // Start floating helper app
+                    match start_helper() {
+                        Ok(Some(child)) => {
+                            *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
+                        }
+                        Ok(None) => warn!("Helper binary not found at startup"),
+                        Err(e) => error!("Failed to start helper at launch: {}", e),
                     }
-                    Ok(None) => warn!("Helper binary not found at startup"),
-                    Err(e) => error!("Failed to start helper at launch: {}", e),
                 }
             }
 

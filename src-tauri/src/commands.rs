@@ -1,18 +1,17 @@
+use crate::globalevent::listener;
 #[cfg(target_os = "macos")]
 use crate::window::permission_window;
 use crate::window::updater_window;
+use log::info;
+use tauri::{AppHandle, Manager, State};
+
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use crate::app_state::{HelperMainWindowPinState, HelperSelectionWindowPinState};
 use fstdict_common::theme::set_app_theme;
-use tauri::AppHandle;
-use tauri::Manager;
+use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
 
 #[cfg(target_os = "macos")]
 use crate::app_state::{CGEventHelperProcess, HelperProcess};
-
-/// Basic greeting command for testing IPC connectivity.
-#[tauri::command]
-pub fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command]
 pub fn set_theme(app_handle: AppHandle, theme: &str) {
@@ -131,3 +130,115 @@ mod macos_impl {
 
 #[cfg(target_os = "macos")]
 pub use macos_impl::*;
+
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+mod non_macos_impl {
+    use super::*;
+
+    /// Tauri command: update the pin state of the selection search panel.
+    #[tauri::command]
+    pub fn set_selection_window_pinned(
+        state: State<'_, HelperSelectionWindowPinState>,
+        pinned: bool,
+    ) {
+        state.set_pinned(pinned);
+        info!("Selection window pin state updated to: {}", pinned);
+    }
+
+    /// Tauri command: update the pin state of the main helper panel.
+    #[tauri::command]
+    pub fn set_main_window_pinned(state: State<'_, HelperMainWindowPinState>, pinned: bool) {
+        state.set_pinned(pinned);
+        info!("Main window pin state updated to: {}", pinned);
+    }
+
+    /// Shows the selection panel near the cursor (unless pinned).
+    pub fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
+        let Some(win) = app.get_webview_window("selection-float-search") else {
+            return Ok(());
+        };
+
+        if let Some(pin_state) = app.try_state::<HelperSelectionWindowPinState>() {
+            if pin_state.is_pinned() {
+                let _ = win.show();
+                return Ok(());
+            }
+        }
+
+        let _ = position_window_near_cursor(app, &win);
+        let _ = win.show();
+        listener::enable_selection_float_hide();
+
+        Ok(())
+    }
+
+    /// Shows the main helper panel near the cursor (unless pinned).
+    pub fn show_main_panel(app: &AppHandle) -> Result<(), String> {
+        let Some(win) = app.get_webview_window("helper-main") else {
+            return Ok(());
+        };
+
+        if let Some(pin_state) = app.try_state::<HelperMainWindowPinState>() {
+            if pin_state.is_pinned() {
+                let _ = win.show();
+                return Ok(());
+            }
+        }
+
+        let _ = position_window_near_cursor(app, &win);
+        listener::enable_helper_main_hide();
+        let _ = win.show();
+        Ok(())
+    }
+
+    /// Hides a window if the cursor is outside its bounds and it's not pinned.
+    ///
+    /// Returns `true` if the window was hidden or was already hidden.
+    pub fn hide_window_if_unpinned_and_outside(app: &AppHandle, label: &str) -> bool {
+        let is_pinned = match label {
+            "helper-main" => app
+                .try_state::<HelperMainWindowPinState>()
+                .map(|s| s.is_pinned())
+                .unwrap_or(false),
+            "selection-float-search" => app
+                .try_state::<HelperSelectionWindowPinState>()
+                .map(|s| s.is_pinned())
+                .unwrap_or(false),
+            _ => false,
+        };
+
+        if is_pinned {
+            disable_listener(label);
+            return false;
+        }
+
+        let Some(win) = app.get_webview_window(label) else {
+            disable_listener(label);
+            return true;
+        };
+
+        if !win.is_visible().unwrap_or(false) || win.is_minimized().unwrap_or(false) {
+            disable_listener(label);
+            return true;
+        }
+
+        if !is_cursor_over_window(app, label) {
+            let _ = win.hide();
+            disable_listener(label);
+            return true;
+        }
+
+        false
+    }
+
+    fn disable_listener(label: &str) {
+        if label == "selection-float-search" {
+            listener::disable_selection_float_hide();
+        } else if label == "helper-main" {
+            listener::disable_helper_main_hide();
+        }
+    }
+}
+
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+pub use non_macos_impl::*;
