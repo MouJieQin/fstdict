@@ -51,7 +51,6 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
 
     let mut builder =
         WebviewWindowBuilder::new(app, config.label, WebviewUrl::App(config.url.into()))
-            .hidden_title(true)
             .inner_size(state.width, state.height)
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
