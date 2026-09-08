@@ -196,6 +196,19 @@ where
             });
         }
 
+        InboundMessage::ToggleSelectionFloatHide { data } => {
+            let enabled = data.enabled;
+            let _ = app.run_on_main_thread(move || {
+                listener::toggle_selection_float_hide(enabled);
+            });
+        }
+        InboundMessage::ToggleHelperMainHide { data } => {
+            let enabled = data.enabled;
+            let _ = app.run_on_main_thread(move || {
+                listener::toggle_helper_main_hide(enabled);
+            });
+        }
+
         InboundMessage::CheckAccessibility => {
             #[cfg(target_os = "macos")]
             {
@@ -252,7 +265,7 @@ impl OutboundMerger {
 pub fn try_ws_send(app: &AppHandle, text: &String) {
     if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
         if let Err(e) = ws_state.ws_sender.try_send(text.to_string()) {
-            error!("Failed to send selection triggered over WebSocket: {:?}", e);
+            error!("Failed to send message over WebSocket: {:?}", e);
         }
     }
 }

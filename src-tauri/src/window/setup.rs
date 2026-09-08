@@ -5,7 +5,7 @@ use tauri::WindowEvent;
 
 use crate::commands;
 use fstdict_common::window::state::{create_debounced_saver, WindowState};
-use log::{info, warn};
+use log::{debug, info, warn};
 use tauri::{App, WebviewUrl, WebviewWindowBuilder};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
@@ -102,10 +102,10 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
         WindowEvent::Moved(_) | WindowEvent::Resized(_) => save_trigger(),
         WindowEvent::Focused(focused) => {
             if !focused {
-                info!("window lost focus");
+                debug!("window lost focus");
                 let _ = commands::hide_window_if_unpinned_and_outside(&app_handle, config.label);
             } else {
-                info!("window gained focus");
+                debug!("window gained focus");
             }
         }
         _ => {}

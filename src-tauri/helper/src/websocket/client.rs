@@ -2,13 +2,14 @@ use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 
 use super::protocol::{build_connect_message, build_event_request, InboundMessage};
+use crate::app_state::MainWindowWsSender;
 use crate::window::commands::{
     hide_window_if_unpinned_and_outside, show_main_panel, show_selection_panel,
 };
@@ -159,12 +160,12 @@ where
                     return;
                 }
 
-                let _ = show_selection_panel(&app_clone);
                 let _ = app_clone.emit_to(
                     "selection-float-search",
                     "cgevent-select",
                     data.text_selected,
                 );
+                let _ = show_selection_panel(&app_clone);
             });
 
             // Register mouse-down listener for the selection panel
@@ -174,6 +175,20 @@ where
                 "selection-float-search",
             );
             let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
+        }
+
+        InboundMessage::HideHelperMainWindow => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                let _ = hide_window_if_unpinned_and_outside(&app_clone, "helper-main");
+            });
+        }
+
+        InboundMessage::HideHelperSelectionWindow => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                let _ = hide_window_if_unpinned_and_outside(&app_clone, "selection-float-search");
+            });
         }
 
         InboundMessage::LeftMouseDown => {
@@ -252,6 +267,14 @@ impl OutboundMerger {
             msg = self.main.recv() => msg,
             msg = self.main_pin.recv() => msg,
             msg = self.selection.recv() => msg,
+        }
+    }
+}
+
+pub fn try_ws_send(app: &AppHandle, text: &String) {
+    if let Some(ws_state) = app.try_state::<MainWindowWsSender>() {
+        if let Err(e) = ws_state.ws_sender.try_send(text.to_string()) {
+            error!("Failed to send message over WebSocket: {:?}", e);
         }
     }
 }

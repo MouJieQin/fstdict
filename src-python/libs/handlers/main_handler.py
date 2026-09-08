@@ -3,6 +3,7 @@ Message handler for the main application WebSocket.
 """
 import json
 import asyncio
+import sys
 from fastapi import WebSocket
 
 from libs.log_config import logger
@@ -53,6 +54,12 @@ class MainMessageHandler:
                 shortcut = message["data"]["shortcut"]
                 await MainMessageHandler._handle_shortcut_triggered(websocket, shortcut)
 
+            elif msg_type == "hide_helper_main_window":
+                await MainMessageHandler._hide_helper_main_window()
+
+            elif msg_type == "hide_helper_selection_window":
+                await MainMessageHandler._hide_helper_selection_window()
+
             else:
                 logger.warning(f"Unknown main message type: {msg_type}")
 
@@ -99,15 +106,9 @@ class MainMessageHandler:
         Utils.Config.syncConfig()
 
         if enabled:
-            await Utils.cgevent_ws_client.send_register_request("kHandlerTextSelection")
-            if "kHandlerTextSelection" in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.remove("kHandlerTextSelection")
             logger.info("Text selection monitoring enabled")
             notification = "Text selection monitoring enabled"
         else:
-            await Utils.cgevent_ws_client.send_unregister_request("kHandlerTextSelection")
-            if "kHandlerTextSelection" not in Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION:
-                Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION.append("kHandlerTextSelection")
             logger.info("Text selection monitoring disabled")
             notification = "Text selection monitoring disabled"
 
@@ -115,7 +116,12 @@ class MainMessageHandler:
             Utils.REGISTER_CGEVENT_RIGHT_AFTER_CONNECTION
         )
 
-        # Send notification to helper window
+        await MainMessageHandler._toggle_selection_capture(websocket, enabled)
+        await MainMessageHandler._send_notification(websocket, notification)
+
+    @staticmethod
+    async def _send_notification(websocket: WebSocket, notification: str):
+        """Send notification to helper window."""
         tmsg = {
             "type": "tauri_notification",
             "data": {"message": notification}
@@ -123,7 +129,6 @@ class MainMessageHandler:
         if Utils.fstdict_helper_websocket:
             await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
         else:
-            await MainMessageHandler._toggle_selection_capture(websocket, enabled)
             await websocket.send_text(json.dumps(tmsg))
 
     @staticmethod
@@ -151,7 +156,6 @@ class MainMessageHandler:
         }
 
         # On macOS, send result to helper window; otherwise send back to caller
-        import sys
         if sys.platform == "darwin":
             if Utils.fstdict_helper_websocket:
                 await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
@@ -160,3 +164,27 @@ class MainMessageHandler:
                 await websocket.send_text(json.dumps(msg))
         else:
             await websocket.send_text(json.dumps(msg))
+
+    @staticmethod
+    async def _try_send_helper_message(msg: dict):
+        """Try to send a message to the helper process."""
+        if Utils.fstdict_helper_websocket:
+            await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
+
+    @staticmethod
+    async def _hide_helper_main_window():
+        """Hide the helper main window."""
+        msg = {
+            "type": "hide_helper_main_window",
+            "data": {}
+        }
+        await MainMessageHandler._try_send_helper_message(msg)
+
+    @staticmethod
+    async def _hide_helper_selection_window():
+        """Hide the helper selection window."""
+        msg = {
+            "type": "hide_helper_selection_window",
+            "data": {}
+        }
+        await MainMessageHandler._try_send_helper_message(msg)

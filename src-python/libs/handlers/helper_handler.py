@@ -26,6 +26,13 @@ class HelperMessageHandler:
                 await HelperMessageHandler._handle_unregister_request(message["data"])
             elif msg_type == "connect_cgevent_server":
                 HelperMessageHandler._trigger_cgevent_connection()
+
+            elif msg_type == "toggle_selection_float_hide":
+                await HelperMessageHandler._handle_toggle_selection_float_hide(message["data"]["enabled"])
+
+            elif msg_type == "toggle_helper_main_hide":
+                await HelperMessageHandler._handle_toggle_helper_main_hide(message["data"]["enabled"])
+
             else:
                 logger.warning(f"Unknown helper message type: {msg_type}")
 
@@ -75,3 +82,19 @@ class HelperMessageHandler:
 
         thread = threading.Thread(target=connect_task, daemon=True)
         thread.start()
+
+    @staticmethod
+    async def _try_send_main_message(msg: dict):
+        """Try to send a message to the main process."""
+        if Utils.fstdict_main_websocket:
+            await Utils.fstdict_main_websocket.send_text(json.dumps(msg))
+
+    @staticmethod
+    async def _handle_toggle_selection_float_hide(enabled: bool):
+        """Toggle selection float hide."""
+        await HelperMessageHandler._try_send_main_message({"type": "toggle_selection_float_hide", "data": {"enabled": enabled}})
+
+    @staticmethod
+    async def _handle_toggle_helper_main_hide(enabled: bool):
+        """Toggle helper main hide."""
+        await HelperMessageHandler._try_send_main_message({"type": "toggle_helper_main_hide", "data": {"enabled": enabled}})

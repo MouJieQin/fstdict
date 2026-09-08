@@ -13,6 +13,12 @@ pub enum InboundMessage {
     #[serde(rename = "text_selection")]
     TextSelection { data: TextSelectionData },
 
+    #[serde(rename = "hide_helper_main_window")]
+    HideHelperMainWindow,
+
+    #[serde(rename = "hide_helper_selection_window")]
+    HideHelperSelectionWindow,
+
     #[serde(rename = "kCGEventLeftMouseDown")]
     LeftMouseDown,
 

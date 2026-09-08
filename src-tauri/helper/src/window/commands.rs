@@ -2,6 +2,7 @@ use log::info;
 use tauri::{AppHandle, Manager, State};
 
 use crate::app_state::{MainWindowPinState, SelectionWindowPinState};
+use crate::websocket::client::try_ws_send;
 use fstdict_common::theme::set_app_theme;
 use fstdict_common::window::notification::show_notification;
 use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
@@ -69,7 +70,8 @@ pub fn trigger_notification(app: AppHandle, message: String) -> Result<(), tauri
 
 /// Shows the selection panel near the cursor (unless pinned).
 pub fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
-    let Some(win) = app.get_webview_window("selection-float-search") else {
+    let label = "selection-float-search";
+    let Some(win) = app.get_webview_window(label) else {
         return Ok(());
     };
 
@@ -82,12 +84,14 @@ pub fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
 
     let _ = position_window_near_cursor(app, &win);
     let _ = win.show();
+    enable_listen_hide(app, label);
     Ok(())
 }
 
 /// Shows the main helper panel near the cursor (unless pinned).
 pub fn show_main_panel(app: &AppHandle) -> Result<(), String> {
-    let Some(win) = app.get_webview_window("helper-main") else {
+    let label = "helper-main";
+    let Some(win) = app.get_webview_window(label) else {
         return Ok(());
     };
 
@@ -100,6 +104,7 @@ pub fn show_main_panel(app: &AppHandle) -> Result<(), String> {
 
     let _ = position_window_near_cursor(app, &win);
     let _ = win.show();
+    enable_listen_hide(app, label);
     Ok(())
 }
 
@@ -112,28 +117,57 @@ pub fn hide_window_if_unpinned_and_outside(app: &AppHandle, label: &str) -> bool
             .try_state::<MainWindowPinState>()
             .map(|s| s.is_pinned())
             .unwrap_or(false),
-        _ => app
+        "selection-float-search" => app
             .try_state::<SelectionWindowPinState>()
             .map(|s| s.is_pinned())
             .unwrap_or(false),
+        _ => false,
     };
 
     if is_pinned {
+        disable_listen_hide(app, label);
         return false;
     }
 
     let Some(win) = app.get_webview_window(label) else {
+        disable_listen_hide(app, label);
         return true;
     };
 
     if !win.is_visible().unwrap_or(false) || win.is_minimized().unwrap_or(false) {
+        disable_listen_hide(app, label);
         return true;
     }
 
     if !is_cursor_over_window(app, label) {
         let _ = win.hide();
+        disable_listen_hide(app, label);
         return true;
     }
 
     false
+}
+
+fn disable_listen_hide(app: &AppHandle, label: &str) {
+    toggle_listen_hide(app, label, false);
+}
+
+fn enable_listen_hide(app: &AppHandle, label: &str) {
+    toggle_listen_hide(app, label, true);
+}
+
+fn toggle_listen_hide(app: &AppHandle, label: &str, enabled: bool) {
+    let type_str = match label {
+        "selection-float-search" => "toggle_selection_float_hide",
+        "helper-main" => "toggle_helper_main_hide",
+        _ => return,
+    };
+
+    let payload = serde_json::json!({
+        "type": type_str,
+        "data": {
+            "enabled": enabled
+        }
+    });
+    try_ws_send(app, &payload.to_string());
 }

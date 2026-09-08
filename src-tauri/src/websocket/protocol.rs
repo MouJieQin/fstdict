@@ -26,7 +26,13 @@ pub enum InboundMessage {
     UnregisterShortcut { data: RegisterShortcutData },
 
     #[serde(rename = "toggle_selection_capture")]
-    ToggleSelectionCapture { data: ToggleSelectionCaptureData },
+    ToggleSelectionCapture { data: ToggleEventData },
+
+    #[serde(rename = "toggle_selection_float_hide")]
+    ToggleSelectionFloatHide { data: ToggleEventData },
+
+    #[serde(rename = "toggle_helper_main_hide")]
+    ToggleHelperMainHide { data: ToggleEventData },
 
     #[serde(rename = "check_accessibility")]
     CheckAccessibility,
@@ -69,7 +75,7 @@ pub struct RegisterShortcutData {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ToggleSelectionCaptureData {
+pub struct ToggleEventData {
     pub enabled: bool,
 }
 
