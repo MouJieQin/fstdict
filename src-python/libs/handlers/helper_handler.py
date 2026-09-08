@@ -27,8 +27,8 @@ class HelperMessageHandler:
             elif msg_type == "connect_cgevent_server":
                 HelperMessageHandler._trigger_cgevent_connection()
 
-            elif msg_type == "toggle_selection_float_hide":
-                await HelperMessageHandler._handle_toggle_selection_float_hide(message["data"]["enabled"])
+            elif msg_type == "toggle_helper_selection_hide":
+                await HelperMessageHandler._handle_toggle_helper_selection_hide(message["data"]["enabled"])
 
             elif msg_type == "toggle_helper_main_hide":
                 await HelperMessageHandler._handle_toggle_helper_main_hide(message["data"]["enabled"])
@@ -90,9 +90,9 @@ class HelperMessageHandler:
             await Utils.fstdict_main_websocket.send_text(json.dumps(msg))
 
     @staticmethod
-    async def _handle_toggle_selection_float_hide(enabled: bool):
+    async def _handle_toggle_helper_selection_hide(enabled: bool):
         """Toggle selection float hide."""
-        await HelperMessageHandler._try_send_main_message({"type": "toggle_selection_float_hide", "data": {"enabled": enabled}})
+        await HelperMessageHandler._try_send_main_message({"type": "toggle_helper_selection_hide", "data": {"enabled": enabled}})
 
     @staticmethod
     async def _handle_toggle_helper_main_hide(enabled: bool):

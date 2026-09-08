@@ -154,7 +154,7 @@ mod non_macos_impl {
 
     /// Shows the selection panel near the cursor (unless pinned).
     pub fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
-        let Some(win) = app.get_webview_window("selection-float-search") else {
+        let Some(win) = app.get_webview_window("helper-selection") else {
             return Ok(());
         };
 
@@ -167,7 +167,7 @@ mod non_macos_impl {
 
         let _ = position_window_near_cursor(app, &win);
         let _ = win.show();
-        listener::enable_selection_float_hide();
+        listener::enable_helper_selection_hide();
 
         Ok(())
     }
@@ -200,7 +200,7 @@ mod non_macos_impl {
                 .try_state::<HelperMainWindowPinState>()
                 .map(|s| s.is_pinned())
                 .unwrap_or(false),
-            "selection-float-search" => app
+            "helper-selection" => app
                 .try_state::<HelperSelectionWindowPinState>()
                 .map(|s| s.is_pinned())
                 .unwrap_or(false),
@@ -232,8 +232,8 @@ mod non_macos_impl {
     }
 
     fn disable_listener(label: &str) {
-        if label == "selection-float-search" {
-            listener::disable_selection_float_hide();
+        if label == "helper-selection" {
+            listener::disable_helper_selection_hide();
         } else if label == "helper-main" {
             listener::disable_helper_main_hide();
         }

@@ -28,8 +28,8 @@ pub enum InboundMessage {
     #[serde(rename = "toggle_selection_capture")]
     ToggleSelectionCapture { data: ToggleEventData },
 
-    #[serde(rename = "toggle_selection_float_hide")]
-    ToggleSelectionFloatHide { data: ToggleEventData },
+    #[serde(rename = "toggle_helper_selection_hide")]
+    ToggleHelperSelectionHide { data: ToggleEventData },
 
     #[serde(rename = "toggle_helper_main_hide")]
     ToggleHelperMainHide { data: ToggleEventData },

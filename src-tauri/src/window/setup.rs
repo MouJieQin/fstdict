@@ -31,9 +31,9 @@ pub fn setup_float_panels(app: &mut App) -> Result<(), tauri::Error> {
             url: format!("{}/#/dict/39?env=helper_main_tauri", base_url),
         },
         PanelConfig {
-            label: "selection-float-search",
+            label: "helper-selection",
             config_filename: "helper-selection-window-state.json".to_string(),
-            url: format!("{}/#/dict/95?env=selection_float_search", base_url),
+            url: format!("{}/#/dict/95?env=helper_selection", base_url),
         },
     ];
 

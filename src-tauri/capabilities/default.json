@@ -5,7 +5,7 @@
   "windows": [
     "main",
     "helper-main",
-    "selection-float-search"
+    "helper-selection"
   ],
   "permissions": [
     "core:default",

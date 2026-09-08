@@ -129,16 +129,13 @@ where
             {
                 let app_clone = app.clone();
                 let _ = app.run_on_main_thread(move || {
-                    if is_cursor_over_window(&app_clone, "selection-float-search") {
+                    if is_cursor_over_window(&app_clone, "helper-selection") {
                         return;
                     }
 
                     let _ = commands::show_selection_panel(&app_clone);
-                    let _ = app_clone.emit_to(
-                        "selection-float-search",
-                        "cgevent-select",
-                        data.text_selected,
-                    );
+                    let _ =
+                        app_clone.emit_to("helper-selection", "cgevent-select", data.text_selected);
                 });
             }
         }
@@ -196,10 +193,10 @@ where
             });
         }
 
-        InboundMessage::ToggleSelectionFloatHide { data } => {
+        InboundMessage::ToggleHelperSelectionHide { data } => {
             let enabled = data.enabled;
             let _ = app.run_on_main_thread(move || {
-                listener::toggle_selection_float_hide(enabled);
+                listener::toggle_helper_selection_hide(enabled);
             });
         }
         InboundMessage::ToggleHelperMainHide { data } => {

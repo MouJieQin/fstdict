@@ -44,7 +44,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), tauri::Error> {
             if event_id == "show_helper_main" {
                 show_helper_panel(app_handle, "helper-main");
             } else if event_id == "show_helper_selection" {
-                show_helper_panel(app_handle, "selection-float-search");
+                show_helper_panel(app_handle, "helper-selection");
             } else if event_id == "quit" {
                 app_handle.exit(0);
             }

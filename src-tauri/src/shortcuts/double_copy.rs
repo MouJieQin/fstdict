@@ -26,7 +26,7 @@ pub fn handle_double_copy(app: &AppHandle) {
                     use crate::commands;
                     use tauri::Emitter;
 
-                    let _ = app.emit_to("selection-float-search", "cgevent-select", text);
+                    let _ = app.emit_to("helper-selection", "cgevent-select", text);
                     let _ = commands::show_selection_panel(app);
                 }
 

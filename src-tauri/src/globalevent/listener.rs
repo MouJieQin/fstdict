@@ -17,7 +17,7 @@ use super::callback;
 // is stopped to release the system-level hook and drop CPU usage to zero.
 // ---------------------------------------------------------------------------
 const SUB_HELPER_MAIN_HIDE: u8 = 1 << 0;
-const SUB_SELECTION_FLOAT_HIDE: u8 = 1 << 1;
+const SUB_HELPER_SELECTION_HIDE: u8 = 1 << 1;
 const SUB_TEXT_SELECTION_CAPTURE: u8 = 1 << 2;
 
 /// Bitmask of currently active subscribers. 0 means the hook must be stopped.
@@ -93,20 +93,20 @@ pub fn disable_helper_main_hide() {
     toggle_subscriber(SUB_HELPER_MAIN_HIDE, false);
 }
 
-pub fn enable_selection_float_hide() {
-    toggle_subscriber(SUB_SELECTION_FLOAT_HIDE, true);
+pub fn enable_helper_selection_hide() {
+    toggle_subscriber(SUB_HELPER_SELECTION_HIDE, true);
 }
 
-pub fn disable_selection_float_hide() {
-    toggle_subscriber(SUB_SELECTION_FLOAT_HIDE, false);
+pub fn disable_helper_selection_hide() {
+    toggle_subscriber(SUB_HELPER_SELECTION_HIDE, false);
 }
 
 pub fn toggle_helper_main_hide(enabled: bool) {
     toggle_subscriber(SUB_HELPER_MAIN_HIDE, enabled);
 }
 
-pub fn toggle_selection_float_hide(enabled: bool) {
-    toggle_subscriber(SUB_SELECTION_FLOAT_HIDE, enabled);
+pub fn toggle_helper_selection_hide(enabled: bool) {
+    toggle_subscriber(SUB_HELPER_SELECTION_HIDE, enabled);
 }
 
 pub fn toggle_text_selection_capture(enabled: bool) {
@@ -262,8 +262,8 @@ fn handle_mouse_pressed(app: &AppHandle, event: &Event, subscribers: u8) {
         callback::hide_helper_main_window(app);
     }
 
-    // Subscriber 2: hide selection-float-search window on outside click
-    if subscribers & SUB_SELECTION_FLOAT_HIDE != 0 {
+    // Subscriber 2: hide helper-selection window on outside click
+    if subscribers & SUB_HELPER_SELECTION_HIDE != 0 {
         callback::hide_helper_selection_window(app);
     }
 

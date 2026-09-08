@@ -23,7 +23,7 @@ pub fn hide_helper_main_window(app: &AppHandle) {
 
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 pub fn hide_helper_selection_window(app: &AppHandle) {
-    commands::hide_window_if_unpinned_and_outside(app, "selection-float-search");
+    commands::hide_window_if_unpinned_and_outside(app, "helper-selection");
 }
 
 #[cfg(all(target_os = "macos", not(feature = "dev-non-macos")))]

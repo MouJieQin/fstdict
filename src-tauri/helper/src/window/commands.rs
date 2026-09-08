@@ -28,7 +28,7 @@ pub fn set_selection_window_pinned(state: State<'_, SelectionWindowPinState>, pi
         "type": request_type,
         "data": {
             "event": "kCGEventLeftMouseDown",
-            "window": "selection-float-search"
+            "window": "helper-selection"
         }
     });
 
@@ -70,7 +70,7 @@ pub fn trigger_notification(app: AppHandle, message: String) -> Result<(), tauri
 
 /// Shows the selection panel near the cursor (unless pinned).
 pub fn show_selection_panel(app: &AppHandle) -> Result<(), String> {
-    let label = "selection-float-search";
+    let label = "helper-selection";
     let Some(win) = app.get_webview_window(label) else {
         return Ok(());
     };
@@ -117,7 +117,7 @@ pub fn hide_window_if_unpinned_and_outside(app: &AppHandle, label: &str) -> bool
             .try_state::<MainWindowPinState>()
             .map(|s| s.is_pinned())
             .unwrap_or(false),
-        "selection-float-search" => app
+        "helper-selection" => app
             .try_state::<SelectionWindowPinState>()
             .map(|s| s.is_pinned())
             .unwrap_or(false),
@@ -158,7 +158,7 @@ fn enable_listen_hide(app: &AppHandle, label: &str) {
 
 fn toggle_listen_hide(app: &AppHandle, label: &str, enabled: bool) {
     let type_str = match label {
-        "selection-float-search" => "toggle_selection_float_hide",
+        "helper-selection" => "toggle_helper_selection_hide",
         "helper-main" => "toggle_helper_main_hide",
         _ => return,
     };

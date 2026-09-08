@@ -4,7 +4,7 @@
   "description": "Capability for the main window",
   "windows": [
     "helper-main",
-    "selection-float-search"
+    "helper-selection"
   ],
   "permissions": [
     "core:default",

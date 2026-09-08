@@ -156,25 +156,13 @@ where
         InboundMessage::TextSelection { data } => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
-                if is_cursor_over_window(&app_clone, "selection-float-search") {
+                if is_cursor_over_window(&app_clone, "helper-selection") {
                     return;
                 }
 
-                let _ = app_clone.emit_to(
-                    "selection-float-search",
-                    "cgevent-select",
-                    data.text_selected,
-                );
+                let _ = app_clone.emit_to("helper-selection", "cgevent-select", data.text_selected);
                 let _ = show_selection_panel(&app_clone);
             });
-
-            // Register mouse-down listener for the selection panel
-            let req = build_event_request(
-                "register_request",
-                "kCGEventLeftMouseDown",
-                "selection-float-search",
-            );
-            let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
         }
 
         InboundMessage::HideHelperMainWindow => {
@@ -187,7 +175,7 @@ where
         InboundMessage::HideHelperSelectionWindow => {
             let app_clone = app.clone();
             let _ = app.run_on_main_thread(move || {
-                let _ = hide_window_if_unpinned_and_outside(&app_clone, "selection-float-search");
+                let _ = hide_window_if_unpinned_and_outside(&app_clone, "helper-selection");
             });
         }
 
@@ -214,7 +202,7 @@ where
     let app_clone = app.clone();
     let (sel_tx, sel_rx) = tokio::sync::oneshot::channel::<bool>();
     let _ = app.run_on_main_thread(move || {
-        let hidden = hide_window_if_unpinned_and_outside(&app_clone, "selection-float-search");
+        let hidden = hide_window_if_unpinned_and_outside(&app_clone, "helper-selection");
         let _ = sel_tx.send(hidden);
     });
 
@@ -222,7 +210,7 @@ where
         let req = build_event_request(
             "unregister_request",
             "kCGEventLeftMouseDown",
-            "selection-float-search",
+            "helper-selection",
         );
         let _ = write.send(WsMessage::Text(Utf8Bytes::from(req))).await;
     }
