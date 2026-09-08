@@ -1,10 +1,7 @@
 <template>
     <div>
         <!-- macOS-style title bar with drag region -->
-        <div data-tauri-drag-region class="floating-window-titlebar" :class="{
-            'not-helper-mode': !isHelperMode,
-            'helper-mode': isHelperMode
-        }" @click="blurActiveInput">
+        <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
             <div @mousedown.stop class="search-wrapper">
                 <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                     :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
@@ -38,6 +35,9 @@
                     size="small" />
 
                 <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
+                    class="floating-window-titlebar-button" size="small" />
+
+                <el-button v-if="showCloseButton" :icon="CircleCloseFilled" text @click="hideWindow"
                     class="floating-window-titlebar-button" size="small" />
 
                 <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
@@ -137,7 +137,7 @@ import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
 import { ImBooks } from 'vue-icons-plus/im'
-import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue'
+import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled } from '@element-plus/icons-vue'
 
 // Components
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
@@ -161,6 +161,10 @@ import type {
     SessionNameId,
 } from '@/common/type-interface'
 import { ENV } from '@/common/constants'
+
+// Tauri
+import { getCurrentWindow } from '@tauri-apps/api/window'
+
 
 // Props & emits
 const props = defineProps({
@@ -358,7 +362,7 @@ const favoriteWords = computed(() => {
     return props.folderWords[folderId] || []
 })
 
-const isHelperMode = computed(() =>
+const showCloseButton = computed(() =>
     props.env === ENV.SELECTION || props.env === ENV.HELPER
 )
 
@@ -367,6 +371,10 @@ const toggleFavorite = (): void => {
         props.lastSearchKeyword,
         props.sessionConfig.default_folder.id ?? null
     )
+}
+
+const hideWindow = (): void => {
+    getCurrentWindow().hide()
 }
 
 /**

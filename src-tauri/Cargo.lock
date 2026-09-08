@@ -1552,7 +1552,7 @@ dependencies = [
 
 [[package]]
 name = "fstdict"
-version = "0.0.36"
+version = "0.0.37"
 dependencies = [
  "ctrlc",
  "dirs 5.0.1",
@@ -1581,11 +1581,12 @@ dependencies = [
 
 [[package]]
 name = "fstdict-helper"
-version = "0.0.36"
+version = "0.0.37"
 dependencies = [
  "fstdict_common",
  "futures-util",
  "log",
+ "objc2 0.5.2",
  "serde",
  "serde_json",
  "tauri",
