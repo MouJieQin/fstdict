@@ -1,13 +1,16 @@
-use std::path::PathBuf;
+use log::info;
 use std::process::Child;
 #[cfg(windows)]
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use log::info;
+#[cfg(not(dev))]
+use std::path::PathBuf;
+#[cfg(not(dev))]
 use tauri::{Manager, Runtime};
 
 /// Returns the platform-specific filename for a sidecar binary.
+#[cfg(not(dev))]
 #[inline]
 pub fn sidecar_filename(base_name: &str) -> String {
     format!("{}{}", base_name, std::env::consts::EXE_SUFFIX)
@@ -17,6 +20,7 @@ pub fn sidecar_filename(base_name: &str) -> String {
 ///
 /// Works with both `App` and `AppHandle` via the `Manager` trait.
 /// Checks resource directory first (bundled release), then executable directory.
+#[cfg(not(dev))]
 pub fn find_sidecar_path<R: Runtime, M: Manager<R>>(
     manager: &M,
     base_name: &str,
@@ -92,4 +96,3 @@ pub fn terminate_child_process(child: &mut Option<Child>, name: &str) {
     let _ = proc.wait();
     info!("{} terminated successfully", name);
 }
-

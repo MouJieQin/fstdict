@@ -57,10 +57,6 @@ try {
     // ============================================================
 
     if (isDarwin) {
-        console.log("\n[Step] Build C++ helper fstdict_cgevent_server");
-        const cppScript = join(root, "scripts/build-helper.js");
-        runCommand(`node ${cppScript} ${isRelease ? "--release" : ""}`);
-
         console.log(
             `\n🍎 [macOS] Compiling real fstdict-helper (Isolated Package) binary...`,
         );

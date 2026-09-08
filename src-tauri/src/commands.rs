@@ -6,7 +6,7 @@ use tauri::{AppHandle, Manager};
 use fstdict_common::theme::set_app_theme;
 
 #[cfg(target_os = "macos")]
-use crate::app_state::{CGEventHelperProcess, HelperProcess};
+use crate::app_state::{HelperProcess};
 
 #[tauri::command]
 pub fn set_theme(app_handle: AppHandle, theme: &str) {
@@ -86,31 +86,6 @@ mod macos_impl {
             }
             Ok(None) => Err("Helper binary could not be located on disk.".into()),
             Err(e) => Err(format!("Failed to spawn helper process: {}", e)),
-        }
-    }
-
-    /// Launches the CGEvent monitoring sidecar.
-    #[tauri::command]
-    pub fn launch_cgevent_server(app_handle: AppHandle) -> Result<String, String> {
-        use crate::sidecar::cgevent::start_cgevent_sidecar;
-
-        if !accessibility::application_is_trusted() {
-            return Err("Accessibility permission is required to launch the sidecar.".into());
-        }
-
-        let state = app_handle.state::<CGEventHelperProcess>();
-        let mut lock = state.0.lock().unwrap();
-        if lock.is_some() {
-            return Ok("CGEvent sidecar is already running.".into());
-        }
-
-        match start_cgevent_sidecar(&app_handle) {
-            Ok(Some(child)) => {
-                *lock = Some(child);
-                Ok("CGEvent sidecar started successfully.".into())
-            }
-            Ok(None) => Err("Sidecar binary could not be located on disk.".into()),
-            Err(e) => Err(format!("Failed to spawn sidecar process: {}", e)),
         }
     }
 

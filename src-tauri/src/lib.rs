@@ -14,12 +14,10 @@ use log::{debug, error, info};
 use tauri::{Manager, RunEvent};
 use tokio::sync::mpsc;
 
-#[cfg(target_os = "macos")]
-use app_state::{
-    CGEventHelperProcess, HelperProcess, GLOBAL_CGEVENT_SERVER, GLOBAL_HELPER_PROCESS,
-};
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 use app_state::{HelperMainWindowPinState, HelperSelectionWindowPinState};
+#[cfg(target_os = "macos")]
+use app_state::{HelperProcess, GLOBAL_HELPER_PROCESS};
 
 use app_state::{DoubleCopyTracker, MainWindowWsSender, PythonServer, GLOBAL_PYTHON_SERVER};
 use ctrlc;
@@ -56,12 +54,6 @@ pub fn cleanup_all_sidecars() {
         if let Some(handle) = GLOBAL_HELPER_PROCESS.get() {
             if let Ok(mut guard) = handle.lock() {
                 terminate_child_process(&mut guard, "fstdict-helper");
-            }
-        }
-
-        if let Some(handle) = GLOBAL_CGEVENT_SERVER.get() {
-            if let Ok(mut guard) = handle.lock() {
-                terminate_child_process(&mut guard, "CGEvent server");
             }
         }
     }
@@ -109,8 +101,6 @@ pub async fn run() {
             commands::show_permission_window,
             #[cfg(target_os = "macos")]
             commands::launch_helper,
-            #[cfg(target_os = "macos")]
-            commands::launch_cgevent_server,
             #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
             commands::set_selection_window_pinned,
             #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
@@ -122,9 +112,7 @@ pub async fn run() {
     // Register macOS-only state
     #[cfg(target_os = "macos")]
     {
-        builder = builder
-            .manage(CGEventHelperProcess::default())
-            .manage(HelperProcess::default());
+        builder = builder.manage(HelperProcess::default());
     }
 
     let app = builder
@@ -147,7 +135,6 @@ pub async fn run() {
             #[cfg(target_os = "macos")]
             {
                 let _ = GLOBAL_HELPER_PROCESS.set(app.state::<HelperProcess>().0.clone());
-                let _ = GLOBAL_CGEVENT_SERVER.set(app.state::<CGEventHelperProcess>().0.clone());
             }
 
             // Ensure application data directory exists
@@ -194,37 +181,17 @@ pub async fn run() {
             }
 
             // Start macOS-specific helper processes
-            #[cfg(target_os = "macos")]
+            #[cfg(all(target_os = "macos", not(feature = "dev-non-macos")))]
             {
-                use macos_accessibility_client::accessibility::application_is_trusted;
-                // use sidecar::cgevent::start_cgevent_sidecar;
-
-                if application_is_trusted() {
-                    // Start CGEvent server
-                    // match start_cgevent_sidecar(app.handle()) {
-                    //     Ok(Some(child)) => {
-                    //         *app.state::<CGEventHelperProcess>().0.lock().unwrap() = Some(child);
-                    //     }
-                    //     Ok(None) => warn!("CGEvent server sidecar binary not found at startup"),
-                    //     Err(e) => {
-                    //         error!("Failed to start CGEvent server: {}", e);
-                    //         return Err(e);
-                    //     }
-                    // }
-                }
-
-                #[cfg(not(feature = "dev-non-macos"))]
-                {
-                    use log::warn;
-                    use sidecar::helper::start_helper;
-                    // Start floating helper app
-                    match start_helper() {
-                        Ok(Some(child)) => {
-                            *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
-                        }
-                        Ok(None) => warn!("Helper binary not found at startup"),
-                        Err(e) => error!("Failed to start helper at launch: {}", e),
+                use log::warn;
+                use sidecar::helper::start_helper;
+                // Start floating helper app
+                match start_helper() {
+                    Ok(Some(child)) => {
+                        *app.state::<HelperProcess>().0.lock().unwrap() = Some(child);
                     }
+                    Ok(None) => warn!("Helper binary not found at startup"),
+                    Err(e) => error!("Failed to start helper at launch: {}", e),
                 }
             }
 
@@ -243,9 +210,6 @@ pub async fn run() {
                 {
                     if let Ok(mut guard) = app_handle.state::<HelperProcess>().0.lock() {
                         terminate_child_process(&mut guard, "fstdict-helper");
-                    }
-                    if let Ok(mut guard) = app_handle.state::<CGEventHelperProcess>().0.lock() {
-                        terminate_child_process(&mut guard, "CGEvent server");
                     }
                 }
 
