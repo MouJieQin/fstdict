@@ -4,14 +4,17 @@ use super::keyboard::simulate_key_press;
 use crate::app_state::MainWindowWsSender;
 #[cfg(target_os = "macos")]
 use crate::commands::{check_accessibility, check_screen_recording, show_permission_window};
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use crate::commands::{show_main_panel, show_selection_panel};
+use crate::globalevent::listener;
 use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
-use crate::{commands, globalevent::listener};
 use fstdict_common::window::notification::show_notification;
-use fstdict_common::window::positioning::is_cursor_over_window;
 
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
-use tauri::{AppHandle, Emitter, Manager};
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
+use tauri::Emitter;
+use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
@@ -124,36 +127,31 @@ where
             });
         }
 
+        #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
         InboundMessage::TextSelection { data } => {
-            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
-            {
-                let app_clone = app.clone();
-                let _ = app.run_on_main_thread(move || {
-                    if is_cursor_over_window(&app_clone, "helper-selection") {
-                        return;
-                    }
+            use fstdict_common::window::positioning::is_cursor_over_window;
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                if is_cursor_over_window(&app_clone, "helper-selection") {
+                    return;
+                }
 
-                    let _ = commands::show_selection_panel(&app_clone);
-                    let _ =
-                        app_clone.emit_to("helper-selection", "cgevent-select", data.text_selected);
-                });
-            }
+                let _ = show_selection_panel(&app_clone);
+                let _ = app_clone.emit_to("helper-selection", "cgevent-select", data.text_selected);
+            });
         }
 
+        #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
         InboundMessage::OcrResult { data } => {
-            #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
-            {
-                let app_clone = app.clone();
-                let _ = app.run_on_main_thread(move || {
-                    if data.ocr_txt.is_empty() {
-                        let _ =
-                            show_notification(&app_clone, "No valid OCR result detected".into());
-                        return;
-                    }
-                    let _ = commands::show_main_panel(&app_clone);
-                    let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
-                });
-            }
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                if data.ocr_txt.is_empty() {
+                    let _ = show_notification(&app_clone, "No valid OCR result detected".into());
+                    return;
+                }
+                let _ = show_main_panel(&app_clone);
+                let _ = app_clone.emit_to("helper-main", "cgevent-ocr", data.ocr_txt);
+            });
         }
 
         InboundMessage::SimulateKeyPress { data } => {

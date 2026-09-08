@@ -7,9 +7,11 @@ pub enum InboundMessage {
     #[serde(rename = "tauri_notification")]
     TauriNotification { data: NotificationData },
 
+    #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
     #[serde(rename = "text_selection")]
     TextSelection { data: TextSelectionData },
 
+    #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
     #[serde(rename = "ocr_result")]
     OcrResult { data: OcrResultData },
 
@@ -49,11 +51,13 @@ pub struct NotificationData {
     pub message: String,
 }
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 #[derive(Debug, Deserialize)]
 pub struct TextSelectionData {
     pub text_selected: String,
 }
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 #[derive(Debug, Deserialize)]
 pub struct OcrResultData {
     pub ocr_txt: String,

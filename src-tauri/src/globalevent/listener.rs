@@ -85,18 +85,22 @@ pub fn init(app: &AppHandle) {
 // Call these from window show/hide handlers or Tauri commands.
 // ---------------------------------------------------------------------------
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 pub fn enable_helper_main_hide() {
     toggle_subscriber(SUB_HELPER_MAIN_HIDE, true);
 }
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 pub fn disable_helper_main_hide() {
     toggle_subscriber(SUB_HELPER_MAIN_HIDE, false);
 }
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 pub fn enable_helper_selection_hide() {
     toggle_subscriber(SUB_HELPER_SELECTION_HIDE, true);
 }
 
+#[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 pub fn disable_helper_selection_hide() {
     toggle_subscriber(SUB_HELPER_SELECTION_HIDE, false);
 }
