@@ -52,35 +52,30 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     let mut builder =
         WebviewWindowBuilder::new(app, config.label, WebviewUrl::App(config.url.into()))
             .inner_size(state.width, state.height)
+            .min_inner_size(300.0, 300.0)
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
             .always_on_top(true)
+            .minimizable(false)
+            .maximizable(false)
+            .decorations(false)
             .visible_on_all_workspaces(true);
-
-    // Platform-specific window builder configuration
-    #[cfg(target_os = "macos")]
-    {
-        builder = builder
-            .accept_first_mouse(true)
-            .zoom_hotkeys_enabled(true)
-            .title_bar_style(tauri::TitleBarStyle::Transparent);
-    }
 
     // Restore saved position if still within visible screen bounds
     if let (Some(x), Some(y)) = (state.x, state.y) {
         if WindowState::is_position_visible(&app_handle, x, y, state.width, state.height) {
             builder = builder.position(x, y);
-            info!("Restoring main window position to ({}, {})", x, y);
+            info!("Restoring {} position to ({}, {})", config.label, x, y);
         } else {
             builder = builder.center();
             warn!(
-                "Saved main window position ({}, {}) is off-screen. Centering instead.",
-                x, y
+                "Saved {} position ({}, {}) is off-screen. Centering instead.",
+                config.label, x, y
             );
         }
     } else {
         builder = builder.center();
-        info!("No saved main window position. Centering window.");
+        info!("No saved position for {}. Centering window.", config.label);
     }
 
     let win = builder.build()?;
