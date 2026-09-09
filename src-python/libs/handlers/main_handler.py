@@ -67,15 +67,23 @@ class MainMessageHandler:
             logger.error(f"Error handling main message: {e}", exc_info=True)
 
     @staticmethod
+    async def _send_message_to_helper(websocket: WebSocket, message: dict):
+        """Send a message to the helper window."""
+        if Utils.fstdict_helper_websocket:
+            # Send to helper window on macOS mode
+            await Utils.fstdict_helper_websocket.send_text(json.dumps(message))
+        else:
+            # Send to main window on non-macOS mode(linux, windows, dev-non-macOS mode on macOS)
+            await websocket.send_text(json.dumps(message))
+
+    @staticmethod
     async def _broadcast_text_selection(websocket: WebSocket, text: str):
         """Forward selected text to the helper window."""
         msg = {
             "type": "text_selection",
             "data": {"text_selected": text}
         }
-        await websocket.send_text(json.dumps(msg))
-        if Utils.fstdict_helper_websocket:
-            await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
+        await MainMessageHandler._send_message_to_helper(websocket, msg)
 
     @staticmethod
     async def _handle_shortcut_triggered(websocket: WebSocket, shortcut: str):
@@ -126,10 +134,7 @@ class MainMessageHandler:
             "type": "tauri_notification",
             "data": {"message": notification}
         }
-        if Utils.fstdict_helper_websocket:
-            await Utils.fstdict_helper_websocket.send_text(json.dumps(tmsg))
-        else:
-            await websocket.send_text(json.dumps(tmsg))
+        await MainMessageHandler._send_message_to_helper(websocket, tmsg)
 
     @staticmethod
     async def _toggle_selection_capture(websocket: WebSocket, enabled: bool):
@@ -155,19 +160,11 @@ class MainMessageHandler:
             "data": {"ocr_txt": ocr_result}
         }
 
-        # On macOS, send result to helper window; otherwise send back to caller
-        if sys.platform == "darwin":
-            if Utils.fstdict_helper_websocket:
-                await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
-            else:
-                # debug linux and windows on macOS
-                await websocket.send_text(json.dumps(msg))
-        else:
-            await websocket.send_text(json.dumps(msg))
+        await MainMessageHandler._send_message_to_helper(websocket, msg)
 
     @staticmethod
-    async def _try_send_helper_message(msg: dict):
-        """Try to send a message to the helper process."""
+    async def _try_send_macos_helper_message(msg: dict):
+        """Try to send a message to the helper process on macOS mode."""
         if Utils.fstdict_helper_websocket:
             await Utils.fstdict_helper_websocket.send_text(json.dumps(msg))
 
@@ -178,7 +175,7 @@ class MainMessageHandler:
             "type": "hide_helper_main_window",
             "data": {}
         }
-        await MainMessageHandler._try_send_helper_message(msg)
+        await MainMessageHandler._try_send_macos_helper_message(msg)
 
     @staticmethod
     async def _hide_helper_selection_window():
@@ -187,4 +184,4 @@ class MainMessageHandler:
             "type": "hide_helper_selection_window",
             "data": {}
         }
-        await MainMessageHandler._try_send_helper_message(msg)
+        await MainMessageHandler._try_send_macos_helper_message(msg)

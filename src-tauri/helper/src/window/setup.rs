@@ -6,7 +6,7 @@ use super::commands;
 use super::mac_rounded_corners;
 use crate::panels::{FloatSearchPanel, PublicPanelEventHandler};
 use fstdict_common::window::state::{create_debounced_saver, WindowState};
-use log::{info, warn};
+use log::{debug, info, warn};
 use tauri::{App, WebviewUrl, WebviewWindowBuilder};
 use tauri_nspanel::{CollectionBehavior, PanelLevel, WebviewWindowExt};
 
@@ -127,15 +127,16 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
 
     let handle_clone = app_handle.clone();
     handler.window_did_become_key(move |_| {
-        info!(
+        debug!(
             "{} panel became key window",
             handle_clone.package_info().name
         );
+        commands::disable_listen_hide(&handle_clone, config.label);
     });
 
     let app_clone = app_handle.clone();
     handler.window_did_resign_key(move |_| {
-        info!("Panel resigned key window status");
+        debug!("Panel resigned key window status");
         let _ = commands::hide_window_if_unpinned_and_outside(&app_clone, config.label);
     });
 

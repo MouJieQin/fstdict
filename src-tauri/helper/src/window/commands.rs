@@ -148,7 +148,7 @@ pub fn hide_window_if_unpinned_and_outside(app: &AppHandle, label: &str) -> bool
     false
 }
 
-fn disable_listen_hide(app: &AppHandle, label: &str) {
+pub fn disable_listen_hide(app: &AppHandle, label: &str) {
     toggle_listen_hide(app, label, false);
 }
 
