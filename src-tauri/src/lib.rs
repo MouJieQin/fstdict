@@ -122,7 +122,7 @@ pub async fn run() {
                 .path()
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
-            init_logging(&log_dir, "fstdict-main".to_string());
+            let _ = init_logging(&log_dir, "fstdict-main".to_string());
 
             #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
             {

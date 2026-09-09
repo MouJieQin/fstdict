@@ -56,7 +56,9 @@ async fn main() {
                 .path()
                 .app_log_dir()
                 .unwrap_or_else(|_| PathBuf::from("./logs"));
-            init_logging(&log_dir, "fstdict-helper".to_string());
+
+            // Initialize logging subsystem
+            let _ = init_logging(&log_dir, "fstdict-helper".to_string());
 
             // ── WebSocket client setup ──
             let (main_tx, main_rx) = mpsc::channel::<String>(WS_CHANNEL_CAPACITY);
