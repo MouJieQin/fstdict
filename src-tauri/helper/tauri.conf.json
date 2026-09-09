@@ -1,13 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "FstDict Helper",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "identifier": "FstDict.Helper",
   "build": {
     "frontendDist": "../../dist"
   },
   "app": {
-    "withGlobalTauri": true,
     "security": {
       "csp": null
     }
