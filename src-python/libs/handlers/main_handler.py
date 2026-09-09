@@ -3,7 +3,6 @@ Message handler for the main application WebSocket.
 """
 import json
 import asyncio
-import sys
 from fastapi import WebSocket
 
 from libs.log_config import logger

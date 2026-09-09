@@ -40,6 +40,7 @@ pub fn init_logging(log_dir: &Path, file_prefix: String) -> io::Result<()> {
 
     // Silence noisy third-party crates
     builder
+        .filter_module("enigo", LevelFilter::Warn)
         .filter_module("reqwest", LevelFilter::Warn)
         .filter_module("hyper", LevelFilter::Warn)
         .filter_module("hyper_util", LevelFilter::Warn)

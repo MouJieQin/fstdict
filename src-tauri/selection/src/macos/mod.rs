@@ -14,7 +14,7 @@ mod pasteboard;
 
 use alert_volume::AlertVolumeSnapshot;
 use core_foundation::base::CFRelease;
-use log::{error, info};
+use log::{debug, error};
 use pasteboard::{current_change_count, PasteboardSnapshot};
 use std::time::{Duration, Instant};
 
@@ -29,8 +29,8 @@ pub fn get_text() -> String {
     // Tier 1: AXSelectedText (works for native text fields, not WKWebView)
     match ax::get_selected_text_by_ax() {
         Ok(text) if !text.is_empty() => return text,
-        Ok(_) => info!("Tier 1 (AXSelectedText) returned empty"),
-        Err(err) => info!("Tier 1 (AXSelectedText) failed: {err}"),
+        Ok(_) => debug!("Tier 1 (AXSelectedText) returned empty"),
+        Err(err) => debug!("Tier 1 (AXSelectedText) failed: {err}"),
     }
 
     // Tier 2: AXCopy action — 100ms timeout.
@@ -39,14 +39,14 @@ pub fn get_text() -> String {
     // blocking for seconds.
     match get_text_by_ax_copy() {
         Ok(text) if !text.is_empty() => return text,
-        Ok(_) => info!("Tier 2 (AXCopy action) returned empty"),
-        Err(err) => info!("Tier 2 (AXCopy action) failed: {err}"),
+        Ok(_) => debug!("Tier 2 (AXCopy action) returned empty"),
+        Err(err) => debug!("Tier 2 (AXCopy action) failed: {err}"),
     }
 
     // Tier 3: global CGEvent Cmd+C — 500ms timeout + post-change delay
     match get_text_by_global_copy() {
         Ok(text) if !text.is_empty() => return text,
-        Ok(_) => info!("Tier 3 (global CGEvent) returned empty"),
+        Ok(_) => debug!("Tier 3 (global CGEvent) returned empty"),
         Err(err) => error!("Tier 3 (global CGEvent) failed: {err}"),
     }
 
@@ -127,7 +127,7 @@ where
         std::thread::sleep(POST_CHANGE_DELAY);
         pasteboard::read_text()
     } else {
-        info!("changeCount unchanged within {timeout:?}; no selection");
+        debug!("changeCount unchanged within {timeout:?}; no selection");
         String::new()
     };
 

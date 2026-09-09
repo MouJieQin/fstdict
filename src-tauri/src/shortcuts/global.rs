@@ -84,7 +84,6 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
     }
 
     let shortcut_str = shortcut.to_string();
-    info!("Global shortcut triggered: {}", shortcut_str);
 
     match shortcut_str.as_str() {
         s if s == "super+KeyC" || s == "control+KeyC" => {
@@ -92,6 +91,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, event: Shortc
             handle_double_copy(app);
         }
         _ => {
+            info!("Global shortcut triggered: {}", shortcut_str);
             send_shortcut_event(app, &shortcut_str);
         }
     }

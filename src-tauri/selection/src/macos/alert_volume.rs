@@ -1,96 +1,68 @@
-//! Native CoreAudio alert-volume save/restore via direct FFI (coreaudio-sys).
-//! Replaces AppleScript: `alert volume of (get volume settings)`.
-
 use coreaudio_sys::{
-    AudioObjectGetPropertyData, AudioObjectID, AudioObjectPropertyAddress,
-    AudioObjectSetPropertyData,
+    kAudioServicesNoError, AudioServicesGetProperty, AudioServicesPropertyID,
+    AudioServicesSetProperty,
 };
 use std::error::Error;
 use std::mem::size_of;
 use std::ptr::null;
 
-// FourCharCode selectors — hardcoded because coreaudio-sys does not
-// re-export every CoreAudio constant under a stable module path.
-const SELECTOR_DEFAULT_SYSTEM_OUTPUT: u32 = 0x736F7574; // 'sout'
-const SELECTOR_ALERT_VOLUME: u32 = 0x616C766C; // 'alvl'
-const SYSTEM_OBJECT: AudioObjectID = 1; // kAudioObjectSystemObject
-
-/// Read a scalar AudioObject property.
-unsafe fn get_scalar<T>(object_id: AudioObjectID, selector: u32) -> Result<T, Box<dyn Error>> {
-    let address = AudioObjectPropertyAddress {
-        mSelector: selector,
-        mScope: 0, // kAudioObjectPropertyScopeGlobal
-        mElement: 0,
-    };
-    let mut data_size = size_of::<T>() as u32;
-    let mut value = std::mem::MaybeUninit::<T>::uninit();
-    let status = AudioObjectGetPropertyData(
-        object_id,
-        &address,
-        0,
-        null(),
-        &mut data_size,
-        value.as_mut_ptr() as *mut _,
-    );
-    if status != 0 {
-        return Err(
-            format!("AudioObjectGetPropertyData(0x{selector:08x}) OSStatus={status}").into(),
-        );
-    }
-    Ok(value.assume_init())
-}
-
-/// Write a scalar AudioObject property.
-unsafe fn set_scalar<T>(
-    object_id: AudioObjectID,
-    selector: u32,
-    value: &T,
-) -> Result<(), Box<dyn Error>> {
-    let address = AudioObjectPropertyAddress {
-        mSelector: selector,
-        mScope: 0,
-        mElement: 0,
-    };
-    let data_size = size_of::<T>() as u32;
-    let status = AudioObjectSetPropertyData(
-        object_id,
-        &address,
-        0,
-        null(),
-        data_size,
-        value as *const T as *const _,
-    );
-    if status != 0 {
-        return Err(
-            format!("AudioObjectSetPropertyData(0x{selector:08x}) OSStatus={status}").into(),
-        );
-    }
-    Ok(())
-}
+// The undocumented selector for "System Alert Volume" (matches 'ssvl')
+// This controls the "Alert volume" slider in System Settings > Sound.
+const K_AUDIO_SERVICES_PROPERTY_SYSTEM_VOLUME: AudioServicesPropertyID = 0x7373766c;
 
 #[derive(Clone, Copy)]
 pub struct AlertVolumeSnapshot {
-    device: AudioObjectID,
     volume: f32,
 }
 
 impl AlertVolumeSnapshot {
-    /// Capture current system alert volume.
+    /// Capture the current system alert volume.
     pub fn capture() -> Result<Self, Box<dyn Error>> {
-        unsafe {
-            let device: AudioObjectID = get_scalar(SYSTEM_OBJECT, SELECTOR_DEFAULT_SYSTEM_OUTPUT)?;
-            let volume: f32 = get_scalar(device, SELECTOR_ALERT_VOLUME)?;
-            Ok(Self { device, volume })
+        let mut size = size_of::<f32>() as u32;
+        let mut volume: f32 = 0.0;
+
+        let status = unsafe {
+            AudioServicesGetProperty(
+                K_AUDIO_SERVICES_PROPERTY_SYSTEM_VOLUME,
+                0,
+                null(),
+                &mut size,
+                &mut volume as *mut f32 as *mut _,
+            )
+        };
+
+        if status != kAudioServicesNoError as i32 {
+            return Err(format!("Failed to get alert volume. OSStatus: {}", status).into());
         }
+
+        Ok(Self { volume })
     }
 
-    /// Mute alert volume (suppress Cmd+C beep in some apps).
+    /// Mute the alert volume (sets it to 0.0).
     pub fn mute(&self) -> Result<(), Box<dyn Error>> {
-        unsafe { set_scalar(self.device, SELECTOR_ALERT_VOLUME, &0.0f32) }
+        self.set_volume(0.0)
     }
 
-    /// Restore alert volume to the captured value.
+    /// Restore the alert volume to the captured value.
     pub fn restore(&self) -> Result<(), Box<dyn Error>> {
-        unsafe { set_scalar(self.device, SELECTOR_ALERT_VOLUME, &self.volume) }
+        self.set_volume(self.volume)
+    }
+
+    fn set_volume(&self, volume: f32) -> Result<(), Box<dyn Error>> {
+        let size = size_of::<f32>() as u32;
+        let status = unsafe {
+            AudioServicesSetProperty(
+                K_AUDIO_SERVICES_PROPERTY_SYSTEM_VOLUME,
+                0,
+                null(),
+                size,
+                &volume as *const f32 as *const _,
+            )
+        };
+
+        if status != kAudioServicesNoError as i32 {
+            return Err(format!("Failed to set alert volume. OSStatus: {}", status).into());
+        }
+        Ok(())
     }
 }

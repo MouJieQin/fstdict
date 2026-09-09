@@ -1,5 +1,5 @@
 // src/globalevent/listener.rs
-use log::{info, warn};
+use log::{debug, info, warn};
 use monio::channel::listen_async_channel;
 use monio::{Button, Event, EventType};
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -343,7 +343,7 @@ fn handle_mouse_released(app: &AppHandle, event: &Event, subscribers: u8) {
     // A real text selection involves dragging beyond a tiny threshold
     // and holding for more than an instant click.
     if distance >= SELECTION_MIN_DRAG_PX && duration_ms >= SELECTION_MIN_DURATION_MS {
-        info!("Text-selection gesture detected (dist={distance:.1}px, {duration_ms}ms)");
+        debug!("Text-selection gesture detected (dist={distance:.1}px, {duration_ms}ms)");
         callback::handle_selection_event(app);
     }
 }
