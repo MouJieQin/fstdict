@@ -71,7 +71,7 @@ pub async fn run() {
     })
     .expect("Failed to register termination signal handler");
 
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
@@ -109,12 +109,6 @@ pub async fn run() {
         .manage(DoubleCopyTracker::default())
         .manage(PythonServer::default());
 
-    // Register macOS-only state
-    #[cfg(target_os = "macos")]
-    {
-        builder = builder.manage(HelperProcess::default());
-    }
-
     let app = builder
         .setup(|app| {
             // Initialize logging subsystem
@@ -134,6 +128,7 @@ pub async fn run() {
             let _ = GLOBAL_PYTHON_SERVER.set(app.state::<PythonServer>().0.clone());
             #[cfg(target_os = "macos")]
             {
+                app.manage(HelperProcess::default());
                 let _ = GLOBAL_HELPER_PROCESS.set(app.state::<HelperProcess>().0.clone());
             }
 

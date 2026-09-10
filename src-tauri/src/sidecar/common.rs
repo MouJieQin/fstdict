@@ -2,7 +2,6 @@ use log::info;
 use std::process::Child;
 #[cfg(windows)]
 use std::process::{Command, Stdio};
-use std::time::Duration;
 
 #[cfg(not(dev))]
 use std::path::PathBuf;
@@ -63,6 +62,7 @@ pub fn terminate_child_process(child: &mut Option<Child>, name: &str) {
 
     #[cfg(unix)]
     {
+        use std::time::Duration;
         // Send SIGTERM to the entire process group (negative PID)
         unsafe {
             libc::kill(-(pid as i32), libc::SIGTERM);

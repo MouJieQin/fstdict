@@ -1,3 +1,4 @@
+#![cfg(target_os = "macos")]
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub fn show_permission_window(app: &AppHandle) -> Result<(), tauri::Error> {

@@ -42,4 +42,6 @@ dist-ssr
 *.sln
 *.sw?
 
-
+# Syncthing
+.stfolder/
+.stignore

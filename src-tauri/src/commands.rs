@@ -6,7 +6,7 @@ use tauri::{AppHandle, Manager};
 use fstdict_common::theme::set_app_theme;
 
 #[cfg(target_os = "macos")]
-use crate::app_state::{HelperProcess};
+use crate::app_state::HelperProcess;
 
 #[tauri::command]
 pub fn set_theme(app_handle: AppHandle, theme: &str) {
