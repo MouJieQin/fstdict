@@ -67,7 +67,7 @@ const progressPercentage = computed(() =>
 
 const downloaded = ref<number>(0)
 const contentLength = ref<number | undefined>(100)
-const state = ref<UpdaterState>('CHECKING')
+const state = ref<UpdaterState>('CHECK_FAILED')
 // ✅ shallowRef: no deep proxying, Update instance stays untouched
 const update = shallowRef<Update | null>(null)
 

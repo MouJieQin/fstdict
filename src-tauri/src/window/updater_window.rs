@@ -1,3 +1,4 @@
+use log::error;
 use tauri::{AppHandle, Manager, Size, WebviewUrl, WebviewWindowBuilder};
 
 pub fn show_updater_window(app: &AppHandle) -> Result<(), tauri::Error> {
@@ -6,7 +7,11 @@ pub fn show_updater_window(app: &AppHandle) -> Result<(), tauri::Error> {
         let _ = win.show();
         return Ok(());
     }
-    create_updater_window(app)
+    let handle = app.clone();
+    if let Err(e) = create_updater_window(&handle) {
+        error!("failed to create updater window: {e}");
+    }
+    Ok(())
 }
 
 pub fn set_updater_window_size(
@@ -23,17 +28,14 @@ pub fn set_updater_window_size(
 }
 
 fn create_updater_window(app: &AppHandle) -> Result<(), tauri::Error> {
-    #[cfg(not(dev))]
-    let updater_url = "tauri://localhost/#/updater";
-    #[cfg(dev)]
-    let updater_url = "http://localhost:9595/#/updater";
+    let updater_url = WebviewUrl::App("#/updater".into());
 
-    let win = WebviewWindowBuilder::new(app, "updater", WebviewUrl::App(updater_url.into()))
+    let win = WebviewWindowBuilder::new(app, "updater", updater_url)
         .inner_size(360.0, 180.0)
         .resizable(false)
+        .maximizable(false)
         .center()
         .title("Updater")
-        // .closable(false)
         .build()?;
 
     let _ = win.show();

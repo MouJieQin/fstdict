@@ -14,7 +14,8 @@ pub fn set_theme(app_handle: AppHandle, theme: &str) {
 }
 
 #[tauri::command]
-pub fn show_updater_window(app_handle: AppHandle) {
+// async is required to show a window on Windows
+pub async fn show_updater_window(app_handle: AppHandle) {
     let _ = updater_window::show_updater_window(&app_handle);
 }
 
