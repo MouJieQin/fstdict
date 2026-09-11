@@ -158,8 +158,7 @@ fn position_window_on_monitor(
     Ok(())
 }
 
-/// Positions the notification panel in the top-right corner of the target monitor.
-pub fn position_notification_panel(win: &WebviewWindow, monitor: &Monitor) {
+pub fn panel_position(monitor: &Monitor) -> LogicalPosition<f64> {
     let scale = monitor.scale_factor();
     let screen_pos = monitor.position().to_logical::<f64>(scale);
     let screen_size = monitor.size().to_logical::<f64>(scale);
@@ -169,6 +168,11 @@ pub fn position_notification_panel(win: &WebviewWindow, monitor: &Monitor) {
 
     let target_x = screen_pos.x + screen_size.width - NOTIFICATION_INNER_WIDTH - EDGE_PADDING;
     let target_y = screen_pos.y + TOP_PADDING;
+    LogicalPosition::new(target_x, target_y)
+}
 
-    let _ = win.set_position(Position::Logical(LogicalPosition::new(target_x, target_y)));
+/// Positions the notification panel in the top-right corner of the target monitor.
+pub fn position_notification_panel(win: &WebviewWindow, monitor: &Monitor) {
+    let panel_pos = panel_position(monitor);
+    let _ = win.set_position(Position::Logical(panel_pos));
 }

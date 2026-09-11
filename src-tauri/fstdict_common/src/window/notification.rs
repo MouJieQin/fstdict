@@ -1,9 +1,10 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
-use super::positioning::{monitor_from_cursor, position_notification_panel};
+use super::positioning::{monitor_from_cursor, panel_position, position_notification_panel};
 use log::{error, info};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri_utils::config::Color;
 
 /// Globally unique task ID for debouncing notification fade-out.
 static CURRENT_TASK_ID: AtomicU64 = AtomicU64::new(0);
@@ -91,9 +92,19 @@ fn create_notification_panel(
     let base_url = "http://localhost:9595";
     let target_url = format!("{}/#/notification?message={}", base_url, encoded);
 
+    // Fix 1 (flash): resolve the target position BEFORE building.
+    // Windows paints the window the moment it's created; macOS defers the
+    // first paint to the next run-loop iteration (which is why the old
+    // code only flashed on Windows). Creating at the final position makes
+    // the flash impossible. Refactor `position_notification_panel` into
+    // `panel_position(monitor) -> LogicalPosition` + `apply_position(win)`.
+    let pos = resolve_panel_position(app)?;
+
     let win = WebviewWindowBuilder::new(app, "notify-layer", WebviewUrl::App(target_url.into()))
         .inner_size(NOTIFICATION_INNER_WIDTH, NOTIFICATION_INNER_HEIGHT)
+        .position(pos.x, pos.y) // create directly at the top-right spot
         .decorations(false)
+        .shadow(false)
         .resizable(false)
         .focusable(false)
         .transparent(true)
@@ -101,6 +112,13 @@ fn create_notification_panel(
         .visible_on_all_workspaces(true)
         .build()?;
 
+    // Fix 2 (white edges): WebView2's canvas defaults to opaque white.
+    // "transparent: true" alone is NOT enough on Windows — set an explicit
+    // alpha-0 background color (any alpha in 1..=255 is forced back to 255).
+    let _ = win.set_background_color(Some(Color(0, 0, 0, 0)));
+
+    // macOS may ignore builder .position() (tao#1023) — re-apply here.
+    // On Windows this is a no-op move to the same spot.
     let _ = set_panel_position(app, &win);
     let _ = win.show();
 
@@ -109,6 +127,24 @@ fn create_notification_panel(
     });
 
     Ok(())
+}
+
+/// Returns the panel's final position (cursor monitor, primary as fallback).
+fn resolve_panel_position(app: &AppHandle) -> Result<tauri::LogicalPosition<f64>, tauri::Error> {
+    match monitor_from_cursor(app) {
+        Ok(Some(monitor)) => Ok(panel_position(&monitor)),
+        Ok(None) => {
+            info!("Cursor monitor not found; falling back to primary.");
+            match app.primary_monitor() {
+                Ok(Some(primary)) => Ok(panel_position(&primary)),
+                _ => Err(tauri::Error::FailedToReceiveMessage), // or a meaningful error
+            }
+        }
+        Err(err) => {
+            error!("Failed to detect cursor monitor: {}", err);
+            Err(err)
+        }
+    }
 }
 
 fn set_panel_position(app: &AppHandle, win: &WebviewWindow) -> Result<(), tauri::Error> {

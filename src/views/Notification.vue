@@ -70,9 +70,9 @@ body {
 
 .wrapper {
     box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    padding: 10px;
+    width: 100vw;
+    height: 100vh;
+    /* padding: 10px; */
     background: rgba(30, 30, 30, 0.85);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
@@ -83,7 +83,7 @@ body {
     border-radius: 14px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    /* gap: 14px; */
     border: 0.5px solid rgba(255, 255, 255, 0.18);
 
     opacity: 1;

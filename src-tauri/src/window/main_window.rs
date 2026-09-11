@@ -5,7 +5,7 @@ use std::time::Duration;
 use fstdict_common::window::state::{create_debounced_saver, WindowState};
 
 use log::{info, warn};
-use tauri::{App, WebviewWindowBuilder, WindowEvent};
+use tauri::{App, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
 const TRACKER_ARM_DELAY_MS: u64 = 500;
@@ -15,18 +15,13 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     let app_handle = app.handle().clone();
     let config_file = "main-window-state.json";
     let state = WindowState::load(&app_handle, config_file);
+    let main_url = WebviewUrl::App("#/dict/1".into());
 
-    #[cfg(not(dev))]
-    let main_url = "tauri://localhost/#/dict/1";
-    #[cfg(dev)]
-    let main_url = "http://localhost:9595/#/dict/1";
-
-    let mut builder =
-        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App(main_url.into()))
-            .title("FstDict")
-            .inner_size(state.width, state.height)
-            .min_inner_size(400.0, 300.0)
-            .accept_first_mouse(true);
+    let mut builder = WebviewWindowBuilder::new(app, "main", main_url)
+        .title("FstDict")
+        .inner_size(state.width, state.height)
+        .min_inner_size(400.0, 300.0)
+        .accept_first_mouse(true);
 
     // Platform-specific window builder configuration
     #[cfg(target_os = "macos")]
