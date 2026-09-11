@@ -2,7 +2,8 @@
 members = [
   "helper",
   "fstdict_common",
-  "selection"
+  "selection",
+  "screencapture"
 ]
 
 [features]
@@ -40,6 +41,7 @@ dirs = "5"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "time", "sync"] }
 fstdict_common = { path = "fstdict_common" } 
 selection = { path = "selection" }
+screencapture = { path = "screencapture" }
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-global-shortcut = "2.3.2"
 enigo = "0.6.1"

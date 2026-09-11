@@ -1,0 +1,24 @@
+[package]
+name = "screencapture"
+authors = ["MouJieQin"]
+description = "Interactive screen capture"
+keywords = ["interactive", "screenshot", "linux", "windows", "macos"]
+categories = ["gui"]
+license = "GPL-3.0-only"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+interactive-screenshot = "0.1.1"
+image = "0.25.10"
+
+
+#[target.'cfg(target_os = "linux")'.dependencies]
+
+#[target.'cfg(target_os = "macos")'.dependencies]
+
