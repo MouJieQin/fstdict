@@ -13,7 +13,7 @@ dev-non-macos = []
 
 [package]
 name = "fstdict"
-version = "0.0.40"
+version = "0.0.41"
 description = "A dictionary app using fstdx/fstdd"
 authors = ["Moujie Qin"]
 edition = "2021"
