@@ -302,6 +302,10 @@ fn handle_mouse_pressed(app: &AppHandle, event: &Event, subscribers: u8) {
                 "Double-click text-selection detected at ({:.0}, {:.0})",
                 mouse.x, mouse.y
             );
+            #[cfg(target_os = "linux")]
+            {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
             callback::handle_selection_event(app);
         }
 

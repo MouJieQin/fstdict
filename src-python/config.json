@@ -41,24 +41,8 @@
                 "pinned": false
             }
         },
-        "prior_suffix": {
-            "japanese": [
-                "する",
-                "う",
-                "く",
-                "ぐ",
-                "つ",
-                "ぬ",
-                "ぶ",
-                "む",
-                "る",
-                "す",
-                "い"
-            ],
-            "korean": [
-                "하다",
-                "다"
-            ]
+        "helper_selection": {
+            "enabled": false
         }
     },
     "prior_suffix": {

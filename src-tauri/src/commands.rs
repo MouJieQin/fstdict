@@ -110,6 +110,7 @@ mod non_macos_impl {
     use fstdict_common::window::positioning::{is_cursor_over_window, position_window_near_cursor};
     use log::info;
     use tauri::State;
+    use tauri::WebviewWindow;
 
     /// Tauri command: update the pin state of the selection search panel.
     #[tauri::command]
@@ -136,15 +137,14 @@ mod non_macos_impl {
 
         if let Some(pin_state) = app.try_state::<HelperSelectionWindowPinState>() {
             if pin_state.is_pinned() {
-                let _ = win.show();
+                show_helper_window(&win);
                 return Ok(());
             }
         }
 
         let _ = position_window_near_cursor(app, &win);
-        let _ = win.show();
+        show_helper_window(&win);
         listener::enable_helper_selection_hide();
-
         Ok(())
     }
 
@@ -156,15 +156,24 @@ mod non_macos_impl {
 
         if let Some(pin_state) = app.try_state::<HelperMainWindowPinState>() {
             if pin_state.is_pinned() {
-                let _ = win.show();
+                show_helper_window(&win);
                 return Ok(());
             }
         }
 
         let _ = position_window_near_cursor(app, &win);
         listener::enable_helper_main_hide();
-        let _ = win.show();
+        show_helper_window(&win);
         Ok(())
+    }
+
+    fn show_helper_window(win: &WebviewWindow) {
+        let _ = win.show();
+        #[cfg(target_os = "linux")]
+        {
+            let _ = win.set_always_on_top(true);
+            let _ = win.set_visible_on_all_workspaces(true);
+        }
     }
 
     /// Hides a window if the cursor is outside its bounds and it's not pinned.

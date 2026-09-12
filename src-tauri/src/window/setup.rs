@@ -55,6 +55,7 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
             .min_inner_size(300.0, 300.0)
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
+            .visible(false)
             .always_on_top(true)
             .minimizable(false)
             .maximizable(false)
@@ -79,7 +80,12 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     }
 
     let win = builder.build()?;
-    let _ = win.hide();
+    // let _ = win.hide();
+    #[cfg(target_os = "linux")]
+    {
+        let _ = win.set_always_on_top(true);
+        let _ = win.set_visible_on_all_workspaces(true);
+    }
 
     // Suppress state saves during initial window layout
     let is_ready = Arc::new(AtomicBool::new(false));

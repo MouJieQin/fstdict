@@ -57,7 +57,7 @@ class DictionarySearcher:
 
     def reload_priority_suffixes(self) -> None:
         """Reload priority suffix configuration."""
-        prior_suffix = Utils.CONFIG["app"]["prior_suffix"]
+        prior_suffix = Utils.CONFIG["prior_suffix"]
         self._engine.remove_all_prior_suffix()
         for _, value in prior_suffix.items():
             self._engine.insert_prior_suffix(value)
