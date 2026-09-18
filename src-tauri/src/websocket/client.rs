@@ -1,20 +1,27 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use super::keyboard::simulate_key_press;
+
 use crate::app_state::MainWindowWsSender;
+
 #[cfg(target_os = "macos")]
 use crate::commands::{check_accessibility, check_screen_recording, show_permission_window};
+
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 use crate::commands::{show_main_panel, show_selection_panel};
+
 use crate::globalevent::listener;
 use crate::shortcuts::global::{register_global_shortcut, unregister_global_shortcut};
 use fstdict_common::window::notification::show_notification;
 
 use futures_util::{SinkExt, StreamExt};
-use log::{error, info};
+use log::{debug, error, info};
+
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 use tauri::Emitter;
 use tauri::{AppHandle, Manager};
+
 use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
@@ -24,6 +31,22 @@ use super::protocol::{build_connect_message, InboundMessage};
 
 /// Reconnection delay after WebSocket disconnect (milliseconds).
 const RECONNECT_DELAY_MS: u64 = 200;
+
+/// Busy flag guarding against overlapping interactive screenshot captures.
+///
+/// Set before the worker thread is spawned and cleared by `CaptureInProgressGuard`
+/// when the worker exits, regardless of the exit path (success, error, or early
+/// return when screen-recording permission is missing).
+static CAPTURE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
+
+/// RAII guard that clears the capture-in-progress flag when dropped.
+struct CaptureInProgressGuard;
+
+impl Drop for CaptureInProgressGuard {
+    fn drop(&mut self) {
+        CAPTURE_IN_PROGRESS.store(false, Ordering::SeqCst);
+    }
+}
 
 /// Starts the WebSocket client loop with automatic reconnection.
 ///
@@ -37,6 +60,7 @@ pub async fn start_ws_client(
     // Create merger ONCE outside the reconnection loop to avoid moving receivers twice
     let mut outbound_merged = OutboundMerger::new(outbound_main_rx);
     let mut reconnect_count = 0;
+
     loop {
         info!("Connecting to Python WebSocket: {}", ws_url);
         reconnect_count += 1;
@@ -49,6 +73,7 @@ pub async fn start_ws_client(
                 // Send connection handshake
                 let handshake = WsMessage::Text(Utf8Bytes::from(build_connect_message()));
                 let _ = write.send(handshake).await;
+
                 // Main event loop
                 loop {
                     tokio::select! {
@@ -78,7 +103,8 @@ pub async fn start_ws_client(
                                 _ => {}
                             }
                         }
-                       // Outbound: messages from Tauri commands / UI
+
+                        // Outbound: messages from Tauri commands / UI
                         Some(payload) = outbound_merged.recv() => {
                             let msg = WsMessage::Text(Utf8Bytes::from(payload));
                             if let Err(e) = write.send(msg).await {
@@ -205,18 +231,45 @@ where
         }
 
         InboundMessage::InteractivelyCapture { data } => {
+            // Ignore the request when a previous capture is still running.
+            // swap(true) returns the previous value: `true` means a capture is in progress.
+            if CAPTURE_IN_PROGRESS.swap(true, Ordering::SeqCst) {
+                debug!("Ignoring InteractivelyCapture: a capture is already in progress");
+                return;
+            }
+
             let app_clone = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                #[cfg(target_os = "macos")]
-                {
-                    let granted = check_screen_recording();
-                    if !granted {
-                        let _ = show_permission_window(app_clone);
-                        return;
+
+            // Run the blocking capture on a dedicated worker thread so the main
+            // thread is never stalled by the interactive screencapture CLI.
+            let spawn_result = std::thread::Builder::new()
+                .name("screenshot-capture".to_string())
+                .spawn(move || {
+                    // RAII: released on every exit path of the worker.
+                    let _guard = CaptureInProgressGuard;
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        let granted = check_screen_recording();
+                        if !granted {
+                            // The permission UI must be presented on the main thread.
+                            let app_for_perm = app_clone.clone();
+                            let _ = app_clone.run_on_main_thread(move || {
+                                let _ = show_permission_window(app_for_perm);
+                            });
+                            return;
+                        }
                     }
-                }
-                screenshot_ocr(&app_clone, data.path.as_str());
-            });
+
+                    screenshot_ocr(&app_clone, data.path.as_str());
+                });
+
+            if let Err(e) = spawn_result {
+                // Reset the flag if spawning failed; otherwise every subsequent
+                // request would be silently dropped forever.
+                error!("Failed to spawn screenshot worker: {e}");
+                CAPTURE_IN_PROGRESS.store(false, Ordering::SeqCst);
+            }
         }
 
         InboundMessage::CheckAccessibility => {

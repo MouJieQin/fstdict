@@ -62,11 +62,6 @@ fn dispatch_shortcut(app: &AppHandle, shortcut_str: &str, pressed: bool) {
     if is_copy_shortcut(shortcut_str) {
         passthrough_native_copy(app.clone(), shortcut_str);
         handle_double_copy(app);
-    } else if shortcut_str.eq_ignore_ascii_case("shift+alt+k")
-        || shortcut_str.eq_ignore_ascii_case("shift+alt+KeyK")
-    {
-        info!("Global shortcut triggered: {}", shortcut_str);
-        let _ = screencapture::interactively_capture("screenshot.png");
     } else {
         info!("Global shortcut triggered: {}", shortcut_str);
         send_shortcut_event(app, shortcut_str);
@@ -131,10 +126,6 @@ pub fn register_global_shortcuts(app: &AppHandle) {
                 let _ = app.global_shortcut().register(copy_shortcut);
             }
         }
-    }
-
-    if let Ok(copy_shortcut) = Shortcut::from_str("shift+alt+k") {
-        let _ = app.global_shortcut().register(copy_shortcut);
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -345,7 +336,6 @@ pub fn register_global_shortcuts(app: &AppHandle) {
 
     // handy-keys uses "ctrl" not "control" for string parsing
     register_global_shortcut(app, "ctrl+c");
-    register_global_shortcut(app, "shift+alt+k");
 }
 
 /// No-op on Linux: the tauri plugin callback is never wired up because
