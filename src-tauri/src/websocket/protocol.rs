@@ -36,11 +36,11 @@ pub enum InboundMessage {
     #[serde(rename = "toggle_helper_main_hide")]
     ToggleHelperMainHide { data: ToggleEventData },
 
+    #[serde(rename = "interactively_capture")]
+    InteractivelyCapture { data: PathData },
+
     #[serde(rename = "check_accessibility")]
     CheckAccessibility,
-
-    #[serde(rename = "check_screen_recording")]
-    CheckScreenRecording,
 
     #[serde(rename = "exit_request")]
     ExitRequest,
@@ -81,6 +81,11 @@ pub struct RegisterShortcutData {
 #[derive(Debug, Deserialize)]
 pub struct ToggleEventData {
     pub enabled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PathData {
+    pub path: String,
 }
 
 /// Builds the initial connection handshake message.

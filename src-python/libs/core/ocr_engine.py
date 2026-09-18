@@ -2,9 +2,6 @@
 OCR engine wrapper around RapidOCR with cross-platform screenshot support.
 All OCR and screenshot operations are blocking; call via asyncio.to_thread().
 """
-import sys
-import os
-import subprocess
 from rapidocr import EngineType, LangDet, ModelType, OCRVersion, RapidOCR
 
 from libs.config.app_config import Utils
@@ -57,10 +54,6 @@ class OcrEngine:
 
         self._engine = RapidOCR(params=params)
 
-    def is_ocring(self) -> bool:
-        """Check if an OCR operation is currently in progress."""
-        return self._is_ocr_active
-
     def _get_configured_language(self) -> str:
         """Get the configured OCR language from session settings."""
         session_id = Utils.CONFIG["app"]["windows"]["helper_main"]["session_id"]
@@ -78,74 +71,17 @@ class OcrEngine:
             text_parts.append(line["txt"])
         return " ".join(text_parts)
 
-    def _capture_screenshot_macos(self) -> str:
-        """Capture interactive screenshot on macOS using screencapture."""
-        screenshot_path = Utils.IMA_PATH_FOR_OCR
-        result = subprocess.run(
-            ["screencapture", "-i", "-o", "-t", "png", screenshot_path],
-            capture_output=True
-        )
-        if result.returncode != 0:
-            return ""
-        return self._recognize_image(screenshot_path)
-
-    def _capture_screenshot_windows(self) -> str:
-        """Capture screenshot on Windows using PowerShell snipping tool."""
-        output_path = os.path.abspath(Utils.IMA_PATH_FOR_OCR)
-
-        ps_script = f"""
-        Add-Type -AssemblyName System.Windows.Forms
-        Add-Type -AssemblyName System.Drawing
-        [System.Windows.Forms.Clipboard]::Clear()
-        explorer.exe ms-screenclip:
-        $timeout = 30
-        $elapsed = 0
-        while (-not [System.Windows.Forms.Clipboard]::ContainsImage()) {{
-            Start-Sleep -Milliseconds 200
-            $elapsed += 0.2
-            if ($elapsed -ge $timeout) {{ exit 1 }}
-        }}
-        $image = [System.Windows.Forms.Clipboard]::GetImage()
-        $image.Save('{output_path}', [System.Drawing.Imaging.ImageFormat]::Png)
-        exit 0
-        """
-
-        cmd = [
-            "powershell.exe",
-            "-NoProfile",
-            "-ExecutionPolicy", "Bypass",
-            "-Command", ps_script
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            return ""
-        return self._recognize_image(output_path)
-
     def ocr(self) -> str:
         """
         Main OCR entry point: captures screenshot and recognizes text.
         Platform-agnostic; returns empty string on unsupported platforms or error.
         """
-        if self._is_ocr_active:
-            return ""
-
-        self._is_ocr_active = True
-
         try:
             self.set_language(self._get_configured_language())
-            if sys.platform == "darwin":
-                return self._capture_screenshot_macos()
-            elif sys.platform.startswith("win"):
-                return self._capture_screenshot_windows()
-            else:
-                logger.warning(f"OCR not supported on platform: {sys.platform}")
-                return ""
+            return self._recognize_image(Utils.IMA_PATH_FOR_OCR)
         except Exception as e:
             logger.exception(f"OCR operation failed: {e}")
             return ""
-        finally:
-            self._is_ocr_active = False
 
 
 # Global singleton instance

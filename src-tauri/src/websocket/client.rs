@@ -204,24 +204,27 @@ where
             });
         }
 
+        InboundMessage::InteractivelyCapture { data } => {
+            let app_clone = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                #[cfg(target_os = "macos")]
+                {
+                    let granted = check_screen_recording();
+                    if !granted {
+                        let _ = show_permission_window(app_clone);
+                        return;
+                    }
+                }
+                screenshot_ocr(&app_clone, data.path.as_str());
+            });
+        }
+
         InboundMessage::CheckAccessibility => {
             #[cfg(target_os = "macos")]
             {
                 let app_clone = app.clone();
                 let _ = app.run_on_main_thread(move || {
                     let granted = check_accessibility();
-                    if !granted {
-                        let _ = show_permission_window(app_clone);
-                    }
-                });
-            }
-        }
-        InboundMessage::CheckScreenRecording => {
-            #[cfg(target_os = "macos")]
-            {
-                let app_clone = app.clone();
-                let _ = app.run_on_main_thread(move || {
-                    let granted = check_screen_recording();
                     if !granted {
                         let _ = show_permission_window(app_clone);
                     }
@@ -235,6 +238,22 @@ where
                 info!("Received exit request from WebSocket. Exiting application.");
                 app_clone.exit(0);
             });
+        }
+    }
+}
+
+fn screenshot_ocr(app: &AppHandle, path: &str) {
+    match screencapture::interactively_capture(path) {
+        Ok(_) => {
+            let payload = serde_json::json!({
+                "type": "screenshot_ocr",
+                "data": {
+                }
+            });
+            try_ws_send(app, &payload.to_string());
+        }
+        Err(e) => {
+            error!("Failed to execute screencapture CLI: {}", e);
         }
     }
 }

@@ -49,6 +49,9 @@ class MainMessageHandler:
                 selected_text = message["data"]["text_selected"]
                 await MainMessageHandler._broadcast_text_selection(websocket, selected_text)
 
+            elif msg_type == "screenshot_ocr":
+                await MainMessageHandler._handle_ocr_request(websocket)
+
             elif msg_type == "shortcut_triggered":
                 shortcut = message["data"]["shortcut"]
                 await MainMessageHandler._handle_shortcut_triggered(websocket, shortcut)
@@ -99,8 +102,9 @@ class MainMessageHandler:
             await websocket.send_text(json.dumps({"type": "check_accessibility", "data": {}}))
             await MainMessageHandler._toggle_selection_monitoring(websocket)
         elif shortcut_name == "screenshot_ocr":
-            await websocket.send_text(json.dumps({"type": "check_screen_recording", "data": {}}))
-            await MainMessageHandler._handle_ocr_request(websocket)
+            await websocket.send_text(json.dumps({"type": "interactively_capture", "data": {
+                "path": Utils.IMA_PATH_FOR_OCR
+            }}))
         else:
             logger.warning(f"Unhandled shortcut: {shortcut}")
 
@@ -147,9 +151,6 @@ class MainMessageHandler:
     @staticmethod
     async def _handle_ocr_request(websocket: WebSocket):
         """Process an OCR request. Runs OCR in thread pool to avoid blocking."""
-        if ocr_engine.is_ocring():
-            return
-
         # Run blocking OCR operation in thread pool
         ocr_result = await asyncio.to_thread(ocr_engine.ocr)
         logger.info(f"OCR result: {ocr_result}")

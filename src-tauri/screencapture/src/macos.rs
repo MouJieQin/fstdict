@@ -1,4 +1,4 @@
-use log::info;
+use log::{debug, info};
 use std::process::Command;
 
 pub fn interactively_capture(png_path: &str) -> Result<Option<()>, String> {
@@ -10,7 +10,7 @@ pub fn interactively_capture(png_path: &str) -> Result<Option<()>, String> {
         .map_err(|e| format!("Failed to execute screencapture CLI: {}", e))?;
 
     if status.success() {
-        info!("macOS interactive screenshot saved to {}", png_path);
+        debug!("macOS interactive screenshot saved to {}", png_path);
         Ok(Some(()))
     } else {
         // If the user presses ESC, macOS returns a non-zero exit code
