@@ -448,13 +448,30 @@ const handleKeydownData = (data: { key: string; code: string; ctrlKey: boolean; 
         // ✨ Attach flag to prevent infinite loops
         Object.defineProperty(event, 'isSynthetic', { value: true });
         window.dispatchEvent(event);
-    } else if (!isInputFocused.value && !data.ctrlKey && !data.metaKey && !data.altKey && data.key !== 'Escape') {
+    } else if (!isInputFocused.value && !isFocusedOnInputableElement() && !data.ctrlKey && !data.metaKey && !data.altKey && data.key !== 'Escape') {
         if (e) e.preventDefault()
         firstChar.value = data.key
         firstKeyCode.value = data.code
         focusInputFlag.value = !focusInputFlag.value
     }
 }
+
+function isFocusedOnInputableElement(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'textarea') return true;
+    if (tag === 'input') {
+        const inputType = (el as HTMLInputElement).type;
+        const disallowedTypes = ['button', 'submit', 'reset', 'radio', 'checkbox', 'hidden', 'range'];
+        return !disallowedTypes.includes(inputType);
+    }
+    if (el.isContentEditable) return true;
+    if (el.getAttribute('role') === 'textbox') return true;
+    return false;
+}
+
 
 watch(() => props.iframeKeydownEvent, (event) => {
     if (event) handleKeydownData(event as any)
