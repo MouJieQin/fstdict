@@ -26,12 +26,12 @@ pub fn setup_float_panels(app: &mut App) -> Result<(), tauri::Error> {
         PanelConfig {
             label: "helper-main",
             config_filename: "helper-main-window-state.json".to_string(),
-            url: "tauri://localhost/#/dict/39?env=helper_main".to_string(),
+            url: "#/dict/39?env=helper_main".to_string(),
         },
         PanelConfig {
             label: "helper-selection",
             config_filename: "helper-selection-window-state.json".to_string(),
-            url: "tauri://localhost/#/dict/95?env=helper_selection".to_string(),
+            url: "#/dict/95?env=helper_selection".to_string(),
         },
     ];
 
@@ -46,16 +46,17 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     let app_handle = app.handle().clone();
     let config_name: Arc<str> = Arc::from(config.config_filename);
     let state = WindowState::load(&app_handle, &config_name);
+    let panel_url = WebviewUrl::App(config.url.into());
 
-    let mut builder =
-        WebviewWindowBuilder::new(app, config.label, WebviewUrl::App(config.url.into()))
-            .hidden_title(true)
-            .inner_size(state.width, state.height)
-            .min_inner_size(300.0, 300.0)
-            .accept_first_mouse(true)
-            .zoom_hotkeys_enabled(true)
-            .minimizable(false)
-            .maximizable(false);
+    let mut builder = WebviewWindowBuilder::new(app, config.label, panel_url)
+        .inner_size(state.width, state.height)
+        .min_inner_size(300.0, 300.0)
+        .accept_first_mouse(true)
+        .zoom_hotkeys_enabled(true)
+        .visible(false)
+        .minimizable(false)
+        .maximizable(false)
+        .hidden_title(true);
     // NOTE: .decorations(false) is intentionally NOT set here because
     // the borderless style is applied at the NSWindow level via
     // enable_modern_window_style, which also handles rounded corners
@@ -86,8 +87,6 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
 
     // Apply borderless style with rounded corners and native shadow.
     let _ = mac_rounded_corners::enable_modern_window_style(app_handle.clone(), win.clone(), None);
-
-    let _ = win.hide();
 
     // Suppress state saving during initial layout.
     let is_ready = Arc::new(AtomicBool::new(false));

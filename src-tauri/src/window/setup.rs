@@ -20,20 +20,16 @@ pub struct PanelConfig {
 
 /// Creates and configures both floating search panels.
 pub fn setup_float_panels(app: &mut App) -> Result<(), tauri::Error> {
-    #[cfg(not(dev))]
-    let base_url = "tauri://localhost";
-    #[cfg(dev)]
-    let base_url = "http://localhost:9595";
     let panels = [
         PanelConfig {
             label: "helper-main",
             config_filename: "helper-main-window-state.json".to_string(),
-            url: format!("{}/#/dict/39?env=helper_main_tauri", base_url),
+            url: "#/dict/39?env=helper_main_tauri".to_string(),
         },
         PanelConfig {
             label: "helper-selection",
             config_filename: "helper-selection-window-state.json".to_string(),
-            url: format!("{}/#/dict/95?env=helper_selection", base_url),
+            url: "#/dict/95?env=helper_selection".to_string(),
         },
     ];
 
@@ -49,18 +45,18 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     let config_name: Arc<str> = Arc::from(config.config_filename);
     let state = WindowState::load(&app_handle, &config_name);
 
-    let mut builder =
-        WebviewWindowBuilder::new(app, config.label, WebviewUrl::App(config.url.into()))
-            .inner_size(state.width, state.height)
-            .min_inner_size(300.0, 300.0)
-            .accept_first_mouse(true)
-            .zoom_hotkeys_enabled(true)
-            .visible(false)
-            .always_on_top(true)
-            .minimizable(false)
-            .maximizable(false)
-            .decorations(false)
-            .visible_on_all_workspaces(true);
+    let panel_url = WebviewUrl::App(config.url.into());
+    let mut builder = WebviewWindowBuilder::new(app, config.label, panel_url)
+        .inner_size(state.width, state.height)
+        .min_inner_size(300.0, 300.0)
+        .accept_first_mouse(true)
+        .zoom_hotkeys_enabled(true)
+        .visible(false)
+        .always_on_top(true)
+        .minimizable(false)
+        .maximizable(false)
+        .decorations(false)
+        .visible_on_all_workspaces(true);
 
     // Restore saved position if still within visible screen bounds
     if let (Some(x), Some(y)) = (state.x, state.y) {

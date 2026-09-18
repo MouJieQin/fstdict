@@ -13,12 +13,9 @@ pub fn show_permission_window(app: &AppHandle) -> Result<(), tauri::Error> {
 }
 
 fn create_permission_window(app: &AppHandle) -> Result<(), tauri::Error> {
-    #[cfg(not(dev))]
-    let updater_url = "tauri://localhost/#/permission";
-    #[cfg(dev)]
-    let updater_url = "http://localhost:9595/#/permission";
+    let permission_url = WebviewUrl::App("#/permission".into());
 
-    let win = WebviewWindowBuilder::new(app, "permission", WebviewUrl::App(updater_url.into()))
+    let win = WebviewWindowBuilder::new(app, "permission", permission_url)
         .inner_size(400.0, 400.0)
         .resizable(false)
         .minimizable(false)
