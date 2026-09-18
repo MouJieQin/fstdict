@@ -1,5 +1,5 @@
+use log::info;
 use std::process::Command;
-use log::{error, info};
 
 pub fn interactively_capture(png_path: &str) -> Result<Option<()>, String> {
     // '-i' triggers interactive selection mode (mouse crosshair)
