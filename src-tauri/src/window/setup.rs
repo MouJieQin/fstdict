@@ -24,7 +24,7 @@ pub fn setup_float_panels(app: &mut App) -> Result<(), tauri::Error> {
         PanelConfig {
             label: "helper-main",
             config_filename: "helper-main-window-state.json".to_string(),
-            url: "#/dict/39?env=helper_main_tauri".to_string(),
+            url: "#/dict/39?env=helper_main".to_string(),
         },
         PanelConfig {
             label: "helper-selection",
