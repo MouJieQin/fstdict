@@ -164,7 +164,8 @@ import { ENV } from '@/common/constants'
 
 // Tauri
 import { getCurrentWindow } from '@tauri-apps/api/window'
-
+import { readText } from '@tauri-apps/plugin-clipboard-manager'
+import { isTauri } from '@tauri-apps/api/core'
 
 // Props & emits
 const props = defineProps({
@@ -422,16 +423,22 @@ watch(favoriteWordsDialogVisible, (visible) => {
 })
 
 // --- Keyboard shortcuts from iframe ---
-const handleKeydownData = (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }, e: KeyboardEvent | null = null): void => {
+const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }, e: KeyboardEvent | null = null): Promise<void> => {
     if (data.key === '/' && data.metaKey) {
         favoriteWordsDialogVisible.value = !favoriteWordsDialogVisible.value
     } else if (data.key === 'ArrowLeft' && data.altKey) {
         goBack()
     } else if (data.key === 'ArrowRight' && data.altKey) {
         goForward()
-    } else if (data.key === 'v' && data.metaKey) {
-        focusInputFlag.value = !focusInputFlag.value
-        firstChar.value = ''
+    } else if (data.key === 'v' && data.metaKey && !isFocusedOnInputableElement()) {
+        if (!isTauri()) {
+            focusInputFlag.value = !focusInputFlag.value
+            firstChar.value = ''
+        } else {
+            if (e) e.preventDefault()
+            const text = await readText()
+            props.webSocket?.sendLookupKeywordRequest(text)
+        }
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {
@@ -473,18 +480,18 @@ function isFocusedOnInputableElement(): boolean {
 }
 
 
-watch(() => props.iframeKeydownEvent, (event) => {
-    if (event) handleKeydownData(event as any)
+watch(() => props.iframeKeydownEvent, async (event) => {
+    if (event) await handleKeydownData(event as any)
 })
 
 // --- Global keyboard ---
-const handleGlobalKeydown = (e: KeyboardEvent): void => {
+const handleGlobalKeydown = async (e: KeyboardEvent): Promise<void> => {
     // ✨ Stop if this is our own custom event bouncing back
     if ((e as any).isSynthetic) {
         return;
     }
 
-    handleKeydownData({
+    await handleKeydownData({
         key: e.key,
         code: e.code,
         ctrlKey: e.ctrlKey,

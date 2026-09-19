@@ -1801,6 +1801,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
+ "tauri-plugin-clipboard-manager",
  "tauri-plugin-opener",
  "tokio",
  "tokio-tungstenite",
