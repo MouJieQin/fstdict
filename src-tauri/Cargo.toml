@@ -8,7 +8,7 @@ dev-non-macos = []
 
 [package]
 name = "fstdict"
-version = "0.0.42"
+version = "0.0.43"
 description = "A dictionary app using fstdx/fstdd"
 authors = ["Moujie Qin"]
 edition = "2021"
