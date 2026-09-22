@@ -84,18 +84,19 @@
         </div>
     </div>
 
-    <!-- Dialogs -->
+    <!-- Dialogs class="glass-dialog" -->
     <div @mousedown.stop>
-        <el-dialog v-model="noteDialogVisible" :title="`Notes for「${noteKeyword}」`" width="500" align-center draggable
-            :close-on-click-modal="false">
+        <el-dialog class="glass-dialog" v-model="noteDialogVisible" :title="`Notes for「${noteKeyword}」`" align-center
+            draggable :close-on-click-modal="false" :modal="true" width="500px">
             <el-input v-model="noteContent" class="note-content-input" autocomplete="off" type="textarea"
                 :autosize="{ minRows: 5, maxRows: 9 }" />
             <template #footer>
                 <div class="dialog-footer">
                     <el-popconfirm confirm-button-text="Delete" confirm-button-type="danger" cancel-button-text="Cancel"
-                        :icon="Delete" icon-color="#FF4949" title="Delete this note?" @confirm="deleteNote">
+                        :icon="Delete" icon-color="#FF4949" title="Delete this note?" @confirm="deleteNote"
+                        popper-class="glass-popconfirm">
                         <template #reference>
-                            <el-button :icon="Delete" type="danger">Delete</el-button>
+                            <el-button :icon="Delete">Delete</el-button>
                         </template>
                     </el-popconfirm>
 

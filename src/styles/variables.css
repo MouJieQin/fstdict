@@ -2,12 +2,14 @@
     --header-height: 50px;
     --word-options-panel-width: 330px;
     --glass-bg: rgba(236, 236, 235, 0.72);
+    --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
+    --glass-border-color: rgba(0, 0, 0, 0.1);
+    --glass-border: 1px solid var(--glass-border-color);
     --glass-hover-bg: rgba(255, 255, 255, 0.14);
     --glass-focus-bg: rgba(255, 255, 255, 0.18);
     --glass-active-bg: rgba(255, 255, 255, 0.5);
     --app-header-bg: rgba(236, 236, 235, 0.3);
     --sticky-header-wrapper-bg: rgba(236, 236, 235, 0.72);
-    /* --el-collapse-item__header-bg: rgba(224, 224, 224, 0.3); */
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 0.5);
     --puff-loader-color: rgba(51, 51, 51, 0.5);
@@ -17,9 +19,11 @@
 
 .dark {
     --app-header-bg: rgba(42, 42, 40, 0.3);
-    /* --el-collapse-item__header-bg: rgba(81, 81, 81, 0.3); */
     --sticky-header-wrapper-bg: rgba(81, 81, 81, 0.72);
-    --glass-bg: rgba(81, 81, 81, 0.72);
+    --glass-bg: rgba(42, 42, 40, 0.72);
+    --glass-border-color: rgba(255, 255, 255, 0.1);
+    --glass-border: 1px solid var(--glass-border-color);
+    --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
     --glass-hover-bg: rgba(0, 0, 0, 0.01);
     --glass-focus-bg: rgba(0, 0, 0, 0.18);
     --glass-active-bg: rgba(0, 0, 0, 0.5);

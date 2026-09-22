@@ -16,7 +16,7 @@
                     <!-- <el-text truncated class="word-text">
                         {{ data }}
                     </el-text> -->
-                    <span class="truncated-text">{{ data }}</span>
+                    <p class="truncated-text">{{ data }}</p>
                 </div>
             </template>
         </UseVirtualList>
@@ -173,7 +173,7 @@ watch(
 }
 
 .word-text {
-    color: var(--el-color-secondary-text);
+    color: var(--el-text-color-regular);
     /* color: var(--el-color-primary-text); */
 
 }
@@ -183,6 +183,7 @@ watch(
     width: 100%;
     white-space: nowrap;
     overflow: hidden;
+    color: var(--el-text-color-regular);
     text-overflow: ellipsis;
 }
 </style>

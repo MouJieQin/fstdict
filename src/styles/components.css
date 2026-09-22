@@ -287,7 +287,89 @@
     display: inline-block;
 }
 
-/* ============= Search Method Select ============= */
+/* ============= Vibrant input ============= */
+.el-input__wrapper {
+    /* background: var(--glass-bg) !important; */
+    background: transparent !important;
+    /* box-shadow: 0 0 0 1px var(--glass-border) inset !important; */
+    --el-input-border-color: var(--glass-border-color);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: background 0.2s;
+}
+.el-input__wrapper.is-focus {
+    /* background: var(--glass-focus-bg) !important; */
+    /* box-shadow: 0 0 0 1px rgba(120, 150, 255, 0.55) inset !important; */
+}
+.el-input__inner {
+    /* background: transparent !important; */
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    /* color: rgba(255, 255, 255, 0.92); */
+}
+.el-input__inner::placeholder {
+    /* color: rgba(255, 255, 255, 0.4); */
+}
+
+.el-textarea__inner {
+    /* background: var(--glass-bg) !important; */
+    background: transparent !important;
+    --el-input-border-color: var(--glass-border-color);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: background 0.2s;
+
+    /* -webkit-backdrop-filter: blur(1px); */
+    /* backdrop-filter: blur(0px); */
+    /* box-shadow: 0 0 0 1px var(--glass-border) inset; */
+    /* color: rgba(255, 255, 255, 0.92); */
+}
+
+/* ============= Vibrant popconfirm ============= */
+.glass-popconfirm {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-shadow);
+}
+
+.glass-popconfirm .el-popper__arrow {
+    display: none;
+}
+
+/* ============= Vibrant el-overlay ============= */
+.glass-dialog {
+    /* background: var(--glass-bg) !important; */
+    border-radius: 14px;
+    background: transparent !important;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+}
+
+.glass-dialog .el-dialog__header,
+.glass-dialog .el-dialog__body,
+.glass-dialog .el-dialog__footer {
+    /* -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px); */
+    background: transparent;
+}
+/* .glass-dialog .el-dialog__title {
+    color: rgba(255, 255, 255, 0.95);
+} */
+
+/* data-tauri-drag-region: true; */
+.el-overlay {
+    background: var(--glass-bg) !important;
+    /* background: rgba(0, 0, 0, 0.28) !important; */
+    /* -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px); */
+}
+
+/* ============= Vibrant Dropdown ============= */
 .vibrant-dropdown {
     background: var(--glass-bg) !important;
     border: none !important;
@@ -322,6 +404,7 @@
     display: none;
 }
 
+/* ============= Search Method Select ============= */
 .icon-select-wrapper {
     display: flex;
     align-items: center;
@@ -342,7 +425,6 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    /* background: rgba(255, 255, 255, 0.12); */
     cursor: pointer;
     transition: background 0.2s;
 }
