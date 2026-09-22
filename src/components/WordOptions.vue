@@ -13,10 +13,10 @@
             <template #default="{ data, index }">
                 <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
                     :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
-                    <!-- <el-text truncated class="word-text">
+                    <el-text truncated class="word-text">
                         {{ data }}
-                    </el-text> -->
-                    <p class="truncated-text">{{ data }}</p>
+                    </el-text>
+                    <!-- <p class="truncated-text">{{ data }}</p> -->
                 </div>
             </template>
         </UseVirtualList>
@@ -174,8 +174,6 @@ watch(
 
 .word-text {
     color: var(--el-text-color-regular);
-    /* color: var(--el-color-primary-text); */
-
 }
 
 .truncated-text {

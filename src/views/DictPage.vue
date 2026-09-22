@@ -99,11 +99,11 @@
                         </el-splitter-panel>
 
                         <el-splitter-panel :min="400">
-                            <el-scrollbar>
-                                <div class="word-detail" :class="{
-                                    'anki-mode': envFromRoute === 'anki',
-                                    'not-anki-mode': envFromRoute !== 'anki',
-                                }">
+                            <div class="word-detail" :class="{
+                                'anki-mode': envFromRoute === 'anki',
+                                'not-anki-mode': envFromRoute !== 'anki',
+                            }">
+                                <el-scrollbar>
                                     <el-collapse class="sticky-collapse" expand-icon-position="left"
                                         v-model="activeNames">
                                         <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div>
@@ -180,30 +180,30 @@
                                             {{ dict.name }}
                                         </p>
                                     </div>
-                                </div>
+                                </el-scrollbar>
+                            </div>
 
-                                <!-- Floating locate button -->
-                                <el-dropdown placement="bottom-end" @command="scrollToDictionary">
-                                    <el-button text class="locate-dict-button" circle bg>
-                                        <el-icon class="el-icon--right">
-                                            <MoreFilled />
-                                        </el-icon>
-                                    </el-button>
-                                    <template #dropdown>
-                                        <el-dropdown-menu>
-                                            <el-dropdown-item v-for="(_, dictName) in lookupResults" :key="dictName"
-                                                :command="dictName">
-                                                <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
-                                                    <template #error>
-                                                        <BiSolidBookBookmark :size="25" />
-                                                    </template>
-                                                </el-image>
-                                                {{ dictName }}
-                                            </el-dropdown-item>
-                                        </el-dropdown-menu>
-                                    </template>
-                                </el-dropdown>
-                            </el-scrollbar>
+                            <!-- Floating locate button -->
+                            <el-dropdown placement="bottom-end" @command="scrollToDictionary">
+                                <el-button text class="locate-dict-button" circle bg>
+                                    <el-icon class="el-icon--right">
+                                        <MoreFilled />
+                                    </el-icon>
+                                </el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item v-for="(_, dictName) in lookupResults" :key="dictName"
+                                            :command="dictName">
+                                            <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                                                <template #error>
+                                                    <BiSolidBookBookmark :size="25" />
+                                                </template>
+                                            </el-image>
+                                            {{ dictName }}
+                                        </el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
                         </el-splitter-panel>
 
                     </el-splitter>
