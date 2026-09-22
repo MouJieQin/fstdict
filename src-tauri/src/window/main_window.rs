@@ -6,6 +6,8 @@ use fstdict_common::window::state::{create_debounced_saver, WindowState};
 
 use log::{info, warn};
 use tauri::{App, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri_plugin_decorum::WebviewWindowExt;
+use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
 const TRACKER_ARM_DELAY_MS: u64 = 500;
@@ -21,6 +23,7 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
         .title("FstDict")
         .inner_size(state.width, state.height)
         .min_inner_size(400.0, 300.0)
+        .transparent(true)
         .accept_first_mouse(true);
 
     // Platform-specific window builder configuration
@@ -29,7 +32,8 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
         builder = builder
             .accept_first_mouse(true)
             .zoom_hotkeys_enabled(true)
-            .title_bar_style(tauri::TitleBarStyle::Transparent);
+            .hidden_title(true)
+            .title_bar_style(tauri::TitleBarStyle::Overlay);
     }
 
     // Restore saved position if still within visible screen bounds
@@ -50,6 +54,30 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     }
 
     let main_win = builder.build()?;
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    {
+        main_win.create_overlay_titlebar()?;
+    }
+
+    #[cfg(target_os = "windows")]
+    apply_blur(&main_win, Some((18, 18, 18, 125)))
+        .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+
+    #[cfg(target_os = "macos")]
+    {
+        main_win.set_traffic_lights_inset(25.0, 30.0)?;
+        apply_vibrancy(
+            &main_win,
+            NSVisualEffectMaterial::Sidebar,
+            // NSVisualEffectMaterial::HudWindow,
+            Some(NSVisualEffectState::Active),
+            // Some(NSVisualEffectState::FollowsWindowActiveState),
+            None,
+        )
+        .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+        // Make window transparent without privateApi
+        // main_win.make_transparent().unwrap();
+    }
 
     if state.maximized {
         let _ = main_win.maximize();

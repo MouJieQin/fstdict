@@ -7,17 +7,20 @@
     </div>
     <ThreeDotsLoader v-if="showLoading" class="loader-inline" />
 
-    <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
-        :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
-        <template #default="{ data, index }">
-            <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
-                :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
-                <el-text class="truncated-text" :title="data">
-                    {{ data }}
-                </el-text>
-            </div>
-        </template>
-    </UseVirtualList>
+    <el-scrollbar>
+        <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
+            :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
+            <template #default="{ data, index }">
+                <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
+                    :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
+                    <!-- <el-text truncated class="word-text">
+                        {{ data }}
+                    </el-text> -->
+                    <span class="truncated-text">{{ data }}</span>
+                </div>
+            </template>
+        </UseVirtualList>
+    </el-scrollbar>
 </template>
 
 <script lang="ts" setup>
@@ -136,31 +139,43 @@ watch(
 }
 
 .list-container {
-    border: 1px solid var(--el-border-color-light, #e4e7ed);
-    border-radius: 4px;
+    /* border: 1px solid var(--el-border-color-light, #e4e7ed);
+    border-radius: 4px; */
+    padding-right: 1rem;
+
 }
 
 .clickable-row {
     display: flex;
     align-items: center;
-    padding: 0 16px;
     box-sizing: border-box;
     cursor: pointer;
-    border-bottom: 1px solid var(--el-border-color-extra-light, #f2f6fc);
+    /* padding-left: 1rem; */
+    padding: 0 1rem;
+    border-radius: var(--el-border-radius-base);
+    /* border-bottom: 1px solid var(--el-border-color-extra-light, #f2f6fc); */
     transition: background-color 0.2s ease;
     min-width: 0;
 }
 
 .clickable-row:hover {
-    background-color: var(--el-fill-color-light, #f5f7fa);
+    /* background-color: var(--el-fill-color-light); */
+    background-color: var(--el-color-primary-light-5);
+    box-sizing: border-box;
 }
 
 .clickable-row.is-selected {
-    background-color: var(--el-color-primary-light-9, #ecf5ff);
+    background-color: var(--el-color-primary-light-3);
 }
 
 .clickable-row.is-selected :deep(.el-text) {
-    color: var(--el-color-primary, #409eff);
+    /* color: var(--el-color-primary-text, 90%, #409eff); */
+}
+
+.word-text {
+    color: var(--el-color-secondary-text);
+    /* color: var(--el-color-primary-text); */
+
 }
 
 .truncated-text {

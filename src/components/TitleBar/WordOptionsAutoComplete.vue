@@ -341,7 +341,13 @@ onBeforeUnmount(() => {
 }
 </style>
 
-<style>
+<style scoped>
+/* 修改输入框背景色 */
+:deep(.el-input__wrapper) {
+    --el-input-border-color: var(--el-input-hover-border-color);
+    background: transparent;
+}
+
 /* Global popover override - must be unscoped */
 .virtual-autocomplete-popper {
     padding: 0 !important;

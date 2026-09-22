@@ -6,11 +6,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DictLayout.vue'),
         children: [
             {
-                path: '',
-                name: 'Home',
-                component: () => import('@/views/Home.vue'),
-            },
-            {
                 path: 'dict/:id',
                 name: 'Dict',
                 component: () => import('@/views/DictPage.vue'),
@@ -18,6 +13,7 @@ const routes: RouteRecordRaw[] = [
             },
         ],
     },
+
     {
         path: '/notification',
         name: 'Notification',

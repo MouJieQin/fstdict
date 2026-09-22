@@ -52,10 +52,20 @@ function updateDarkMode(isDark: boolean): void {
         doc.head.appendChild(styleEl)
     }
 
+    // styleEl.textContent = isDark
+    //     ? `html { background: transparent !important; filter: invert(0.92) hue-rotate(180deg); }
+    //    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+    //     : ''
+
     styleEl.textContent = isDark
-        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); }
+        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); background: transparent !important; }
        img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
         : ''
+
+    // styleEl.textContent = isDark
+    //     ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg);}
+    //    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+    //     : ''
 }
 
 // ============== Content Rendering ==============
@@ -72,10 +82,20 @@ function processHtml(rawHtml: string): string {
 function injectStyles(doc: Document): void {
     const darkStyle = doc.createElement('style')
     darkStyle.id = 'dict-custom-style'
+    // darkStyle.textContent = props.isDark
+    //     ? `html { background: transparent !important; filter: invert(0.92) hue-rotate(180deg); }
+    //    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+    //     : ''
     darkStyle.textContent = props.isDark
-        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); }
+        ? `html { background: rgb(255,255,255) !important; filter: invert(0.92) hue-rotate(180deg); background: transparent !important; }
        img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
         : ''
+
+    // darkStyle.textContent = props.isDark
+    //     ? `html { background: rgb(255,255,255,1) !important; filter: invert(0.92) hue-rotate(180deg);}
+    //    img { filter: invert(0.92) hue-rotate(180deg) contrast(1.05); }`
+    //     : ''
+
     doc.head.appendChild(darkStyle)
 
     if (props.cssUrls?.length) {

@@ -1,13 +1,19 @@
+/* ============= Main Menu ============= */
+.main-menu {
+    --el-menu-bg-color: var(--main-menu-bg-color);
+}
+
 /* ============= Header & Title Bar ============= */
 .fstdict-header {
     background: var(--app-header-bg);
+    /* backdrop-filter: blur(10px); */
     user-select: none;
     -webkit-user-select: none;
 }
 
 /* Title bar flex container */
 .floating-window-titlebar {
-    position: fixed;
+    /* position: fixed; */
     top: 0;
     left: 0;
     width: 100%;
@@ -57,6 +63,7 @@
 /* ============= Dictionary Layout ============= */
 .word-options {
     height: 100vh;
+    padding: 0 5px 0 1rem;
     padding-bottom: var(--header-height);
 }
 
@@ -85,10 +92,11 @@
     width: 100%;
     border: none;
     padding-left: 1rem;
+    /* background: var(--head-bg-color) !important; */
 }
 
 .dict-iframe-container {
-    box-shadow: var(--el-box-shadow);
+    /* box-shadow: var(--el-box-shadow-light); */
 }
 
 .simple-divider {
@@ -101,6 +109,8 @@
     position: fixed;
     top: 50px;
     right: 20px;
+    /* background: var(--app-header-bg) !important; */
+    /* backdrop-filter: blur(10px) !important; */
 }
 
 /* ============= Dictionary Settings Dialog ============= */
@@ -202,8 +212,8 @@
     margin: 0 10px 0 1rem;
     max-width: clamp(300px, 100vw, 800px);
     padding: 10px;
-    border-radius: 10px;
-    box-shadow: var(--el-box-shadow);
+    /* border-radius: 10px; */
+    /* box-shadow: var(--el-box-shadow); */
     text-align: left;
 }
 
@@ -217,6 +227,16 @@
 }
 
 /* ============= Element Plus Overrides ============= */
+
+.sticky-header-wrapper {
+    position: sticky;
+    top: 0;
+    margin-bottom: calc(0px - var(--el-collapse-header-height));
+    height: var(--el-collapse-header-height);
+    width: 100%;
+    background: var(--sticky-header-wrapper-bg);
+}
+
 .el-collapse-item__header {
     font-size: 1.1rem !important;
     font-weight: bold !important;
@@ -241,7 +261,7 @@
 }
 
 /* Sticky collapse headers */
-.sticky-collapse .el-collapse-item__header {
+/* .sticky-collapse .el-collapse-item__header {
     position: sticky;
     top: 0;
     background-color: var(--el-bg-color);
@@ -253,7 +273,7 @@
 
 .sticky-collapse .el-collapse-item:first-child .el-collapse-item__header {
     border-top: none;
-}
+} */
 
 .el-tabs__nav {
     overflow-x: auto;

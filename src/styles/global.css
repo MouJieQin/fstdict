@@ -13,6 +13,7 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    /* opacity: 0; */
     font-family: Avenir, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -45,8 +46,15 @@ body.anki-mode::-webkit-scrollbar {
     width: 7px;
 }
 
-#app::-webkit-scrollbar-thumb,
+/* #app::-webkit-scrollbar-thumb,
 .word-detail::-webkit-scrollbar-thumb {
     background: var(--scrollbar-background);
     border-radius: 5px;
-}
+} */
+
+/* #app::-webkit-scrollbar-thumb,
+.word-detail::-webkit-scrollbar-thumb,
+.word-options::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-background);
+    border-radius: 5px;
+} */

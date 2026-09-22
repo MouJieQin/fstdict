@@ -6,7 +6,9 @@
     </div>
 </template>
 
+
 <script setup lang="ts">
+
 // Root layout wrapper for all dictionary application views.
 // Sidebar can be added here in the future.
 </script>
@@ -14,7 +16,7 @@
 <style scoped>
 .app-container {
     width: 100%;
-    height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
