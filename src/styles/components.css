@@ -288,6 +288,40 @@
 }
 
 /* ============= Search Method Select ============= */
+.vibrant-dropdown {
+    background: var(--glass-bg) !important;
+    border: none !important;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    padding: 6px;
+}
+
+.vibrant-dropdown .el-dropdown-menu {
+    background: transparent !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.vibrant-dropdown .el-dropdown-menu__item {
+    border-radius: 6px;
+}
+
+.vibrant-dropdown .el-dropdown-menu__item:not(.is-disabled):hover {
+    background: var(--glass-hover-bg) !important;
+}
+
+.vibrant-dropdown .el-dropdown-menu__item:not(.is-disabled):focus {
+    background: var(--glass-focus-bg) !important;
+}
+
+.vibrant-dropdown .el-dropdown-menu__item.is-active {
+    background: var(--glass-active-bg) !important;
+}
+
+.vibrant-dropdown .el-popper__arrow {
+    display: none;
+}
+
 .icon-select-wrapper {
     display: flex;
     align-items: center;
@@ -302,10 +336,20 @@
 }
 
 .dropdown-trigger {
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    /* background: rgba(255, 255, 255, 0.12); */
+    cursor: pointer;
+    transition: background 0.2s;
 }
+
+/* .dropdown-trigger:hover {
+    background: rgba(255, 255, 255, 0.2);
+} */
 
 /* ============= Suggestion States ============= */
 .error-suggestions {

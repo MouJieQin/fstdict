@@ -41,7 +41,8 @@
                     class="floating-window-titlebar-button" size="small" />
 
                 <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
-                    class="floating-window-titlebar-button" @command="handleSessionCommand">
+                    class="floating-window-titlebar-button" @command="handleSessionCommand"
+                    popper-class="vibrant-dropdown">
                     <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
                     <template #dropdown>
                         <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
@@ -515,9 +516,5 @@ onUnmounted(() => {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-}
-
-:deep(.is-active) {
-    background-color: var(--el-color-primary-light-8);
 }
 </style>

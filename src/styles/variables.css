@@ -1,6 +1,10 @@
 :root {
     --header-height: 50px;
     --word-options-panel-width: 330px;
+    --glass-bg: rgba(236, 236, 235, 0.72);
+    --glass-hover-bg: rgba(255, 255, 255, 0.14);
+    --glass-focus-bg: rgba(255, 255, 255, 0.18);
+    --glass-active-bg: rgba(255, 255, 255, 0.5);
     --app-header-bg: rgba(236, 236, 235, 0.3);
     --sticky-header-wrapper-bg: rgba(236, 236, 235, 0.72);
     /* --el-collapse-item__header-bg: rgba(224, 224, 224, 0.3); */
@@ -15,6 +19,10 @@
     --app-header-bg: rgba(42, 42, 40, 0.3);
     /* --el-collapse-item__header-bg: rgba(81, 81, 81, 0.3); */
     --sticky-header-wrapper-bg: rgba(81, 81, 81, 0.72);
+    --glass-bg: rgba(81, 81, 81, 0.72);
+    --glass-hover-bg: rgba(0, 0, 0, 0.01);
+    --glass-focus-bg: rgba(0, 0, 0, 0.18);
+    --glass-active-bg: rgba(0, 0, 0, 0.5);
     --scrollbar-background: rgba(107, 107, 107, 1);
     --puff-loader-color: rgba(255, 255, 255, 0.7);
 }

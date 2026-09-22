@@ -1,10 +1,9 @@
 <template>
     <div class="icon-select-wrapper">
-        <el-dropdown trigger="click" @command="handleSelect">
+        <el-dropdown trigger="click" @command="handleSelect" popper-class="vibrant-dropdown">
             <span class="dropdown-trigger">
                 <component :is="currentIcon" class="prefix-icon" />
             </span>
-
             <template #dropdown>
                 <el-dropdown-menu>
                     <el-dropdown-item v-for="option in searchOptions" :key="option.value" :command="option.value">
@@ -16,6 +15,7 @@
                 </el-dropdown-menu>
             </template>
         </el-dropdown>
+
     </div>
 </template>
 
@@ -60,15 +60,3 @@ const handleSelect = (command: string): void => {
     }
 }
 </script>
-
-<style scoped>
-.dropdown-trigger {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-}
-
-.prefix-icon {
-    width: 16px;
-}
-</style>
