@@ -40,21 +40,42 @@ body.anki-mode::-webkit-scrollbar {
     height: 100%;
 }
 
-/* Scrollbar styling for main containers */
-#app::-webkit-scrollbar,
-.word-detail::-webkit-scrollbar {
-    width: 7px;
+/* Windows and Linux window Glass effect */
+.app-glass-mimic-background-wrapper {
+    background-color: var(--app-glass-mimic-overlay-bg);
+    height: 100%;
+    width: 100%;
 }
 
-/* #app::-webkit-scrollbar-thumb,
-.word-detail::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-background);
-    border-radius: 5px;
-} */
+.app-glass-blur-wrapper {
+    height: 100%;
+    width: 100%;
+    -webkit-backdrop-filter: blur(1px);
+    backdrop-filter: blur(1px);
+}
 
-/* #app::-webkit-scrollbar-thumb,
-.word-detail::-webkit-scrollbar-thumb,
-.word-options::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-background);
-    border-radius: 5px;
-} */
+/* Windows and Linux window controls */
+/* 1. 容器从"全宽覆盖"收缩成"右侧按钮区" */
+div[data-tauri-decorum-tb] {
+    width: auto !important; /* 不再全宽 */
+    left: auto !important; /* 取消 left:0 */
+    right: 0 !important; /* 贴右 */
+    height: var(
+        --header-height
+    ) !important; /* 与你的 header 等高（或固定 32px） */
+    z-index: 0 !important;
+    background: transparent;
+}
+
+/* 2. 隐藏它注入的全宽拖拽层——拖拽由你自己的 el-header 接管 */
+div[data-tauri-decorum-tb] > div[data-tauri-drag-region] {
+    display: none !important;
+}
+
+/* 3. 三个按钮：统一宽度、撑满 header 高度 */
+button#decorum-tb-minimize,
+button#decorum-tb-maximize,
+button#decorum-tb-close {
+    width: 46px !important; /* 默认 58px，太宽，可自己调 */
+    height: 100% !important; /* 覆盖 JS 内联的 32px */
+}

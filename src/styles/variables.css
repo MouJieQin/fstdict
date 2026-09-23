@@ -1,6 +1,7 @@
 :root {
     --header-height: 50px;
     --word-options-panel-width: 330px;
+    --app-glass-mimic-overlay-bg: rgba(236, 236, 235, 0.97);
     --glass-bg: rgba(236, 236, 235, 0.72);
     --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
     --glass-border-color: rgba(0, 0, 0, 0.1);
@@ -8,7 +9,7 @@
     --glass-hover-bg: rgba(255, 255, 255, 0.14);
     --glass-focus-bg: rgba(255, 255, 255, 0.18);
     --glass-active-bg: rgba(255, 255, 255, 0.5);
-    --app-header-bg: rgba(236, 236, 235, 0.3);
+    --app-header-bg: rgba(243, 243, 242, 0.3);
     --sticky-header-wrapper-bg: rgba(236, 236, 235, 0.72);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 0.5);
@@ -18,8 +19,9 @@
 }
 
 .dark {
-    --app-header-bg: rgba(42, 42, 40, 0.3);
+    --app-header-bg: rgba(55, 55, 53, 0.8);
     --sticky-header-wrapper-bg: rgba(81, 81, 81, 0.72);
+    --app-glass-mimic-overlay-bg: rgba(42, 42, 40, 0.97);
     --glass-bg: rgba(42, 42, 40, 0.72);
     --glass-border-color: rgba(255, 255, 255, 0.1);
     --glass-border: 1px solid var(--glass-border-color);

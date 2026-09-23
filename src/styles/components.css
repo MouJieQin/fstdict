@@ -6,9 +6,9 @@
 /* ============= Header & Title Bar ============= */
 .fstdict-header {
     background: var(--app-header-bg);
-    /* backdrop-filter: blur(10px); */
     user-select: none;
     -webkit-user-select: none;
+    padding-right: var(--header-padding-right) !important;
 }
 
 /* Title bar flex container */
@@ -22,7 +22,6 @@
     box-sizing: border-box;
     overflow: hidden;
     padding: 0 15px 0 0px;
-    /* Remove justify-content: space-between — we use auto margin instead */
 }
 
 /* Search wrapper: the actual flex child that grows/shrinks */

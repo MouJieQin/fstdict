@@ -7,7 +7,6 @@ use fstdict_common::window::state::{create_debounced_saver, WindowState};
 use log::{info, warn};
 use tauri::{App, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_decorum::WebviewWindowExt;
-use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
 const TRACKER_ARM_DELAY_MS: u64 = 500;
@@ -23,7 +22,6 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
         .title("FstDict")
         .inner_size(state.width, state.height)
         .min_inner_size(400.0, 300.0)
-        .transparent(true)
         .accept_first_mouse(true);
 
     // Platform-specific window builder configuration
@@ -34,6 +32,13 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
             .zoom_hotkeys_enabled(true)
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay);
+    }
+
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    {
+        builder = builder
+            // .shadow(false)
+            .transparent(true);
     }
 
     // Restore saved position if still within visible screen bounds
@@ -60,11 +65,20 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     }
 
     #[cfg(target_os = "windows")]
-    apply_blur(&main_win, Some((18, 18, 18, 125)))
-        .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+    {
+        // use window_vibrancy::apply_acrylic;
+        // apply_acrylic(&main_win, Some((236, 236, 235, 250)))
+        //     .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
+        // use window_vibrancy::apply_blur;
+        // apply_blur(&main_win, Some((236, 236, 235, 250)))
+        //     .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+    }
 
     #[cfg(target_os = "macos")]
     {
+        use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+        // Make window transparent without privateApi
+        main_win.make_transparent().unwrap();
         main_win.set_traffic_lights_inset(25.0, 30.0)?;
         apply_vibrancy(
             &main_win,
@@ -75,8 +89,6 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
             None,
         )
         .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-        // Make window transparent without privateApi
-        // main_win.make_transparent().unwrap();
     }
 
     if state.maximized {

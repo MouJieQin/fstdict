@@ -74,7 +74,7 @@
 
             <el-container>
                 <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
-                    class="fstdict-header">
+                    class="fstdict-header" :style="{ '--header-padding-right': `${headerPaddingRight}px` }">
                     <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
                         :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
                         :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
@@ -106,7 +106,7 @@
                                 <el-scrollbar>
                                     <el-collapse class="sticky-collapse" expand-icon-position="left"
                                         v-model="activeNames">
-                                        <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div>
+                                        <!-- <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div> -->
                                         <!-- Note panel -->
                                         <el-collapse-item v-if="noteContent" :title="$t('dictPage.myNotes')"
                                             name="notes" :is-active="true" class="dict-iframe-container">
@@ -288,6 +288,7 @@ const wordOptions = ref<string[]>([])
 const wordOptionsSize = ref<number | string>(0)
 const splitterRef = ref<any>(null)
 
+const headerPaddingRight = ref(0)
 const activeNames = ref<string[]>([])
 const isWordFavorited = ref(false)
 const lastSearchKeyword = ref('')
@@ -599,6 +600,23 @@ const handleResize = (): void => {
     viewportWidth.value = window.innerWidth
 }
 
+import { platform } from '@tauri-apps/plugin-os'
+
+const initHeaderPaddingRight = () => {
+    if (!isTauri()) {
+        headerPaddingRight.value = 0
+        return
+    } else {
+        if (platform() === 'macos') {
+            headerPaddingRight.value = 0
+        } else {
+            if (envFromRoute.value === ENV.MAIN) {
+                headerPaddingRight.value = 138
+            }
+        }
+    }
+}
+
 // --- Lifecycle ---
 const initDictPage = async (): Promise<void> => {
     // Apply anki mode class
@@ -608,6 +626,7 @@ const initDictPage = async (): Promise<void> => {
         document.body.classList.remove('anki-mode')
     }
 
+    initHeaderPaddingRight()
     await setupTauriListeners()
     setupWebSocket()
     window.addEventListener('resize', handleResize)
@@ -682,12 +701,16 @@ router.beforeEach(async () => {
     flex-shrink: 0;
 }
 
+:deep(.sticky-collapse) {
+    border: none;
+}
+
 :deep(.sticky-collapse .el-collapse-item__header) {
-    position: sticky;
-    top: 0;
+    /* position: sticky; */
+    /* top: 0; */
     background: transparent;
-    backdrop-filter: blur(10px);
-    padding-right: 20px;
+    /* backdrop-filter: blur(10px); */
+    /* padding-right: 20px; */
     white-space: nowrap;
     overflow: hidden;
 }
@@ -700,9 +723,9 @@ router.beforeEach(async () => {
     background-color: transparent;
 }
 
-:deep(.sticky-collapse .el-collapse-item:first-child .el-collapse-item__header) {
-    border-top: none;
-}
+/* :deep(.sticky-collapse .el-collapse-item__header) {
+    border: none;
+} */
 
 .empty-state {
     text-align: center;
