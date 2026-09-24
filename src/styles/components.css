@@ -67,7 +67,7 @@
 }
 
 .word-detail {
-    height: 100vh;
+    height: 100vh !important;
     padding-bottom: calc(var(--header-height) + 5px);
 }
 
@@ -95,6 +95,7 @@
 }
 
 .dict-iframe-container {
+    scroll-margin-top: var(--header-height);
     /* box-shadow: var(--el-box-shadow-light); */
 }
 

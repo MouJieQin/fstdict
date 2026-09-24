@@ -99,89 +99,85 @@
                         </el-splitter-panel>
 
                         <el-splitter-panel :min="400">
-                            <div class="word-detail" :class="{
+                            <el-scrollbar class="word-detail" :class="{
                                 'anki-mode': envFromRoute === 'anki',
                                 'not-anki-mode': envFromRoute !== 'anki',
-                            }">
-                                <el-scrollbar>
-                                    <el-collapse class="sticky-collapse" expand-icon-position="left"
-                                        v-model="activeNames">
-                                        <!-- <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div> -->
-                                        <!-- Note panel -->
-                                        <el-collapse-item v-if="noteContent" :title="$t('dictPage.myNotes')"
-                                            name="notes" :is-active="true" class="dict-iframe-container">
-                                            <template #icon="{ isActive }">
-                                                <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                                                    <CaretRight />
-                                                </el-icon>
-                                                <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                                                    <CaretBottom />
-                                                </el-icon>
-                                                <BiSolidBookBookmark size="35" />
-                                            </template>
-                                            <div class="markdown-note-content" v-html="md.render(noteContent)"></div>
-                                        </el-collapse-item>
+                            }" ref="wordDetailScrollbarRef" always>
+                                <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
+                                    <!-- <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div> -->
+                                    <!-- Note panel -->
+                                    <el-collapse-item v-if="noteContent" :title="$t('dictPage.myNotes')" name="notes"
+                                        :is-active="true" class="dict-iframe-container">
+                                        <template #icon="{ isActive }">
+                                            <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                                                <CaretRight />
+                                            </el-icon>
+                                            <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                                                <CaretBottom />
+                                            </el-icon>
+                                            <BiSolidBookBookmark size="35" />
+                                        </template>
+                                        <div class="markdown-note-content" v-html="md.render(noteContent)"></div>
+                                    </el-collapse-item>
 
-                                        <!-- Dictionary result panels -->
-                                        <el-collapse-item v-for="(htmlList, dictName) in lookupResults" :key="dictName"
-                                            :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container"
-                                            :title="dictName" :name="dictName" :is-active="true">
-                                            <template #icon="{ isActive }">
-                                                <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                                                    <CaretRight />
-                                                </el-icon>
-                                                <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                                                    <CaretBottom />
-                                                </el-icon>
-                                                <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
-                                                    <template #error>
-                                                        <BiSolidBookBookmark size="35" />
-                                                    </template>
-                                                </el-image>
-                                            </template>
+                                    <!-- Dictionary result panels -->
+                                    <el-collapse-item v-for="(htmlList, dictName) in lookupResults" :key="dictName"
+                                        :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container"
+                                        :title="dictName" :name="dictName" :is-active="true">
+                                        <template #icon="{ isActive }">
+                                            <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                                                <CaretRight />
+                                            </el-icon>
+                                            <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                                                <CaretBottom />
+                                            </el-icon>
+                                            <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
+                                                <template #error>
+                                                    <BiSolidBookBookmark size="35" />
+                                                </template>
+                                            </el-image>
+                                        </template>
 
-                                            <div v-for="(html, index) in htmlList" :key="index">
-                                                <div class="simple-divider"></div>
-                                                <DictIframe :dictionary-name="dictName" :index="index" :html="html"
-                                                    :css-urls="dictsInfo[dictName]?.css || []"
-                                                    :js-urls="dictsInfo[dictName]?.js || []"
-                                                    :base-path="dictsInfo[dictName]?.data || ''"
-                                                    :dictionary-root="dictsInfo[dictName]?.root || ''"
-                                                    :is-dark="systemConfigStore.isDark" @entry-click="handleEntryClick"
-                                                    @keydown="handleIframeKeydown" />
-                                            </div>
-                                        </el-collapse-item>
-                                    </el-collapse>
+                                        <div v-for="(html, index) in htmlList" :key="index">
+                                            <div class="simple-divider"></div>
+                                            <DictIframe :dictionary-name="dictName" :index="index" :html="html"
+                                                :css-urls="dictsInfo[dictName]?.css || []"
+                                                :js-urls="dictsInfo[dictName]?.js || []"
+                                                :base-path="dictsInfo[dictName]?.data || ''"
+                                                :dictionary-root="dictsInfo[dictName]?.root || ''"
+                                                :is-dark="systemConfigStore.isDark" @entry-click="handleEntryClick"
+                                                @location-click="handleLocationClick" @keydown="handleIframeKeydown" />
+                                        </div>
+                                    </el-collapse-item>
+                                </el-collapse>
 
-                                    <!-- Empty state -->
-                                    <div v-show="!keyword && !lastSearchKeyword && !hasResultLastSearch"
-                                        class="empty-state">
-                                        <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
-                                        <br />
-                                        <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                            {{ $t('dictPage.noActiveDicts') }}
-                                        </p>
-                                        <p v-for="dict in activeDictionaries" :key="dict.name"
-                                            class="dict-homepage-dict-p">
-                                            {{ dict.name }}
-                                        </p>
-                                    </div>
+                                <!-- Empty state -->
+                                <div v-show="!keyword && !lastSearchKeyword && !hasResultLastSearch"
+                                    class="empty-state">
+                                    <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
+                                    <br />
+                                    <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                                        {{ $t('dictPage.noActiveDicts') }}
+                                    </p>
+                                    <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                                        {{ dict.name }}
+                                    </p>
+                                </div>
 
-                                    <div v-show="lastSearchKeyword && !hasResultLastSearch" class="empty-state">
-                                        <p class="dict-homepage-type-p">
-                                            {{ $t('dictPage.noResults', { word: lastSearchKeyword }) }}
-                                        </p>
-                                        <br />
-                                        <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                            {{ $t('dictPage.noActiveDicts') }}
-                                        </p>
-                                        <p v-for="dict in activeDictionaries" :key="dict.name"
-                                            class="dict-homepage-dict-p">
-                                            {{ dict.name }}
-                                        </p>
-                                    </div>
-                                </el-scrollbar>
-                            </div>
+                                <div v-show="lastSearchKeyword && !hasResultLastSearch" class="empty-state">
+                                    <p class="dict-homepage-type-p">
+                                        {{ $t('dictPage.noResults', { word: lastSearchKeyword }) }}
+                                    </p>
+                                    <br />
+                                    <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                                        {{ $t('dictPage.noActiveDicts') }}
+                                    </p>
+                                    <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                                        {{ dict.name }}
+                                    </p>
+                                </div>
+                            </el-scrollbar>
+                            <!-- </div> -->
 
                             <!-- Floating locate button -->
                             <el-dropdown placement="bottom-end" @command="scrollToDictionary">
@@ -204,8 +200,8 @@
                                     </el-dropdown-menu>
                                 </template>
                             </el-dropdown>
-                        </el-splitter-panel>
 
+                        </el-splitter-panel>
                     </el-splitter>
                 </el-main>
             </el-container>
@@ -249,6 +245,7 @@ import type {
     WordInfoWithLastSearch,
 } from '@/common/type-interface'
 
+import type { ScrollbarInstance, ElScrollbar } from 'element-plus'
 import { ENV, TAURI_EVENT } from '@/common/constants'
 
 // add import at top
@@ -287,6 +284,7 @@ const lookupResults = ref<Record<string, string[]>>({})
 const wordOptions = ref<string[]>([])
 const wordOptionsSize = ref<number | string>(0)
 const splitterRef = ref<any>(null)
+const wordDetailScrollbarRef = ref<ScrollbarInstance>()
 
 const headerPaddingRight = ref(0)
 const activeNames = ref<string[]>([])
@@ -401,7 +399,7 @@ const handleLookupKeyword = (data: any): void => {
     if (envFromRoute.value === 'anki') {
         window.scrollTo(0, 0)
     } else {
-        document.querySelector('.word-detail')?.scrollTo(0, 0)
+        wordDetailScrollbarRef.value!.scrollTo(0, 0)
     }
 
     const word = data.keyword
@@ -553,7 +551,7 @@ const handleIframeKeydown = (e: unknown): void => {
     iframeKeydownEvent.value = e
 }
 
-const scrollToDictionary = (dictName: string): void => {
+const scrollToDictionary = async (dictName: string): void => {
     const element = document.getElementById(`dict-iframe-container-${dictName}`)
     if (!element) return
 
@@ -561,15 +559,40 @@ const scrollToDictionary = (dictName: string): void => {
         activeNames.value.push(dictName)
     }
 
-    nextTick(() => {
-        const container = document.querySelector('.word-detail') as HTMLElement | null
-        if (!container) return
+    await nextTick()
 
-        const containerRect = container.getBoundingClientRect()
-        const elementRect = element.getBoundingClientRect()
-        const targetTop = container.scrollTop + (elementRect.top - containerRect.top)
+    const scrollbarInstance = wordDetailScrollbarRef.value as InstanceType<typeof ElScrollbar>
+    if (!scrollbarInstance) return
+    const scrollWrap = scrollbarInstance.wrapRef
+    if (!scrollWrap) return
 
-        container.scrollTo({ top: targetTop, behavior: 'instant' })
+    const wrapRect = scrollWrap.getBoundingClientRect()
+    const targetRect = element.getBoundingClientRect()
+
+    const targetScrollTop = scrollWrap.scrollTop + (targetRect.top - wrapRect.top)
+
+    scrollWrap.scrollTo({
+        top: targetScrollTop,
+        behavior: 'instant'
+    })
+}
+
+function handleLocationClick(dictionaryName: string, offsetTop: number): void {
+    const scrollbar = wordDetailScrollbarRef.value
+    if (!scrollbar || !scrollbar.wrapRef) return
+    const wrap = scrollbar.wrapRef
+
+    const iframeEl = document.getElementById(`dict-iframe-container-${dictionaryName}`)
+    if (!iframeEl) return
+
+    const wrapRect = wrap.getBoundingClientRect()
+    const iframeRect = iframeEl.getBoundingClientRect()
+    const iframeTopRelative = iframeRect.top - wrapRect.top
+
+    const targetScrollTop = wrap.scrollTop + iframeTopRelative + offsetTop
+    wrap.scrollTo({
+        top: targetScrollTop,
+        behavior: 'instant',
     })
 }
 

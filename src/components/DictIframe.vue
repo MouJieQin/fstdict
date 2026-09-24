@@ -27,6 +27,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
     (e: 'entry-click', path: string): void
+    (e: 'location-click', dictionaryName: string, offsetTop: number): void
     (e: 'keydown', event: unknown): void
 }>()
 
@@ -153,10 +154,10 @@ function injectClickHandler(doc: Document): void {
           sound: encodeURIComponent(href.replace('${URL_SCHEME.SOUND}', ''))
         }, '*');
       }
-      else if (href.includes('#') && href.includes('127.0.0.1')) {
+      else if (href.includes('#') && href.includes('://')) {
         e.preventDefault();
         const hash = href.split('#')[1];
-        const el = document.getElementById(hash);
+        const el = document.getElementById(decodeURIComponent(hash));
         if (el) {
           window.parent.postMessage({
             type: '${IFRAME_MSG.LOCATION_CLICK}',
@@ -281,17 +282,7 @@ function handleSoundClick(sound: string): void {
 }
 
 function handleLocationClick(offsetTop: number): void {
-    const scrollContainer = document.querySelector('.word-detail') as HTMLElement | null
-    const iframeEl = document.getElementById(`dict-iframe-container-${props.dictionaryName}`)
-    if (!scrollContainer || !iframeEl) return
-
-    const iframeTop = iframeEl.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
-    const targetScrollTop = scrollContainer.scrollTop + iframeTop + offsetTop
-
-    scrollContainer.scrollTo({
-        top: targetScrollTop,
-        behavior: 'instant',
-    })
+    emit('location-click', props.dictionaryName, offsetTop)
 }
 
 function setupMessageListener(): void {

@@ -7,20 +7,18 @@
     </div>
     <ThreeDotsLoader v-if="showLoading" class="loader-inline" />
 
-    <el-scrollbar>
-        <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
-            :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
-            <template #default="{ data, index }">
-                <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
-                    :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
-                    <el-text truncated class="word-text">
-                        {{ data }}
-                    </el-text>
-                    <!-- <p class="truncated-text">{{ data }}</p> -->
-                </div>
-            </template>
-        </UseVirtualList>
-    </el-scrollbar>
+    <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
+        :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
+        <template #default="{ data, index }">
+            <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
+                :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
+                <el-text truncated class="word-text">
+                    {{ data }}
+                </el-text>
+                <!-- <p class="truncated-text">{{ data }}</p> -->
+            </div>
+        </template>
+    </UseVirtualList>
 </template>
 
 <script lang="ts" setup>
@@ -138,11 +136,25 @@ watch(
     margin-left: 1rem;
 }
 
-.list-container {
-    /* border: 1px solid var(--el-border-color-light, #e4e7ed);
-    border-radius: 4px; */
-    padding-right: 1rem;
+.list-container::-webkit-scrollbar {
+    width: 8px;
+}
 
+.list-container::-webkit-scrollbar-thumb {
+    background: rgba(144, 147, 153, 0.5);
+    border-radius: 4px;
+}
+
+.list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(144, 147, 153, 0.8);
+}
+
+.list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.list-container::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 .clickable-row {
