@@ -1,10 +1,17 @@
 <template>
     <div class="common-layout">
         <el-container>
-            <el-aside width="200px">
+            <el-aside v-show="!isMainMenuCollapsed" width="200px">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
-                        <el-header data-tauri-drag-region></el-header>
+                        <el-header data-tauri-drag-region :height="`var(--header-height)`"
+                            style="display: flex; align-items: center; justify-content: flex-end;">
+                            <el-button text style="" size="small" @click="isMainMenuCollapsed = !isMainMenuCollapsed">
+                                <el-icon size="20">
+                                    <tb-layout-sidebar-left-collapse />
+                                </el-icon>
+                            </el-button>
+                        </el-header>
                         <el-main style="padding: 0;">
                             <el-scrollbar>
                                 <el-menu :default-openeds="['1', '3']" class="main-menu">
@@ -66,7 +73,7 @@
                                 </el-menu>
                             </el-scrollbar>
                         </el-main>
-                        <el-footer>Footer</el-footer>
+                        <el-footer :height="`var(--header-height)`">Footer</el-footer>
                     </el-container>
                 </div>
             </el-aside>
@@ -74,17 +81,21 @@
 
             <el-container>
                 <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
-                    class="fstdict-header" :style="{ '--header-padding-right': `${headerPaddingRight}px` }">
+                    class="fstdict-header" :style="{
+                        '--header-padding-right': `${headerPaddingRight}px`,
+                        '--header-padding-left': `${headerPaddingLeft}px`
+                    }">
                     <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
                         :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
                         :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
                         :search-history="searchHistory" :last-search-keyword="lastSearchKeyword"
                         :has-result-last-search="hasResultLastSearch" :note-content="noteContent"
                         :word-options="wordOptions" :redirect-word="redirectWord" @change:keyword="keyword = $event"
-                        @clear:add-dict-msgs="addDictMsgs = []" :iframe-keydown-event="iframeKeydownEvent"
-                        :anki-progress="ankiProgress" :add-dict-msgs="addDictMsgs"
-                        :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
-                        :show-popover-word-options="showPopoverWordOptions" />
+                        @clear:add-dict-msgs="addDictMsgs = []" @toggle:main-menu="isMainMenuCollapsed = $event"
+                        :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress"
+                        :add-dict-msgs="addDictMsgs" :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
+                        :show-popover-word-options="showPopoverWordOptions"
+                        :is-main-menu-collapsed="isMainMenuCollapsed" />
                 </el-header>
 
                 <el-main class="no-padding-main">
@@ -219,6 +230,7 @@ import MarkdownIt from 'markdown-it'
 
 // Icons
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
+import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarLeftExpand } from 'vue-icons-plus/tb'
 import { CaretRight, CaretBottom, MoreFilled, Menu as IconMenu, Message, Setting } from '@element-plus/icons-vue'
 
 // Components
@@ -287,7 +299,9 @@ const splitterRef = ref<any>(null)
 const wordDetailScrollbarRef = ref<ScrollbarInstance>()
 
 const headerPaddingRight = ref(0)
+const headerPaddingLeft = ref(0)
 const activeNames = ref<string[]>([])
+const isMainMenuCollapsed = ref(false)
 const isWordFavorited = ref(false)
 const lastSearchKeyword = ref('')
 const noteContent = ref('')
@@ -677,6 +691,16 @@ watch(
     async () => {
         webSocket.value?.close()
         await initDictPage()
+    }
+)
+
+watch(
+    () => isMainMenuCollapsed.value,
+    (collapsed) => {
+        if (!isTauri()) return
+        if (platform() === 'macos' && envFromRoute.value === ENV.MAIN) {
+            headerPaddingLeft.value = collapsed ? 100 : 0
+        }
     }
 )
 

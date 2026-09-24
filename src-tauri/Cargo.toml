@@ -59,7 +59,8 @@ monio = { version = "0.1.1", features = [
   "tokio",
   "evdev",
 ], default-features = false }
-tauri-plugin-decorum = "1.1.1"
+# tauri-plugin-decorum = "1.1.1"
+tauri-plugin-decorum = { git = "https://github.com/clearlysid/tauri-plugin-decorum", rev = "ea72a1f" }
 window-vibrancy = "0.8.1"
 
 

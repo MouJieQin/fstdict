@@ -5,10 +5,13 @@
 
 /* ============= Header & Title Bar ============= */
 .fstdict-header {
+    display: flex;
+    align-items: center;
     background: var(--app-header-bg);
     user-select: none;
     -webkit-user-select: none;
     padding-right: var(--header-padding-right) !important;
+    padding-left: var(--header-padding-left) !important;
 }
 
 /* Title bar flex container */
@@ -35,7 +38,8 @@
 /* Search container inside the wrapper */
 .floating-window-search-container {
     width: 100%;
-    margin: 10px 0 0 1rem;
+    margin-left: 1rem;
+    /* margin: 10px 0 0 1rem; */
     display: flex;
     align-items: center;
     /* Remove old flex/max-width rules — they live on the wrapper now */

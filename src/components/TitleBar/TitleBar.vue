@@ -1,88 +1,92 @@
 <template>
-    <div>
-        <!-- macOS-style title bar with drag region -->
-        <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
-            <div @mousedown.stop class="search-wrapper">
-                <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
-                    :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
-                    :session-config="sessionConfig" :search-history="searchHistory"
-                    @change:keyword="emit('change:keyword', $event)" @change:input-focus="isInputFocused = $event"
-                    :show-popover-word-options="showPopoverWordOptions" :focus-input-flag="focusInputFlag"
-                    :first-char="firstChar" :first-key-code="firstKeyCode" />
-            </div>
-
-            <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
-                <el-button :icon="ArrowLeftBold" text @click="goBack" class="floating-window-titlebar-button"
-                    size="small" :disabled="!canGoBack" id="titlebar-history-back-button" />
-                <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
-                    size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
-
-                <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')"
-                    placement="bottom">
-                    <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
-                </el-tooltip>
-                <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"
-                    class="floating-window-titlebar-button" size="small" :disabled="!canFavorite" />
-
-                <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button"
-                    size="small" :disabled="!lastSearchKeyword" />
-
-                <el-button :icon="ImBooks" text id="titlebar-dictss-button"
-                    @click="dictDialogVisible = !dictDialogVisible" class="floating-window-titlebar-button"
-                    size="small" />
-                <el-button :icon="Setting" text id="titlebar-setting-button"
-                    @click="settingsDialogVisible = !settingsDialogVisible" class="floating-window-titlebar-button"
-                    size="small" />
-
-                <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
-                    class="floating-window-titlebar-button" size="small" />
-
-                <el-button v-if="showCloseButton" :icon="CircleCloseFilled" text @click="hideWindow"
-                    class="floating-window-titlebar-button" size="small" />
-
-                <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
-                    class="floating-window-titlebar-button" @command="handleSessionCommand"
-                    popper-class="vibrant-dropdown">
-                    <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
-                    <template #dropdown>
-                        <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
-                            <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
-                                :class="{ 'is-active': session.id === sessionId }"
-                                :command="{ cmd: 'switch', id: session.id }">
-                                <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)"
-                                    size="20">
-                                    <BiUserCheck />
-                                </el-icon>
-                                <el-icon v-else>
-                                    <BiUser />
-                                </el-icon>
-                                <span>{{ session.name }}</span>
-                            </el-dropdown-item>
-                            <!-- Session dropdown menu -->
-                            <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
-                                <el-icon>
-                                    <BiUserPlus style="color: var(--el-color-primary)" />
-                                </el-icon>
-                                <span>{{ $t('session.newSession') }}</span>
-                            </el-dropdown-item>
-                            <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
-                                <el-icon>
-                                    <LiaUserEditSolid style="color: var(--el-color-success)" />
-                                </el-icon>
-                                <span>{{ $t('session.renameSession') }}</span>
-                            </el-dropdown-item>
-                            <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
-                                <el-icon>
-                                    <BiUserMinus style="color: var(--el-color-danger)" />
-                                </el-icon>
-                                <span>{{ $t('session.removeSession') }}</span>
-                            </el-dropdown-item>
-                        </el-dropdown-menu>
-                    </template>
-                </el-dropdown>
-            </el-button-group>
+    <!-- <div> -->
+    <!-- macOS-style title bar with drag region -->
+    <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
+        <div>
+            <el-button v-show="isMainMenuCollapsed" text size="small"
+                @click="emit('toggle:main-menu', !isMainMenuCollapsed)">
+                <el-icon size="20">
+                    <TbLayoutSidebarLeftExpand />
+                </el-icon>
+            </el-button>
         </div>
+
+        <div @mousedown.stop class="search-wrapper">
+            <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
+                :redirect-history-word="redirectHistoryWord" :word-options="wordOptions" :session-config="sessionConfig"
+                :search-history="searchHistory" @change:keyword="emit('change:keyword', $event)"
+                @change:input-focus="isInputFocused = $event" :show-popover-word-options="showPopoverWordOptions"
+                :focus-input-flag="focusInputFlag" :first-char="firstChar" :first-key-code="firstKeyCode" />
+        </div>
+
+        <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
+            <el-button :icon="ArrowLeftBold" text @click="goBack" class="floating-window-titlebar-button" size="small"
+                :disabled="!canGoBack" id="titlebar-history-back-button" />
+            <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
+                size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
+
+            <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')" placement="bottom">
+                <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
+            </el-tooltip>
+            <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"
+                class="floating-window-titlebar-button" size="small" :disabled="!canFavorite" />
+
+            <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button" size="small"
+                :disabled="!lastSearchKeyword" />
+
+            <el-button :icon="ImBooks" text id="titlebar-dictss-button" @click="dictDialogVisible = !dictDialogVisible"
+                class="floating-window-titlebar-button" size="small" />
+            <el-button :icon="Setting" text id="titlebar-setting-button"
+                @click="settingsDialogVisible = !settingsDialogVisible" class="floating-window-titlebar-button"
+                size="small" />
+
+            <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
+                class="floating-window-titlebar-button" size="small" />
+
+            <el-button v-if="showCloseButton" :icon="CircleCloseFilled" text @click="hideWindow"
+                class="floating-window-titlebar-button" size="small" />
+
+            <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
+                class="floating-window-titlebar-button" @command="handleSessionCommand" popper-class="vibrant-dropdown">
+                <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
+                <template #dropdown>
+                    <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
+                        <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
+                            :class="{ 'is-active': session.id === sessionId }"
+                            :command="{ cmd: 'switch', id: session.id }">
+                            <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)" size="20">
+                                <BiUserCheck />
+                            </el-icon>
+                            <el-icon v-else>
+                                <BiUser />
+                            </el-icon>
+                            <span>{{ session.name }}</span>
+                        </el-dropdown-item>
+                        <!-- Session dropdown menu -->
+                        <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
+                            <el-icon>
+                                <BiUserPlus style="color: var(--el-color-primary)" />
+                            </el-icon>
+                            <span>{{ $t('session.newSession') }}</span>
+                        </el-dropdown-item>
+                        <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
+                            <el-icon>
+                                <LiaUserEditSolid style="color: var(--el-color-success)" />
+                            </el-icon>
+                            <span>{{ $t('session.renameSession') }}</span>
+                        </el-dropdown-item>
+                        <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
+                            <el-icon>
+                                <BiUserMinus style="color: var(--el-color-danger)" />
+                            </el-icon>
+                            <span>{{ $t('session.removeSession') }}</span>
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+        </el-button-group>
     </div>
+    <!-- </div> -->
 
     <!-- Dialogs class="glass-dialog" -->
     <div @mousedown.stop>
@@ -139,6 +143,7 @@ import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
 import { ImBooks } from 'vue-icons-plus/im'
+import { TbLayoutSidebarLeftExpand } from 'vue-icons-plus/tb'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled } from '@element-plus/icons-vue'
 
 // Components
@@ -263,9 +268,14 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    isMainMenuCollapsed: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits<{
+    (e: 'toggle:main-menu', isCollapsed: boolean): void
     (e: 'change:keyword', keyword: string): void
     (e: 'clear:addDictMsgs'): void
 }>()
