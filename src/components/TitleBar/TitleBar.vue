@@ -58,7 +58,7 @@
                 class="floating-window-titlebar-button" @command="handleSessionCommand" popper-class="vibrant-dropdown">
                 <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
                 <template #dropdown>
-                    <el-dropdown-menu style="max-height: 60vh; overflow-y: auto;">
+                    <el-dropdown-menu class="vibrant-dropdown">
                         <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
                             :class="{ 'is-active': session.id === sessionId }"
                             :command="{ cmd: 'switch', id: session.id }">

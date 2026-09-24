@@ -192,8 +192,10 @@
                             <!-- </div> -->
 
                             <!-- Floating locate button -->
-                            <el-dropdown placement="bottom-end" @command="scrollToDictionary">
-                                <el-button text class="locate-dict-button" circle bg>
+                            <el-dropdown placement="bottom-end" @command="scrollToDictionary"
+                                popper-class="vibrant-dropdown">
+                                <el-button text class="locate-dict-button" circle bg
+                                    style="background:var(--glass-bg);">
                                     <el-icon class="el-icon--right">
                                         <MoreFilled />
                                     </el-icon>
