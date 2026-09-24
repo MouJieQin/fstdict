@@ -1,8 +1,3 @@
-/* ============= Main Menu ============= */
-.main-menu {
-    --el-menu-bg-color: var(--main-menu-bg-color);
-}
-
 /* ============= Header & Title Bar ============= */
 .fstdict-header {
     display: flex;
@@ -51,6 +46,13 @@
     min-width: 150px;
 }
 
+.keyword-title {
+    max-width: 12rem;
+    padding: 0 1rem;
+    margin: auto;
+    flex: 0;
+}
+
 /* Button group: pinned to right, never shrinks */
 .floating-window-titlebar-button-container {
     flex-shrink: 0;
@@ -61,6 +63,72 @@
 
 .floating-window-titlebar-button {
     font-size: 15px !important;
+}
+
+/* 1. 容器固定高度，防止按钮出现/消失时容器高度跳动 */
+.expand-btn-slot {
+    height: 24px; /* el-button size="small" 的高度 */
+    display: flex;
+    align-items: center;
+}
+
+/* 2. 过渡动画：淡入淡出 + 从左侧轻微滑入 + 微缩放 */
+/* .sidebar-expand-btn-enter-active,
+.sidebar-expand-btn-leave-active {
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+} */
+
+.sidebar-expand-btn-enter-active,
+.sidebar-expand-btn-leave-active {
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+}
+
+.sidebar-expand-btn-enter-from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.8);
+}
+
+.sidebar-expand-btn-leave-to {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.8);
+}
+
+/* ============= Sidebar ============= */
+
+/* 1. aside：宽度过渡是核心 */
+.app-sidebar {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    white-space: nowrap; /* 防止折叠时菜单文字换行 */
+}
+
+/* 2. 内部内容：固定宽度 + 淡出 */
+.sidebar-inner {
+    width: 200px;
+    transition: opacity 0.25s ease;
+}
+
+.main-menu {
+    --el-menu-bg-color: var(--main-menu-bg-color);
+}
+
+/* 3. 折叠状态：内容淡出并禁用交互 */
+.app-sidebar.is-collapsed .sidebar-inner {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.app-sidebar {
+    transition:
+        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0.3s;
+}
+.app-sidebar.is-collapsed {
+    visibility: hidden;
 }
 
 /* ============= Dictionary Layout ============= */
@@ -604,6 +672,7 @@
     #titlebar-setting-button,
     #titlebar-dictss-button,
     /* #titlebar-sessions-button, */
+    #titlebar-keyword-title,
     #titlebar-history-back-button,
     #titlebar-history-forward-button {
         display: none;

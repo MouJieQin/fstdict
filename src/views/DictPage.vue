@@ -1,19 +1,20 @@
 <template>
     <div class="common-layout">
         <el-container>
-            <el-aside v-show="!isMainMenuCollapsed" width="200px">
+            <el-aside class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
+                :width="isMainMenuCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
                         <el-header data-tauri-drag-region :height="`var(--header-height)`"
                             style="display: flex; align-items: center; justify-content: flex-end;">
                             <el-button text style="" size="small" @click="isMainMenuCollapsed = !isMainMenuCollapsed">
                                 <el-icon size="20">
-                                    <tb-layout-sidebar-left-collapse />
+                                    <vsc-layout-sidebar-left-off />
                                 </el-icon>
                             </el-button>
                         </el-header>
                         <el-main style="padding: 0;">
-                            <el-scrollbar>
+                            <el-scrollbar class="sidebar-inner">
                                 <el-menu :default-openeds="['1', '3']" class="main-menu">
                                     <el-sub-menu index="1">
                                         <template #title>
@@ -230,7 +231,7 @@ import MarkdownIt from 'markdown-it'
 
 // Icons
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
-import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarLeftExpand } from 'vue-icons-plus/tb'
+import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
 import { CaretRight, CaretBottom, MoreFilled, Menu as IconMenu, Message, Setting } from '@element-plus/icons-vue'
 
 // Components

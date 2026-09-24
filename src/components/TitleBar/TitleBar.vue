@@ -2,13 +2,15 @@
     <!-- <div> -->
     <!-- macOS-style title bar with drag region -->
     <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
-        <div>
-            <el-button v-show="isMainMenuCollapsed" text size="small"
-                @click="emit('toggle:main-menu', !isMainMenuCollapsed)">
-                <el-icon size="20">
-                    <TbLayoutSidebarLeftExpand />
-                </el-icon>
-            </el-button>
+        <div class="expand-btn-slot">
+            <transition name="sidebar-expand-btn">
+                <el-button v-if="isMainMenuCollapsed" key="expand-btn" text size="small"
+                    @click="emit('toggle:main-menu', !isMainMenuCollapsed)">
+                    <el-icon size="20">
+                        <VscLayoutSidebarLeftOff />
+                    </el-icon>
+                </el-button>
+            </transition>
         </div>
 
         <div @mousedown.stop class="search-wrapper">
@@ -17,6 +19,12 @@
                 :search-history="searchHistory" @change:keyword="emit('change:keyword', $event)"
                 @change:input-focus="isInputFocused = $event" :show-popover-word-options="showPopoverWordOptions"
                 :focus-input-flag="focusInputFlag" :first-char="firstChar" :first-key-code="firstKeyCode" />
+        </div>
+
+        <div @mousedown.stop id="titlebar-keyword-title" class="keyword-title">
+            <el-text truncated style="color: var(--el-text-color-primary); font-weight: bold;">
+                {{ lastSearchKeyword }}
+            </el-text>
         </div>
 
         <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
@@ -143,7 +151,7 @@ import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
 import { ImBooks } from 'vue-icons-plus/im'
-import { TbLayoutSidebarLeftExpand } from 'vue-icons-plus/tb'
+import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled } from '@element-plus/icons-vue'
 
 // Components
