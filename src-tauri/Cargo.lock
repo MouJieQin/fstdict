@@ -1867,10 +1867,12 @@ dependencies = [
  "tauri-build",
  "tauri-nspanel",
  "tauri-plugin-clipboard-manager",
- "tauri-plugin-opener",
+ "tauri-plugin-decorum",
+ "tauri-plugin-os",
  "tokio",
  "tokio-tungstenite",
  "urlencoding",
+ "window-vibrancy 0.8.1",
 ]
 
 [[package]]

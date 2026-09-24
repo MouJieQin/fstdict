@@ -9,6 +9,8 @@ use fstdict_common::window::state::{create_debounced_saver, WindowState};
 use log::{debug, info, warn};
 use tauri::{App, WebviewUrl, WebviewWindowBuilder};
 use tauri_nspanel::{CollectionBehavior, PanelLevel, WebviewWindowExt};
+use tauri_plugin_decorum::WebviewWindowExt as DecorumWebviewWindowExt;
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
 
 /// Delay before arming the state tracker after window creation (milliseconds).
 const TRACKER_ARM_DELAY_MS: u64 = 500;
@@ -84,6 +86,18 @@ fn setup_panel(app: &mut App, config: PanelConfig) -> Result<(), tauri::Error> {
     }
 
     let win = builder.build()?;
+
+    // Make window transparent without privateApi
+    win.make_transparent()?;
+    win.set_traffic_lights_inset(12.0, 25.0)?;
+    apply_vibrancy(
+        &win,
+        NSVisualEffectMaterial::Sidebar,
+        Some(NSVisualEffectState::Active),
+        // Some(NSVisualEffectState::FollowsWindowActiveState),
+        None,
+    )
+    .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
     // Apply borderless style with rounded corners and native shadow.
     let _ = mac_rounded_corners::enable_modern_window_style(app_handle.clone(), win.clone(), None);

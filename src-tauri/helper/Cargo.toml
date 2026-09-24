@@ -8,17 +8,24 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [ "tray-icon", "image-png"] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri-plugin-opener = "2"
+tauri-plugin-os = "2.3.2"
 tauri-plugin-clipboard-manager = "2"
-tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "time", "sync"] } 
+tokio = { version = "1.53.1", features = [
+    "macros",
+    "rt-multi-thread",
+    "time",
+    "sync",
+] }
 urlencoding = "2.1"
 log = "0.4.29"
 tokio-tungstenite = "0.30.0"
 futures-util = "0.3.33"
-fstdict_common = { path = "../fstdict_common" } 
+tauri-plugin-decorum = { git = "https://github.com/clearlysid/tauri-plugin-decorum", rev = "ea72a1f" }
+window-vibrancy = "0.8.1"
+fstdict_common = { path = "../fstdict_common" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }

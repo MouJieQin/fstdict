@@ -78,7 +78,7 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     {
         use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
         // Make window transparent without privateApi
-        main_win.make_transparent().unwrap();
+        main_win.make_transparent()?;
         main_win.set_traffic_lights_inset(12.0, 25.0)?;
         apply_vibrancy(
             &main_win,

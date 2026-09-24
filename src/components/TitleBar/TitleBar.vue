@@ -2,7 +2,7 @@
     <!-- <div> -->
     <!-- macOS-style title bar with drag region -->
     <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
-        <div class="expand-btn-slot">
+        <div v-if="showSidebar" class="expand-btn-slot">
             <transition name="sidebar-expand-btn">
                 <el-button v-if="isMainMenuCollapsed" key="expand-btn" text size="small"
                     @click="emit('toggle:main-menu', !isMainMenuCollapsed)">
@@ -273,6 +273,10 @@ const props = defineProps({
         default: true,
     },
     showPopoverWordOptions: {
+        type: Boolean,
+        default: true,
+    },
+    showSidebar: {
         type: Boolean,
         default: true,
     },

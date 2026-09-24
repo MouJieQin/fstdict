@@ -1,7 +1,7 @@
 <template>
     <div class="common-layout">
         <el-container>
-            <el-aside class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
+            <el-aside v-if="showSidebar" class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
                 :width="isMainMenuCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
@@ -78,7 +78,7 @@
                     </el-container>
                 </div>
             </el-aside>
-            <el-divider direction="vertical" style="height: 100vh; padding: 0;margin: 0;" />
+            <el-divider v-if="showSidebar" direction="vertical" style="height: 100vh; padding: 0;margin: 0;" />
 
             <el-container>
                 <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
@@ -95,7 +95,7 @@
                         @clear:add-dict-msgs="addDictMsgs = []" @toggle:main-menu="isMainMenuCollapsed = $event"
                         :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress"
                         :add-dict-msgs="addDictMsgs" :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
-                        :show-popover-word-options="showPopoverWordOptions"
+                        :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
                         :is-main-menu-collapsed="isMainMenuCollapsed" />
                 </el-header>
 
@@ -226,6 +226,7 @@ import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick
 import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { platform } from '@tauri-apps/plugin-os'
 import { isTauri } from '@tauri-apps/api/core'
 import MarkdownIt from 'markdown-it'
 
@@ -302,6 +303,7 @@ const wordDetailScrollbarRef = ref<ScrollbarInstance>()
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
 const activeNames = ref<string[]>([])
+const showSidebar = ref(false)
 const isMainMenuCollapsed = ref(false)
 const isWordFavorited = ref(false)
 const lastSearchKeyword = ref('')
@@ -638,13 +640,13 @@ const handleResize = (): void => {
     viewportWidth.value = window.innerWidth
 }
 
-import { platform } from '@tauri-apps/plugin-os'
-
 const initHeaderPaddingRight = () => {
     if (!isTauri()) {
         headerPaddingRight.value = 0
+        showSidebar.value = true
         return
     } else {
+        showSidebar.value = envFromRoute.value === ENV.MAIN
         if (platform() === 'macos') {
             headerPaddingRight.value = 0
         } else {
@@ -699,7 +701,7 @@ watch(
     () => isMainMenuCollapsed.value,
     (collapsed) => {
         if (!isTauri()) return
-        if (platform() === 'macos' && envFromRoute.value === ENV.MAIN) {
+        if (showSidebar.value && platform() === 'macos' && envFromRoute.value === ENV.MAIN) {
             headerPaddingLeft.value = collapsed ? 100 : 0
         }
     }
