@@ -21,8 +21,8 @@
                 :focus-input-flag="focusInputFlag" :first-char="firstChar" :first-key-code="firstKeyCode" />
         </div>
 
-        <div @mousedown.stop id="titlebar-keyword-title" class="keyword-title">
-            <el-text truncated style="color: var(--el-text-color-primary); font-weight: bold;">
+        <div data-tauri-drag-region v-if="lastSearchKeyword" id="titlebar-keyword-title" class="keyword-title">
+            <el-text data-tauri-drag-region truncated class="keyword-title-text">
                 {{ lastSearchKeyword }}
             </el-text>
         </div>
@@ -33,7 +33,8 @@
             <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
                 size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
 
-            <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')" placement="bottom">
+            <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')" placement="bottom"
+                effect="customized">
                 <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
             </el-tooltip>
             <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"

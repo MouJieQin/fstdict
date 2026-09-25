@@ -11,7 +11,7 @@
         </el-input>
 
         <el-popover v-else trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
-            :width="popoverWidth" :show-arrow="false" popper-class="virtual-autocomplete-popper" :teleported="true">
+            :width="popoverWidth" :show-arrow="false" popper-class="vibrant-popover" :teleported="true">
             <template #reference>
                 <el-input ref="inputRef" v-model="keyword" autocomplete="off" autocorrect="off" autocapitalize="off"
                     spellcheck="false" :placeholder="$t('common.search')" clearable class="search-input"
@@ -39,12 +39,14 @@
                 </div>
                 <ThreeDotsLoader v-else-if="isSearchingState" class="loader-inline" />
 
-                <UseVirtualList v-show="isResultState" ref="virtualListRef" :list="links"
+                <UseVirtualList v-show="isResultState" ref="virtualListRef" :list="links" class="list-container"
                     :options="{ itemHeight: AUTOCOMPLETE_ITEM_HEIGHT, overscan: 10 }" height="250px">
                     <template #default="{ data, index }">
-                        <div class="suggestion-item" :class="{ 'is-active': index === activeIndex }"
+                        <div class="suggestion-item clickable-row" :class="{ 'is-active': index === activeIndex }"
                             @mousedown.prevent="handleSelect(data)" @mouseenter="activeIndex = index">
-                            <span class="suggestion-text">{{ data.value }}</span>
+                            <el-text truncated class="word-text">
+                                {{ data.value }}
+                            </el-text>
                         </div>
                     </template>
                 </UseVirtualList>
@@ -294,12 +296,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.loader-inline {
-    margin-left: 1rem;
-}
-
 .virtual-dropdown-menu {
-    background-color: var(--el-bg-color-overlay, #ffffff);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     overflow: hidden;
     border-radius: 4px;
 }
@@ -307,30 +306,11 @@ onBeforeUnmount(() => {
 .suggestion-item {
     display: flex;
     align-items: center;
-    height: 35px;
-    padding: 0 12px;
+    height: 2rem;
+    padding: 0 1rem;
     box-sizing: border-box;
     cursor: pointer;
     transition: background-color 0.15s ease;
-}
-
-.suggestion-item:hover,
-.suggestion-item.is-active {
-    background-color: var(--el-fill-color-light, #f5f7fa);
-}
-
-.suggestion-item.is-active .suggestion-text {
-    color: var(--el-color-primary, #409eff);
-    font-weight: 500;
-}
-
-.suggestion-text {
-    font-size: 14px;
-    color: var(--el-text-color-regular, #606266);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
 }
 
 .empty-suggestions {

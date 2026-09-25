@@ -10,12 +10,11 @@
     <UseVirtualList v-show="showResults" ref="listRef" :list="displayList"
         :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }" height="calc(100%)" class="list-container">
         <template #default="{ data, index }">
-            <div class="item-content clickable-row" :class="{ 'is-selected': selectedWord === data }"
+            <div class="clickable-row" :class="{ 'is-selected': selectedWord === data }"
                 :style="{ height: `${ITEM_HEIGHT}px` }" @click="handleWordClick(data)">
                 <el-text truncated class="word-text">
                     {{ data }}
                 </el-text>
-                <!-- <p class="truncated-text">{{ data }}</p> -->
             </div>
         </template>
     </UseVirtualList>
@@ -130,70 +129,3 @@ watch(
     { deep: true }
 )
 </script>
-
-<style scoped>
-.loader-inline {
-    margin-left: 1rem;
-}
-
-.list-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.list-container::-webkit-scrollbar-thumb {
-    background: rgba(144, 147, 153, 0.5);
-    border-radius: 4px;
-}
-
-.list-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(144, 147, 153, 0.8);
-}
-
-.list-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.list-container::-webkit-scrollbar-corner {
-    background: transparent;
-}
-
-.clickable-row {
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-    cursor: pointer;
-    /* padding-left: 1rem; */
-    padding: 0 1rem;
-    border-radius: var(--el-border-radius-base);
-    /* border-bottom: 1px solid var(--el-border-color-extra-light, #f2f6fc); */
-    transition: background-color 0.2s ease;
-    min-width: 0;
-}
-
-.clickable-row:hover {
-    /* background-color: var(--el-fill-color-light); */
-    background-color: var(--el-color-primary-light-5);
-    box-sizing: border-box;
-}
-
-.clickable-row.is-selected {
-    background-color: var(--el-color-primary-light-3);
-}
-
-.clickable-row.is-selected :deep(.el-text) {
-    /* color: var(--el-color-primary-text, 90%, #409eff); */
-}
-
-.word-text {
-    color: var(--el-text-color-regular);
-}
-
-.truncated-text {
-    display: block !important;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    color: var(--el-text-color-regular);
-    text-overflow: ellipsis;
-}
-</style>
