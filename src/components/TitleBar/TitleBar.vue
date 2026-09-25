@@ -13,6 +13,12 @@
             </transition>
         </div>
 
+        <div tabindex="0" v-if="showCloseButton" class="close-icon">
+            <el-icon @click="hideWindow">
+                <CircleCloseFilled />
+            </el-icon>
+        </div>
+
         <div @mousedown.stop class="search-wrapper">
             <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
                 :redirect-history-word="redirectHistoryWord" :word-options="wordOptions" :session-config="sessionConfig"
@@ -50,9 +56,6 @@
                 size="small" />
 
             <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
-                class="floating-window-titlebar-button" size="small" />
-
-            <el-button v-if="showCloseButton" :icon="CircleCloseFilled" text @click="hideWindow"
                 class="floating-window-titlebar-button" size="small" />
 
             <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"

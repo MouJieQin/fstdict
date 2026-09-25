@@ -1,8 +1,8 @@
 <template>
-    <div class="common-layout">
+    <div class="common-layout" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
-            <el-aside id="app-sidebar" v-if="showSidebar" class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
-                :width="isMainMenuCollapsed ? '0px' : '200px'">
+            <el-aside id="app-sidebar" v-if="showSidebar" class="app-sidebar"
+                :class="{ 'is-collapsed': isMainMenuCollapsed }" :width="isMainMenuCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
                         <el-header data-tauri-drag-region :height="`var(--header-height)`"
