@@ -228,7 +228,7 @@ watch(() => props.focusInputFlag, () => {
 })
 
 // Sync scroll when active index changes
-watch(activeIndex, scrollToActiveItem)
+// watch(activeIndex, scrollToActiveItem)
 
 // Sync suggestions when props change
 watch(optionsRef, () => {
@@ -295,19 +295,19 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style>
 .virtual-dropdown-menu {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 .suggestion-item {
     display: flex;
     align-items: center;
     height: 2rem;
-    padding: 0 1rem;
+    margin: 0 5px;
     box-sizing: border-box;
     cursor: pointer;
     transition: background-color 0.15s ease;
@@ -319,21 +319,21 @@ onBeforeUnmount(() => {
     color: var(--el-text-color-secondary, #909399);
     font-size: 13px;
 }
+
+/* Global popover override - must be unscoped */
+.virtual-autocomplete-popper {
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    box-shadow: var(--el-box-shadow-light) !important;
+    border: 1px solid var(--el-border-color-light, #e4e7ed) !important;
+    background-color: var(--el-bg-color-overlay, #ffffff) !important;
+}
 </style>
 
 <style scoped>
 :deep(.el-input__wrapper) {
     --el-input-border-color: var(--glass-border-color);
     background: transparent;
-}
-
-/* Global popover override - must be unscoped */
-.virtual-autocomplete-popper {
-    padding: 0 !important;
-    min-width: 0 !important;
-    overflow: hidden;
-    box-shadow: var(--el-box-shadow-light) !important;
-    border: 1px solid var(--el-border-color-light, #e4e7ed) !important;
-    background-color: var(--el-bg-color-overlay, #ffffff) !important;
 }
 </style>

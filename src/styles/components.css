@@ -139,14 +139,13 @@
 
 /* ============= Dictionary Layout ============= */
 .word-options {
+    padding: 0 5px calc(var(--header-height) + 5px) 1rem;
     height: 100vh;
-    padding: 0 5px 0 1rem;
-    padding-bottom: var(--header-height);
 }
 
 .word-detail {
     height: 100vh !important;
-    padding-bottom: calc(var(--header-height) + 5px);
+    padding-bottom: calc(var(--header-height) + 2px);
 }
 
 .word-detail.not-anki-mode {
@@ -510,7 +509,7 @@
     border: none;
     max-height: calc(100vh - var(--header-height) - 50px) !important;
     overflow-y: auto !important;
-    padding: 12px; /* popover 默认 12px，按需保留/调整 */
+    /* padding: 12px; */
 }
 
 /* 3. 标题文字 */
@@ -565,6 +564,10 @@
     margin-left: 1rem;
 }
 
+.list-container {
+    padding: 5px 0 5px 0;
+}
+
 .list-container::-webkit-scrollbar {
     width: 8px;
 }
@@ -592,7 +595,8 @@
     box-sizing: border-box;
     cursor: pointer;
     padding: 0 1rem;
-    margin-right: 1rem;
+    /* margin-right: 1rem; */
+    margin: 1px 1rem 1px 0;
     border-radius: var(--el-border-radius-base);
     /* border-bottom: 1px solid var(--el-border-color-extra-light, #f2f6fc); */
     transition: background-color 0.2s ease;
@@ -810,6 +814,8 @@
 
 /* ============= Responsive ============= */
 @media (max-width: 700px) {
+    #app-sidebar,
+    #expand-btn-slot,
     #titlebar-setting-button,
     #titlebar-dictss-button,
     /* #titlebar-sessions-button, */
@@ -817,6 +823,10 @@
     #titlebar-history-back-button,
     #titlebar-history-forward-button {
         display: none;
+    }
+
+    #fstdict-header {
+        --header-padding-left: 80px !important;
     }
 
     .sticky-collapse {

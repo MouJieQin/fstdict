@@ -1,7 +1,7 @@
 <template>
     <div class="common-layout">
         <el-container>
-            <el-aside v-if="showSidebar" class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
+            <el-aside id="app-sidebar" v-if="showSidebar" class="app-sidebar" :class="{ 'is-collapsed': isMainMenuCollapsed }"
                 :width="isMainMenuCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
