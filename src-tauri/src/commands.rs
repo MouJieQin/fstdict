@@ -1,5 +1,6 @@
 #[cfg(target_os = "macos")]
 use crate::window::permission_window;
+use crate::window::setting;
 use crate::window::updater_window;
 use tauri::{AppHandle, Manager};
 
@@ -24,6 +25,10 @@ pub fn set_updater_window_size(app_handle: AppHandle, width: f64, height: f64) {
     let _ = updater_window::set_updater_window_size(&app_handle, width, height);
 }
 
+#[tauri::command]
+pub async fn show_setting_window(app_handle: AppHandle) {
+    let _ = setting::show_setting_window(&app_handle);
+}
 // ── macOS-only accessibility & launch commands ──
 #[cfg(target_os = "macos")]
 mod macos_impl {

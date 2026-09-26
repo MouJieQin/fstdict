@@ -74,12 +74,19 @@
                                 </el-menu>
                             </el-scrollbar>
                         </el-main>
-                        <el-footer :height="`var(--header-height)`">Footer</el-footer>
+                        <el-footer :height="`var(--header-height)`" class="footer">
+                            <el-button text @click="handleSettingClick">
+                                <el-icon>
+                                    <Setting />
+                                </el-icon>
+                            </el-button>
+                        </el-footer>
                     </el-container>
                 </div>
             </el-aside>
-            <el-divider v-if="showSidebar" direction="vertical" style="height: 100vh; padding: 0;margin: 0;" />
-
+            <!-- <el-divider v-if="showSidebar" direction="vertical" style="height: 100vh; padding: 0;margin: 0;" /> -->
+            <el-divider v-if="showSidebar" direction="vertical"
+                style="height: 100vh; padding: 0;margin: 0; border: 1px solid var(--splitter-color);" />
             <el-container>
                 <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
                     class="fstdict-header" :style="{
@@ -229,7 +236,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
-import { isTauri } from '@tauri-apps/api/core'
+import { isTauri, invoke } from '@tauri-apps/api/core'
 import MarkdownIt from 'markdown-it'
 
 // Icons
@@ -262,7 +269,7 @@ import type {
 } from '@/common/type-interface'
 
 import type { ScrollbarInstance, ElScrollbar } from 'element-plus'
-import { ENV, TAURI_EVENT } from '@/common/constants'
+import { ENV, TAURI_EVENT, TAURI_CMD } from '@/common/constants'
 
 // add import at top
 import { setAppLocale } from '@/i18n'
@@ -470,12 +477,16 @@ const handleCgevent = (data: any): void => {
     }
 }
 
-const handleTauriNotification = (data: any): void => {
+const handleTauriNotification = async (data: any): Promise<void> => {
     if (envFromRoute.value !== ENV.HELPER) return
-    import('@tauri-apps/api/core').then(({ invoke }) => {
-        invoke('trigger_notification', { message: data.message || '' })
-    })
+    await invoke('trigger_notification', { message: data.message || '' })
 }
+
+const handleSettingClick = async (): Promise<void> => {
+    await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
+}
+
+
 
 // --- WebSocket setup ---
 const setupWebSocket = (): void => {
@@ -487,7 +498,7 @@ const setupWebSocket = (): void => {
     }
 }
 
-const handleWebSocketMessage = (message: any): void => {
+const handleWebSocketMessage = async (message: any): Promise<void> => {
     switch (message.type) {
         case 'dict_info':
             handleDictInfo(message.data)
@@ -545,7 +556,7 @@ const handleWebSocketMessage = (message: any): void => {
             handleCgevent(message.data)
             break
         case 'tauri_notification':
-            handleTauriNotification(message.data)
+            await handleTauriNotification(message.data)
             break
         case 'error_session_not_exist':
             router.push('/')
@@ -731,9 +742,9 @@ router.beforeEach(async () => {
 </script>
 
 <style scoped>
-:deep(.el-menu--vertical) {
+/* :deep(.el-menu--vertical) {
     border-right: none;
-}
+} */
 
 :deep(.no-padding-main) {
     padding: 0;

@@ -5,7 +5,7 @@
   "identifier": "FstDict.Helper",
   "build": {
     "frontendDist": "../../dist",
-    "devUrl": "http://localhost:9595"
+    "devUrl": "http://127.0.0.1:9595"
   },
   "app": {
     "security": {

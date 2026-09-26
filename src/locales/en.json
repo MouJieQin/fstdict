@@ -20,6 +20,9 @@
     },
     "settings": {
         "title": "Settings",
+        "general": "General",
+        "shortcut": "Shortcut",
+        "wordLookup": "Word Lookup",
         "appearance": "Appearance",
         "update": "Update",
         "checkUpdate": "Check for Update",

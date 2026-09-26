@@ -151,6 +151,13 @@
     visibility: hidden;
 }
 
+/* ============= Footer ============= */
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
 /* ============= Dictionary Layout ============= */
 .word-options {
     padding: 0 5px calc(var(--header-height) + 5px) 1rem;
@@ -326,6 +333,43 @@
     height: var(--el-collapse-header-height);
     width: 100%;
     background: var(--sticky-header-wrapper-bg);
+}
+
+.el-menu--vertical {
+    border-right: none !important;
+    color: var(--el-text-color-primary) !important;
+}
+
+.el-menu--vertical .el-icon {
+    color: var(--el-color-primary) !important;
+}
+
+.el-sub-menu {
+    margin-top: 3px !important;
+}
+
+.el-sub-menu__title {
+    padding-left: 2px !important;
+    border-radius: 10px;
+    margin-right: 20px;
+}
+
+.el-menu-item {
+    border-radius: 5px;
+    padding: 2px 0 2px 3px !important;
+    margin: 5px 0;
+    height: 2rem !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    color: var(--el-text-color-primary) !important;
+}
+
+.el-menu-item:hover {
+    background-color: var(--item-hover) !important;
+}
+
+.el-menu-item.is-active {
+    background-color: var(--item-active) !important;
 }
 
 .el-collapse-item__header {
@@ -619,12 +663,12 @@
 
 .clickable-row:hover {
     /* background-color: var(--el-fill-color-light); */
-    background-color: var(--el-color-primary-light-5);
+    background-color: var(--item-hover);
     box-sizing: border-box;
 }
 
 .clickable-row.is-selected {
-    background-color: var(--el-color-primary-light-3);
+    background-color: var(--item-active);
 }
 
 .clickable-row.is-selected .el-text {
@@ -753,8 +797,36 @@
 }
 
 /* ============= Settings ============= */
+.setting-layout {
+    height: 100%;
+    width: 100%;
+}
+
+.setting-sidebar {
+    padding-top: var(--header-height) !important;
+    height: 100vh;
+}
+
+.setting-main {
+    height: 100vh;
+    padding: 0 !important;
+    padding-top: var(--header-height) !important;
+    /* background: red !important; */
+}
+
+/* .setting-main .scroll-container {
+    padding: 0 !important;
+    margin: 0 !important;
+} */
+
+.setting-menu {
+    padding: 0 12px 0 12px !important;
+    --el-menu-bg-color: var(--main-menu-bg-color);
+}
+
 .setting-container {
-    padding-bottom: 50px;
+    /* margin-top: 0px !important; */
+    /* padding-top: 0px !important; */
 }
 
 .setting-footer-button-group {
@@ -770,16 +842,42 @@
 .system-config-title {
     font-size: 24px;
     font-weight: bold;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
     text-align: center;
 }
 
 .config-class {
     margin: 0 auto 30px;
     max-width: clamp(300px, 80vw, 800px);
-    padding: 20px;
+    padding: 1px 20px;
+    background-color: var(--app-header-bg);
     border-radius: var(--el-border-radius-base);
-    box-shadow: var(--el-box-shadow);
+    /* box-shadow: var(--el-box-shadow); */
+}
+
+.config-class .el-form-item {
+    color: var(--el-text-color-primary) !important;
+    font-weight: bold !important;
+}
+
+.config-class .el-button {
+    background-color: var(--app-glass-mimic-overlay-bg) !important;
+}
+
+.el-radio-button__inner {
+    background-color: var(--app-glass-mimic-overlay-bg) !important;
+}
+
+.el-radio-button.is-active .el-radio-button__inner,
+.el-radio-button.is-checked .el-radio-button__inner {
+    background-color: var(
+        --el-color-primary
+    ) !important; /* 换成你想要的选中色 */
+}
+
+.el-button:hover {
+    background-color: transparent;
+    /* background-color: var(--app-header-bg); */
 }
 
 .config-class-title {

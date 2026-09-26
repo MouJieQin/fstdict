@@ -82,6 +82,7 @@ export const TAURI_CMD = {
     CHECK_SCREEN_RECORDING: 'check_screen_recording',
     REQUEST_SCREEN_RECORDING: 'request_screen_recording',
     SHOW_PERMISSION_WINDOW: 'show_permission_window',
+    SHOW_SETTING_WINDOW: 'show_setting_window',
     LAUNCH_CGEVENT_SERVER: 'launch_cgevent_server',
     LAUNCH_HELPER: 'launch_helper',
     TRIGGER_NOTIFICATION: 'trigger_notification',

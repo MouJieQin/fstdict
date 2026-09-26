@@ -90,6 +90,7 @@ pub async fn run() {
             commands::set_theme,
             commands::show_updater_window,
             commands::set_updater_window_size,
+            commands::show_setting_window,
             #[cfg(target_os = "macos")]
             commands::check_screen_recording,
             #[cfg(target_os = "macos")]

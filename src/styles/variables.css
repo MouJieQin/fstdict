@@ -1,5 +1,8 @@
 :root {
     --header-height: 50px;
+    --item-hover: var(--el-color-primary-light-5);
+    --item-active: var(--el-color-primary-light-3);
+    --splitter-color: rgba(255, 255, 255, 0.5);
     --word-options-panel-width: 330px;
     --app-glass-mimic-overlay-bg: rgba(236, 236, 235, 0.97);
     --glass-bg: rgba(236, 236, 235, 0.72);
@@ -20,6 +23,7 @@
 
 .dark {
     --app-header-bg: rgba(55, 55, 53, 0.8);
+    --splitter-color: rgba(0, 0, 0, 0.3);
     --sticky-header-wrapper-bg: rgba(81, 81, 81, 0.72);
     --app-glass-mimic-overlay-bg: rgba(42, 42, 40, 0.97);
     --glass-bg: rgba(42, 42, 40, 0.72);
