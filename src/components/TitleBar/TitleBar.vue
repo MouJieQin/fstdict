@@ -4,8 +4,8 @@
     <div data-tauri-drag-region class="floating-window-titlebar" @click="blurActiveInput">
         <div v-if="showSidebar" id="expand-btn-slot" class="expand-btn-slot">
             <transition name="sidebar-expand-btn">
-                <el-button v-if="isMainMenuCollapsed" key="expand-btn" text size="small"
-                    @click="emit('toggle:main-menu', !isMainMenuCollapsed)">
+                <el-button v-if="isMainSidebarCollapsed" key="expand-btn" text size="small"
+                    @click="emit('toggle:main-sidebar', !isMainSidebarCollapsed)">
                     <el-icon size="20">
                         <VscLayoutSidebarLeftOff />
                     </el-icon>
@@ -284,14 +284,14 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
-    isMainMenuCollapsed: {
+    isMainSidebarCollapsed: {
         type: Boolean,
         default: false,
     },
 })
 
 const emit = defineEmits<{
-    (e: 'toggle:main-menu', isCollapsed: boolean): void
+    (e: 'toggle:main-sidebar', isCollapsed: boolean): void
     (e: 'change:keyword', keyword: string): void
     (e: 'clear:addDictMsgs'): void
 }>()
