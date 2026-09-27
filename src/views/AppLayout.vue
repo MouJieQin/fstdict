@@ -15,27 +15,31 @@
                             </el-button>
                         </el-header>
                         <el-main style="padding: 0;">
-                            <el-scrollbar class="sidebar-inner">
-                                <el-menu :default-openeds="['1', '3']" class="main-menu">
-                                    <el-sub-menu index="1">
+                            <el-scrollbar>
+                                <el-menu ref="menuRef" default-active="dictionary" class="setting-menu">
+                                    <el-menu-item index="dictionary" @click="handleItemClick('dictionary')">
                                         <template #title>
                                             <el-icon>
-                                                <message />
-                                            </el-icon>Navigator One
+                                                <Setting />
+                                            </el-icon>{{ t('appLayout.dictionary') }}
                                         </template>
-                                        <el-menu-item-group>
-                                            <template #title>Group 1</template>
-                                            <el-menu-item index="1-1">Option 1</el-menu-item>
-                                            <el-menu-item index="1-2">Option 2</el-menu-item>
-                                        </el-menu-item-group>
-                                        <el-menu-item-group title="Group 2">
-                                            <el-menu-item index="1-3">Option 3</el-menu-item>
-                                        </el-menu-item-group>
-                                        <el-sub-menu index="1-4">
-                                            <template #title>Option4</template>
-                                            <el-menu-item index="1-4-1">Option 4-1</el-menu-item>
-                                        </el-sub-menu>
-                                    </el-sub-menu>
+                                    </el-menu-item>
+
+                                    <el-menu-item index="shortcut" @click="handleItemClick('shortcut')">
+                                        <template #title>
+                                            <el-icon>
+                                                <BsKeyboard />
+                                            </el-icon>{{ t('settings.shortcut') }}
+                                        </template>
+                                    </el-menu-item>
+
+                                    <el-menu-item index="wordLookup" @click="handleItemClick('wordLookup')">
+                                        <template #title>
+                                            <el-icon>
+                                                <Message />
+                                            </el-icon>{{ t('settings.wordLookup') }}
+                                        </template>
+                                    </el-menu-item>
                                 </el-menu>
                             </el-scrollbar>
                         </el-main>
@@ -54,17 +58,6 @@
             <el-main style="padding:0">
                 <DictPage :show-sidebar="showSidebar" :is-main-sidebar-collapsed="isMainSidebarCollapsed"
                     @toggle:main-sidebar="isMainSidebarCollapsed = $event" />
-                <!-- <el-container>
-                <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
-                    class="fstdict-header" :style="{
-                        '--header-padding-right': `${headerPaddingRight}px`,
-                        '--header-padding-left': `${headerPaddingLeft}px`
-                    }">
-                </el-header>
-                <div class="main-content">
-                    <router-view />
-                </div>
-            </el-container> -->
             </el-main>
         </el-container>
     </div>
@@ -74,7 +67,9 @@
 <script setup lang="ts">
 // add import at top
 import { setAppLocale } from '@/i18n'
+import { useI18n } from 'vue-i18n'
 import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick } from 'vue'
+import type { MenuInstance, ElMenu } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -94,6 +89,8 @@ import { Setting } from '@element-plus/icons-vue'
 
 import DictPage from '@/views/DictPage.vue'
 
+const { t } = useI18n()
+
 
 // --- Router & route ---
 const route = useRoute()
@@ -104,6 +101,9 @@ const webSocket = ref<ReturnType<typeof useSessionWebSocket> | null>(null)
 const showSidebar = ref(false)
 const isMainSidebarCollapsed = ref(false)
 const redirectWord = ref('')
+const menuRef = ref<MenuInstance>()
+const activeTabIndex = ref('dictionary')
+
 
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
@@ -128,6 +128,14 @@ const initHeaderPaddingRight = () => {
 
 const handleSettingClick = async (): Promise<void> => {
     await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
+}
+
+const handleItemClick = (index: string): void => {
+    if (index === "wordLookup") {
+        menuRef.value?.updateActiveIndex(activeTabIndex.value)
+    } else {
+        activeTabIndex.value = index
+    }
 }
 
 onMounted(async () => {

@@ -1,22 +1,35 @@
 <template>
     <div class="common-layout" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
-            <el-header data-tauri-drag-region :height="`var(--header-height)`" id="fstdict-header"
-                class="fstdict-header" :style="{
-                    '--header-padding-right': `${headerPaddingRight}px`,
-                    '--header-padding-left': `${headerPaddingLeft}px`
-                }">
-                <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
-                    :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
-                    :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
-                    :search-history="searchHistory" :last-search-keyword="lastSearchKeyword"
-                    :has-result-last-search="hasResultLastSearch" :note-content="noteContent"
-                    :word-options="wordOptions" :redirect-word="redirectWord" @change:keyword="keyword = $event"
-                    @clear:add-dict-msgs="addDictMsgs = []" @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
-                    :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress"
-                    :add-dict-msgs="addDictMsgs" :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
-                    :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
-                    :is-main-sidebar-collapsed="isMainSidebarCollapsed" />
+            <el-header :height="`calc(var(--header-height) + 40px)`" id="fstdict-header" class="fstdict-header" :style="{
+                '--header-padding-right': `${headerPaddingRight}px`,
+                '--header-padding-left': `${headerPaddingLeft}px`
+            }">
+                <el-container>
+                    <el-header data-tauri-drag-region :height="`var(--header-height)`" class="fstdict-titlebar">
+                        <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
+                            :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
+                            :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
+                            :search-history="searchHistory" :last-search-keyword="lastSearchKeyword"
+                            :has-result-last-search="hasResultLastSearch" :note-content="noteContent"
+                            :word-options="wordOptions" :redirect-word="redirectWord" @change:keyword="keyword = $event"
+                            @clear:add-dict-msgs="addDictMsgs = []"
+                            @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
+                            :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress"
+                            :add-dict-msgs="addDictMsgs" :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
+                            :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
+                            :is-main-sidebar-collapsed="isMainSidebarCollapsed" />
+                    </el-header>
+                    <el-main data-tauri-drag-region style="padding: 0;">
+                        <el-tabs data-tauri-drag-region v-model="editableTabsValue" type="card" editable
+                            class="demo-tabs" @edit="handleTabsEdit">
+                            <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title"
+                                :name="item.name">
+                                <!-- {{ item.content }} -->
+                            </el-tab-pane>
+                        </el-tabs>
+                    </el-main>
+                </el-container>
             </el-header>
 
             <el-main class="no-padding-main">
@@ -660,6 +673,53 @@ router.beforeEach(async () => {
     webSocket.value?.close()
     return true
 })
+
+
+import { Select } from '@element-plus/icons-vue'
+import type { TabPaneName } from 'element-plus'
+let tabIndex = 2
+const editableTabsValue = ref('2')
+const editableTabs = ref([
+    {
+        title: 'Tab 1',
+        name: '1',
+        content: 'Tab 1 content',
+    },
+    {
+        title: 'Tab 2',
+        name: '2',
+        content: 'Tab 2 content',
+    },
+])
+const handleTabsEdit = (
+    targetName: TabPaneName | undefined,
+    action: 'remove' | 'add'
+) => {
+    if (action === 'add') {
+        const newTabName = `${++tabIndex}`
+        editableTabs.value.push({
+            title: 'New Tab',
+            name: newTabName,
+            content: 'New Tab content',
+        })
+        editableTabsValue.value = newTabName
+    } else if (action === 'remove') {
+        const tabs = editableTabs.value
+        let activeName = editableTabsValue.value
+        if (activeName === targetName) {
+            tabs.forEach((tab, index) => {
+                if (tab.name === targetName) {
+                    const nextTab = tabs[index + 1] || tabs[index - 1]
+                    if (nextTab) {
+                        activeName = nextTab.name
+                    }
+                }
+            })
+        }
+        editableTabsValue.value = activeName
+        editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
+    }
+}
 </script>
 
 <style scoped>

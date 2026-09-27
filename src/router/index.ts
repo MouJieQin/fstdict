@@ -1,23 +1,11 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
-    // {
-    //     path: '/',
-    //     component: () => import('@/views/DictLayout.vue'),
-    //     children: [
-    //         {
-    //             path: 'dict/:id',
-    //             name: 'Dict',
-    //             component: () => import('@/views/DictPage.vue'),
-    //             props: true,
-    //         },
-    //     ],
-    // },
 
     {
         path: '/dict/:id',
         name: 'Dict',
-        component: () => import('@/views/DictLayout.vue'),
+        component: () => import('@/views/AppLayout.vue'),
         props: true,
     },
 
