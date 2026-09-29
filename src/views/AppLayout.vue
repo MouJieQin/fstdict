@@ -28,15 +28,16 @@
                                     <el-menu-item index="shortcut" @click="handleItemClick('shortcut')">
                                         <template #title>
                                             <el-icon>
-                                                <BsKeyboard />
-                                            </el-icon>{{ t('settings.shortcut') }}
+                                                <Setting />
+                                            </el-icon>
+                                            {{ t('settings.shortcut') }}
                                         </template>
                                     </el-menu-item>
 
                                     <el-menu-item index="wordLookup" @click="handleItemClick('wordLookup')">
                                         <template #title>
                                             <el-icon>
-                                                <Message />
+                                                <Setting />
                                             </el-icon>{{ t('settings.wordLookup') }}
                                         </template>
                                     </el-menu-item>

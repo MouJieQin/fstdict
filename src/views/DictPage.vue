@@ -21,11 +21,11 @@
                             :is-main-sidebar-collapsed="isMainSidebarCollapsed" />
                     </el-header>
                     <el-main data-tauri-drag-region style="padding: 0;">
-                        <el-tabs data-tauri-drag-region v-model="editableTabsValue" type="card" editable
-                            class="demo-tabs" @edit="handleTabsEdit">
+                        <el-tabs v-model="editableTabsValue" type="card" editable ref="tabRef" class="demo-tabs"
+                            @edit="handleTabsEdit">
                             <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title"
                                 :name="item.name">
-                                <!-- {{ item.content }} -->
+                                {{ item.content }}
                             </el-tab-pane>
                         </el-tabs>
                     </el-main>
@@ -155,6 +155,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick } from 'vue'
+import Sortable from 'sortablejs'
+import { useGetDerivedNamespace } from 'element-plus'
+import type { TabsInstance, TabPaneName } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -614,6 +617,7 @@ const initDictPage = async (): Promise<void> => {
     }
 
     initHeaderPaddingRight()
+    initSortable()
     await setupTauriListeners()
     setupWebSocket()
     window.addEventListener('resize', handleResize)
@@ -633,6 +637,10 @@ onUnmounted(() => {
 
 onBeforeUnmount(() => {
     document.title = 'FstDict'
+    if (sortableInstance) {
+        sortableInstance.destroy()
+        sortableInstance = null
+    }
 })
 
 // Route change handler
@@ -674,38 +682,75 @@ router.beforeEach(async () => {
     return true
 })
 
-
-import { Select } from '@element-plus/icons-vue'
-import type { TabPaneName } from 'element-plus'
+// --- Tab State & Data ---
 let tabIndex = 2
 const editableTabsValue = ref('2')
 const editableTabs = ref([
-    {
-        title: 'Tab 1',
-        name: '1',
-        content: 'Tab 1 content',
-    },
-    {
-        title: 'Tab 2',
-        name: '2',
-        content: 'Tab 2 content',
-    },
+    { title: 'Tab 1', name: '1', content: 'Tab 1 content' },
+    { title: 'Tab 2', name: '2', content: 'Tab 2 content' },
 ])
-const handleTabsEdit = (
+// --- SortableJS Logic ---
+const tabRef = ref<TabsInstance>()
+const ns = useGetDerivedNamespace().value
+let sortableInstance: Sortable | null = null
+
+// Inside script setup
+const initSortable = () => {
+    if (sortableInstance) sortableInstance.destroy()
+
+    const tabListRef = tabRef.value?.tabNavRef?.tabListRef
+    if (!tabListRef) return
+
+    sortableInstance = new Sortable(tabListRef, {
+        animation: 150,
+        draggable: `.${ns}-tabs__item`,
+        filter: '.is-disabled', // Ignore disabled tabs
+
+        // --- CRITICAL FIXES ---
+        forceFallback: true, // 1. Fixes drag in Tauri & consistent ghosting
+        // fallbackClass: 'sortable-fallback', // 2. optional: style the dragging item
+
+        onEnd: (event) => {
+            const { oldIndex, newIndex } = event
+
+            // Safety check
+            if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
+
+            // 3. Move the item in the array
+            // NOTE: We must create a new array ref reference to trigger Vue reactivity correctly
+            const newTabs = [...editableTabs.value]
+            const [movedItem] = newTabs.splice(oldIndex, 1)
+            newTabs.splice(newIndex, 0, movedItem)
+            editableTabs.value = newTabs
+
+            // 4. Force Element Plus to re-render the tab bar line
+            // (The blue underline often gets stuck in the old position)
+            nextTick(() => {
+                tabRef.value?.tabNavRef?.tabBarRef?.update()
+            })
+        }
+    })
+}
+
+
+// --- CRUD Actions (Add / Remove) ---
+const handleTabsEdit = async (
     targetName: TabPaneName | undefined,
     action: 'remove' | 'add'
 ) => {
     if (action === 'add') {
         const newTabName = `${++tabIndex}`
         editableTabs.value.push({
-            title: 'New Tab',
+            title: `New Tab ${newTabName}`,
             name: newTabName,
-            content: 'New Tab content',
+            content: `New Tab ${newTabName} content`,
         })
         editableTabsValue.value = newTabName
+
     } else if (action === 'remove') {
         const tabs = editableTabs.value
         let activeName = editableTabsValue.value
+
         if (activeName === targetName) {
             tabs.forEach((tab, index) => {
                 if (tab.name === targetName) {
@@ -716,10 +761,18 @@ const handleTabsEdit = (
                 }
             })
         }
+
         editableTabsValue.value = activeName
         editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
     }
+
+    // Re-initialize Sortable after DOM updates to sync with new elements
+    await nextTick()
+    initSortable()
 }
+
+
+
 </script>
 
 <style scoped>
