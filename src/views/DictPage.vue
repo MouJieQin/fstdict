@@ -1,204 +1,105 @@
+<!--
+  DictPage.vue
+  ------------------------------------------------------------------
+  Parent / orchestrator of the multi-tab dictionary page.
+
+  What lives here:
+  - the SHARED chrome: TitleBar (bound to the ACTIVE tab's controller),
+    the DictTabs tab bar, and the per-tab DictTabSession list (all tabs
+    stay mounted, visibility toggled with v-show)
+  - window-level concerns: route env, Tauri event listeners (forwarded to
+    the active tab), window title, viewport/sidebar behaviour
+
+  What lives in children:
+  - DictTabSession  = one tab's full session (own WebSocket, own WordOptions,
+                      own results panel; state in its `controller`)
+  - DictTabs        = tab strip UI (drag reorder, add/close intents)
+  - DictResultsPanel= result area of one tab
+
+  Session orchestration:
+  - the initial tab is created from the route (`/dict/:id`)
+  - "+" asks the ACTIVE tab's WebSocket to create a backend session; the
+    backend answers with a `create_session` message, and the tab that
+    received it emits create-session -> a new tab is opened here
+-->
 <template>
     <div class="common-layout" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
             <el-header :height="`calc(var(--header-height) + 40px)`" id="fstdict-header" class="fstdict-header" :style="{
                 '--header-padding-right': `${headerPaddingRight}px`,
-                '--header-padding-left': `${headerPaddingLeft}px`
+                '--header-padding-left': `${headerPaddingLeft}px`,
             }">
                 <el-container>
+                    <!-- Shared title bar: every data prop follows the ACTIVE tab -->
                     <el-header data-tauri-drag-region :height="`var(--header-height)`" class="fstdict-titlebar">
-                        <TitleBar :web-socket="webSocket" :session-id="sessionId" :env="envFromRoute"
-                            :is-word-favorited="isWordFavorited" :session-config="sessionConfig" :dicts-info="dictsInfo"
-                            :sessions-name-id="sessionsNameId" :folder-words="folderWords" :left-history="leftHistory"
-                            :search-history="searchHistory" :last-search-keyword="lastSearchKeyword"
-                            :has-result-last-search="hasResultLastSearch" :note-content="noteContent"
-                            :word-options="wordOptions" :redirect-word="redirectWord" @change:keyword="keyword = $event"
-                            @clear:add-dict-msgs="addDictMsgs = []"
+                        <TitleBar :web-socket="activeController?.webSocket ?? null"
+                            :session-id="activeController?.sessionId ?? -1" :env="envFromRoute"
+                            :is-word-favorited="activeController?.isWordFavorited"
+                            :session-config="activeController?.sessionConfig ?? defaultSessionConfig"
+                            :dicts-info="activeController?.dictsInfo"
+                            :sessions-name-id="activeController?.sessionsNameId"
+                            :folder-words="activeController?.folderWords" :left-history="activeController?.leftHistory"
+                            :search-history="activeController?.searchHistory"
+                            :last-search-keyword="activeController?.lastSearchKeyword ?? ''"
+                            :has-result-last-search="activeController?.hasResultLastSearch"
+                            :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"
+                            :redirect-word="activeController?.redirectWord" @change:keyword="handleTitleBarKeyword"
+                            @clear:add-dict-msgs="handleClearAddDictMsgs"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
-                            :iframe-keydown-event="iframeKeydownEvent" :anki-progress="ankiProgress"
-                            :add-dict-msgs="addDictMsgs" :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
+                            :iframe-keydown-event="activeController?.iframeKeydownEvent"
+                            :anki-progress="activeController?.ankiProgress"
+                            :add-dict-msgs="activeController?.addDictMsgs"
+                            :refresh-dics-settings-info-flag="activeController?.refreshDicsSettingsInfoFlag"
                             :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
                             :is-main-sidebar-collapsed="isMainSidebarCollapsed" />
                     </el-header>
+
+                    <!-- Tab bar row -->
                     <el-main data-tauri-drag-region style="padding: 0;">
-                        <el-tabs v-model="editableTabsValue" type="card" editable ref="tabRef" class="demo-tabs"
-                            @edit="handleTabsEdit">
-                            <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title"
-                                :name="item.name">
-                                {{ item.content }}
-                            </el-tab-pane>
-                        </el-tabs>
+                        <DictTabs @add-tab="requestNewSession" @close-tab="dictTabsStore.closeTab" />
                     </el-main>
                 </el-container>
             </el-header>
 
+            <!--
+        One full dictionary session per tab; all stay mounted (v-show).
+        IMPORTANT: iterate tabsByInsertionOrder here, NOT dictTabsStore.tabs.
+        The tab bar reorders `tabs` on drag; if the content v-for followed
+        that order, Vue would MOVE each DictTabSession root DOM node, and
+        browsers reload every <iframe> when its host node is re-attached
+        -> white result area. Insertion order never changes, so content
+        DOM nodes are never moved.
+      -->
             <el-main class="no-padding-main">
-                <el-splitter ref="splitterRef">
-
-                    <el-splitter-panel v-if="!showPopoverWordOptions" :size="wordOptionsSize"
-                        @update:size="handlePanelResize">
-                        <div class="word-options">
-                            <WordOptions :web-socket="webSocket" :session-config="sessionConfig"
-                                :word-options="wordOptions" :search-history="searchHistory" :keyword="keyword" />
-                        </div>
-                    </el-splitter-panel>
-
-                    <el-splitter-panel :min="400">
-                        <el-scrollbar class="word-detail" :class="{
-                            'anki-mode': envFromRoute === 'anki',
-                            'not-anki-mode': envFromRoute !== 'anki',
-                        }" ref="wordDetailScrollbarRef" always>
-                            <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
-                                <!-- <div v-show="hasResultLastSearch" class="sticky-header-wrapper"></div> -->
-                                <!-- Note panel -->
-                                <el-collapse-item v-if="noteContent" :title="$t('dictPage.myNotes')" name="notes"
-                                    :is-active="true" class="dict-iframe-container">
-                                    <template #icon="{ isActive }">
-                                        <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                                            <CaretRight />
-                                        </el-icon>
-                                        <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                                            <CaretBottom />
-                                        </el-icon>
-                                        <BiSolidBookBookmark size="35" />
-                                    </template>
-                                    <div class="markdown-note-content" v-html="md.render(noteContent)"></div>
-                                </el-collapse-item>
-
-                                <!-- Dictionary result panels -->
-                                <el-collapse-item v-for="(htmlList, dictName) in lookupResults" :key="dictName"
-                                    :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container"
-                                    :title="dictName" :name="dictName" :is-active="true">
-                                    <template #icon="{ isActive }">
-                                        <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                                            <CaretRight />
-                                        </el-icon>
-                                        <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                                            <CaretBottom />
-                                        </el-icon>
-                                        <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
-                                            <template #error>
-                                                <BiSolidBookBookmark size="35" />
-                                            </template>
-                                        </el-image>
-                                    </template>
-
-                                    <div v-for="(html, index) in htmlList" :key="index">
-                                        <div class="simple-divider"></div>
-                                        <DictIframe :dictionary-name="dictName" :index="index" :html="html"
-                                            :css-urls="dictsInfo[dictName]?.css || []"
-                                            :js-urls="dictsInfo[dictName]?.js || []"
-                                            :base-path="dictsInfo[dictName]?.data || ''"
-                                            :dictionary-root="dictsInfo[dictName]?.root || ''"
-                                            :is-dark="systemConfigStore.isDark" @entry-click="handleEntryClick"
-                                            @location-click="handleLocationClick" @keydown="handleIframeKeydown" />
-                                    </div>
-                                </el-collapse-item>
-                            </el-collapse>
-
-                            <!-- Empty state -->
-                            <div v-show="!keyword && !lastSearchKeyword && !hasResultLastSearch" class="empty-state">
-                                <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
-                                <br />
-                                <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                    {{ $t('dictPage.noActiveDicts') }}
-                                </p>
-                                <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
-                                    {{ dict.name }}
-                                </p>
-                            </div>
-
-                            <div v-show="lastSearchKeyword && !hasResultLastSearch" class="empty-state">
-                                <p class="dict-homepage-type-p">
-                                    {{ $t('dictPage.noResults', { word: lastSearchKeyword }) }}
-                                </p>
-                                <br />
-                                <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                                    {{ $t('dictPage.noActiveDicts') }}
-                                </p>
-                                <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
-                                    {{ dict.name }}
-                                </p>
-                            </div>
-                        </el-scrollbar>
-                        <!-- </div> -->
-
-                        <!-- Floating locate button -->
-                        <el-dropdown placement="bottom-end" @command="scrollToDictionary"
-                            popper-class="vibrant-dropdown">
-                            <el-button text class="locate-dict-button" circle bg style="background:var(--glass-bg);">
-                                <el-icon class="el-icon--right">
-                                    <MoreFilled />
-                                </el-icon>
-                            </el-button>
-                            <template #dropdown>
-                                <el-dropdown-menu>
-                                    <el-dropdown-item v-for="(_, dictName) in lookupResults" :key="dictName"
-                                        :command="dictName">
-                                        <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
-                                            <template #error>
-                                                <BiSolidBookBookmark :size="25" />
-                                            </template>
-                                        </el-image>
-                                        {{ dictName }}
-                                    </el-dropdown-item>
-                                </el-dropdown-menu>
-                            </template>
-                        </el-dropdown>
-
-                    </el-splitter-panel>
-                </el-splitter>
+                <DictTabSession v-for="tab in tabsByInsertionOrder" v-show="tab.id === dictTabsStore.activeTabId"
+                    :key="tab.id" :tab-id="tab.id" :session-id="tab.sessionId" :env="envFromRoute"
+                    :initial-keyword="initialKeyword" :show-popover="showPopoverWordOptions"
+                    @create-session="handleCreateSession" @session-error="handleSessionError"
+                    @redirect-session="handleRedirectSession" />
             </el-main>
         </el-container>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick } from 'vue'
-import Sortable from 'sortablejs'
-import { useGetDerivedNamespace } from 'element-plus'
-import type { TabsInstance, TabPaneName } from 'element-plus'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
-import { isTauri, invoke } from '@tauri-apps/api/core'
-import MarkdownIt from 'markdown-it'
-
-// Icons
-import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
-import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
-import { CaretRight, CaretBottom, MoreFilled, Menu as IconMenu, Message, Setting } from '@element-plus/icons-vue'
+import { isTauri } from '@tauri-apps/api/core'
 
 // Components
 import TitleBar from '@/components/TitleBar/TitleBar.vue'
-import WordOptions from '@/components/WordOptions.vue'
-import DictIframe from '@/components/DictIframe.vue'
+import DictTabs from '@/components/DictTabs.vue'
+import DictTabSession from '@/components/DictTabSession.vue'
 
-// WebSocket & stores
-import { useSessionWebSocket } from '@/common/session-websocket-client'
-import {
-    useFolderConfigStore,
-    useDictConfigStore,
-    useSystemConfigStore,
-} from '@/stores'
+// Stores
+import { useDictTabsStore } from '@/stores/dictTabs'
+
+// Constants
+import { ENV, TAURI_EVENT } from '@/common/constants'
 import { getDefaultSessionConfig } from '@/common/utility'
-
-// Types
-import type {
-    DictsInfo,
-    SessionNameId,
-    SessionConfig,
-    DictsSettingInfo,
-    FolderWords,
-    WordInfoWithLastSearch,
-} from '@/common/type-interface'
-
-import type { ScrollbarInstance, ElScrollbar } from 'element-plus'
-import { ENV, TAURI_EVENT, TAURI_CMD } from '@/common/constants'
-
-// add import at top
-import { setAppLocale } from '@/i18n'
 
 const emit = defineEmits<{
     (e: 'toggle:main-sidebar', isCollapsed: boolean): void
@@ -212,374 +113,108 @@ const props = defineProps({
     isMainSidebarCollapsed: {
         type: Boolean,
         default: false,
-    }
+    },
 })
 
-
-// Markdown renderer
-const md = new MarkdownIt({
-    breaks: true,
-    xhtmlOut: true,
-})
-
-// --- Router & route ---
+// --- Route & store ---
 const route = useRoute()
-const router = useRouter()
+const dictTabsStore = useDictTabsStore()
 
-// --- Stores ---
-const systemConfigStore = useSystemConfigStore()
-const dictConfigStore = useDictConfigStore()
-const folderConfigStore = useFolderConfigStore()
+/** Runtime state of the ACTIVE tab (drives the shared TitleBar). */
+const activeController = computed(() => dictTabsStore.activeController)
 
-// --- Reactive state ---
-const webSocket = ref<ReturnType<typeof useSessionWebSocket> | null>(null)
-const keyword = ref('')
-const sessionId = ref(-1)
+/**
+ * Content-area children in IMMUTABLE insertion order (see template note).
+ * The tab bar may reorder tabs on drag, but this list never changes order,
+ * so Vue never re-attachs the DictTabSession DOM subtrees (and never
+ * reloads the dictionary iframes inside them).
+ */
+const tabsByInsertionOrder = computed(() => dictTabsStore.tabsByInsertionOrder)
+
+/**
+ * Fallback session config for the shared TitleBar while no tab controller
+ * is registered yet (first render) - TitleBar reads default_folder.id, so
+ * it must always receive a real SessionConfig object, never undefined.
+ */
+const defaultSessionConfig = getDefaultSessionConfig('default')
+
+// --- Window-level state ---
 const envFromRoute = ref('')
-const redirectWord = ref('')
-
-const dictsInfo = ref<DictsInfo>({})
-const sessionDictsSettingInfo = ref<DictsSettingInfo>([])
-const sessionsNameId = ref<SessionNameId[]>([])
-const sessionConfig = ref<SessionConfig>(getDefaultSessionConfig('default'))
-const refreshDicsSettingsInfoFlag = ref(false)
-
-const lookupResults = ref<Record<string, string[]>>({})
-const wordOptions = ref<string[]>([])
-const wordOptionsSize = ref<number | string>(0)
-const splitterRef = ref<any>(null)
-const wordDetailScrollbarRef = ref<ScrollbarInstance>()
-
+const initialKeyword = ref('')
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
-const activeNames = ref<string[]>([])
-const isWordFavorited = ref(false)
-const lastSearchKeyword = ref('')
-const noteContent = ref('')
-const hasResultLastSearch = ref(false)
-const folderWords = ref<FolderWords>({})
-const leftHistory = ref(false)
-const searchHistory = ref<WordInfoWithLastSearch[]>([])
-const iframeKeydownEvent = ref<unknown>(null)
-const ankiProgress = ref<Record<string, any>>({})
-const addDictMsgs = ref<any[]>([])
-const showAddDictInfo = ref(false)
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
 
-const activeDictionaries = computed(() =>
-    sessionDictsSettingInfo.value.filter((d) => d.is_enabled)
-)
-
-// --- Helper functions ---
-const getDictCover = (dictName: string): string => dictsInfo.value[dictName]?.cover_url || ''
-
-const setShowAddDictInfo = (): void => {
-    showAddDictInfo.value = !activeDictionaries.value.length
+// --- TitleBar glue ---
+/** Typing in the shared search box targets the ACTIVE tab's keyword. */
+const handleTitleBarKeyword = (value: string): void => {
+    const controller = dictTabsStore.activeController
+    if (controller) controller.keyword = value
 }
 
-// --- Panel sizing ---
-const handlePanelResize = (size: number): void => {
-    wordOptionsSize.value = size
+/** Clear the active tab's "add dictionary" toast messages. */
+const handleClearAddDictMsgs = (): void => {
+    const controller = dictTabsStore.activeController
+    if (controller) controller.addDictMsgs = []
 }
 
-const expandWordOptions = async (): Promise<void> => {
-    if (Number(wordOptionsSize.value) <= 5) {
-        const panelWidth = getComputedStyle(document.documentElement).getPropertyValue('--word-options-panel-width').trim()
-        wordOptionsSize.value = panelWidth
-        await nextTick()
-        if (splitterRef.value) {
-            const panelEl = splitterRef.value.$el?.querySelector('.el-splitter-panel')
-            if (panelEl) {
-                panelEl.style.flexBasis = panelWidth
-            }
-        }
+// --- Session orchestration ---
+
+/**
+ * "+" tab button: open a new connection bound to the CURRENT ACTIVE
+ * tab's session. A session (DB row) stores the dictionary combo config
+ * and default-folder data; several tabs MAY share the same session id -
+ * each tab just creates its OWN independent WebSocket connection.
+ * Do NOT call sendCreateSession here.
+ */
+const requestNewSession = (): void => {
+    const sessionId = dictTabsStore.activeTab?.sessionId
+    if (sessionId == null) {
+        console.warn('[DictPage] No active tab session to clone.')
+        return
     }
+    dictTabsStore.createTab(sessionId)
 }
 
-// --- Dictionary setup ---
-const setupDictSettings = (): void => {
-    const optionName = sessionConfig.value.dict_setting_option_name
-    const options = dictConfigStore.dictConfig?.dict_set_options
-
-    if (!optionName || !options || !(optionName in options)) {
-        sessionConfig.value.dict_setting_option_name = 'default'
-    }
-
-    const currentOption = dictConfigStore.dictConfig?.dict_set_options?.[
-        sessionConfig.value.dict_setting_option_name
-    ]
-
-    sessionDictsSettingInfo.value = currentOption || []
-    setShowAddDictInfo()
-    refreshDicsSettingsInfoFlag.value = !refreshDicsSettingsInfoFlag.value
+/** Backend asked us to open a session: create (or activate) its tab. */
+const handleCreateSession = (sessionId: number): void => {
+    dictTabsStore.activateSessionTab(sessionId)
 }
 
-const setupOcrLangType = (): void => {
-    if (!sessionConfig.value?.ocr_lang_type) {
-        sessionConfig.value.ocr_lang_type = 'English'
-    }
+/** The tab's session died on the backend: close the tab. */
+const handleSessionError = (tabId: string): void => {
+    dictTabsStore.closeTab(tabId)
 }
 
-// --- WebSocket message handlers ---
-const handleDictInfo = (data: any): void => {
-    dictsInfo.value = data
-    setupDictSettings()
+/** Window config says this tab should use another session: switch to it. */
+const handleRedirectSession = (sessionId: number): void => {
+    dictTabsStore.activateSessionTab(sessionId)
 }
 
-const handleDictConfig = (data: any): void => {
-    dictConfigStore.setDictConfig(data.dict_config)
-    setupDictSettings()
-}
-
-// update handleSystemConfig function
-const handleSystemConfig = (data: any): void => {
-    systemConfigStore.setSystemConfig(data.system_config)
-    // sync language preference
-    const lang = data.system_config?.appearance?.language
-    if (lang) setAppLocale(lang)
-}
-
-const handleSessionsNameId = (data: any): void => {
-    sessionsNameId.value = data.sessions_name_id
-
-    const env = envFromRoute.value
-    const config = systemConfigStore.systemConfig
-    let targetId: number | undefined
-
-    if (env === ENV.MAIN) {
-        targetId = config?.app?.windows?.main?.session_id
-    } else if (env === ENV.HELPER) {
-        targetId = config?.app?.windows?.helper_main?.session_id
-    } else if (env === ENV.SELECTION) {
-        targetId = config?.app?.windows?.helper_selection?.session_id
-    }
-
-    if (targetId !== undefined && targetId !== sessionId.value) {
-        redirectToSession(targetId)
-    }
-}
-
-const handleLookupKeyword = (data: any): void => {
-    if (envFromRoute.value === 'anki') {
-        window.scrollTo(0, 0)
-    } else {
-        wordDetailScrollbarRef.value!.scrollTo(0, 0)
-    }
-
-    const word = data.keyword
-    document.title = word || 'FstDict'
-
-    lastSearchKeyword.value = word || ''
-    noteContent.value = data.note || ''
-    leftHistory.value = data.left_history
-    lookupResults.value = data.result || {}
-    hasResultLastSearch.value = data.result && Object.keys(data.result).length > 0
-    isWordFavorited.value = data.is_word_favorited
-
-    activeNames.value = Object.keys(data.result || {})
-    if (noteContent.value) {
-        activeNames.value.unshift('notes')
-    }
-}
-
-const handleToggleFavor = (data: any): void => {
-    isWordFavorited.value = data.is_word_favorited
-
-    if (!isWordFavorited.value) {
-        const folderId = data.folder_id
-        if (folderWords.value[folderId]) {
-            folderWords.value[folderId] = folderWords.value[folderId].filter(
-                (item: any) => item.word !== data.keyword
-            )
-        }
-    }
-}
-
-const handleSessionConfig = (message: any): void => {
-    sessionConfig.value = message.data.config
-    setupDictSettings()
-    setupOcrLangType()
-
-    if (message.data.is_right_after_connection) {
-        const keywordFromRoute = route.query.keyword as string
-        if (keywordFromRoute) {
-            webSocket.value?.sendLookupKeywordRequest(keywordFromRoute)
-        }
-    }
-}
-
-const handleCgevent = (data: any): void => {
-    if (envFromRoute.value !== ENV.SELECTION) return
-    if (data.type === 'kHandlerTextSelection') {
-        redirectWord.value = data.text_selected
-    }
-}
-
-const handleTauriNotification = async (data: any): Promise<void> => {
-    if (envFromRoute.value !== ENV.HELPER) return
-    await invoke('trigger_notification', { message: data.message || '' })
-}
-
-const handleSettingClick = async (): Promise<void> => {
-    await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
-}
-
-
-
-// --- WebSocket setup ---
-const setupWebSocket = (): void => {
-    sessionId.value = Number(route.params.id)
-    webSocket.value = useSessionWebSocket(sessionId.value)
-
-    if (webSocket.value) {
-        webSocket.value.setMessageHandler(handleWebSocketMessage as any)
-    }
-}
-
-const handleWebSocketMessage = async (message: any): Promise<void> => {
-    switch (message.type) {
-        case 'dict_info':
-            handleDictInfo(message.data)
-            break
-        case 'keyword_options_search':
-            wordOptions.value = message.data.options
-            expandWordOptions()
-            break
-        case 'lookup_keyword_request':
-            redirectWord.value = message.data.keyword
-            break
-        case 'word_note':
-            if (message.data.keyword === lastSearchKeyword.value) {
-                noteContent.value = message.data.note || ''
-            }
-            break
-        case 'lookup_keyword':
-            handleLookupKeyword(message.data)
-            break
-        case 'create_session':
-            redirectToSession(message.data.session_id)
-            break
-        case 'session_config':
-            handleSessionConfig(message)
-            break
-        case 'sessions_name_id':
-            handleSessionsNameId(message.data)
-            break
-        case 'toggle_favor':
-            handleToggleFavor(message.data)
-            break
-        case 'favorite_words':
-            folderWords.value[message.data.folder_id] = message.data.words
-            break
-        case 'search_history':
-            searchHistory.value = message.data.words
-            expandWordOptions()
-            break
-        case 'folder_config':
-            folderConfigStore.setFolderConfig(message.data)
-            break
-        case 'dict_config':
-            handleDictConfig(message.data)
-            break
-        case 'system_config':
-            handleSystemConfig(message.data)
-            break
-        case 'anki_progress':
-            ankiProgress.value[message.deck_name] = message.data
-            break
-        case 'add_dictionary':
-            addDictMsgs.value.push(message.data)
-            break
-        case 'cgevent':
-            handleCgevent(message.data)
-            break
-        case 'tauri_notification':
-            await handleTauriNotification(message.data)
-            break
-        case 'error_session_not_exist':
-            router.push('/')
-            break
-    }
-}
-
-// --- Navigation ---
-const redirectToSession = (id: number): void => {
-    router.push({
-        path: `/dict/${id}`,
-        query: { env: envFromRoute.value },
-    })
-}
-
-// --- Iframe events ---
-const handleEntryClick = (entryPath: string): void => {
-    redirectWord.value = entryPath
-}
-
-const handleIframeKeydown = (e: unknown): void => {
-    iframeKeydownEvent.value = e
-}
-
-const scrollToDictionary = async (dictName: string): void => {
-    const element = document.getElementById(`dict-iframe-container-${dictName}`)
-    if (!element) return
-
-    if (!activeNames.value.includes(dictName)) {
-        activeNames.value.push(dictName)
-    }
-
-    await nextTick()
-
-    const scrollbarInstance = wordDetailScrollbarRef.value as InstanceType<typeof ElScrollbar>
-    if (!scrollbarInstance) return
-    const scrollWrap = scrollbarInstance.wrapRef
-    if (!scrollWrap) return
-
-    const wrapRect = scrollWrap.getBoundingClientRect()
-    const targetRect = element.getBoundingClientRect()
-
-    const targetScrollTop = scrollWrap.scrollTop + (targetRect.top - wrapRect.top)
-
-    scrollWrap.scrollTo({
-        top: targetScrollTop,
-        behavior: 'instant'
-    })
-}
-
-function handleLocationClick(dictionaryName: string, offsetTop: number): void {
-    const scrollbar = wordDetailScrollbarRef.value
-    if (!scrollbar || !scrollbar.wrapRef) return
-    const wrap = scrollbar.wrapRef
-
-    const iframeEl = document.getElementById(`dict-iframe-container-${dictionaryName}`)
-    if (!iframeEl) return
-
-    const wrapRect = wrap.getBoundingClientRect()
-    const iframeRect = iframeEl.getBoundingClientRect()
-    const iframeTopRelative = iframeRect.top - wrapRect.top
-
-    const targetScrollTop = wrap.scrollTop + iframeTopRelative + offsetTop
-    wrap.scrollTo({
-        top: targetScrollTop,
-        behavior: 'instant',
-    })
-}
-
-// --- Tauri event listeners ---
+// --- Tauri event listeners (target the ACTIVE tab only) ---
 let unlistenTextSelected: (() => void) | null = null
 let unlistenOcrResult: (() => void) | null = null
 
 const setupTauriListeners = async (): Promise<void> => {
+    // Idempotent: release previous subscriptions before rebinding, so
+    // re-running on route change does not duplicate listeners.
+    await unlistenTextSelected?.()
+    unlistenTextSelected = null
+    await unlistenOcrResult?.()
+    unlistenOcrResult = null
     try {
         if (envFromRoute.value === ENV.SELECTION) {
             unlistenTextSelected = await listen(TAURI_EVENT.TEXT_SELECTED, (event) => {
-                redirectWord.value = event.payload as string
+                const controller = dictTabsStore.activeController
+                if (controller) controller.redirectWord = event.payload as string
             })
         }
 
         if (envFromRoute.value === ENV.HELPER || envFromRoute.value === ENV.MAIN) {
             unlistenOcrResult = await listen(TAURI_EVENT.OCR_RESULT, (event) => {
-                redirectWord.value = event.payload as string
+                const controller = dictTabsStore.activeController
+                if (controller) controller.redirectWord = event.payload as string
             })
         }
     } catch (error) {
@@ -587,70 +222,90 @@ const setupTauriListeners = async (): Promise<void> => {
     }
 }
 
-// --- Viewport resize ---
+// --- Window title follows the active tab's last lookup ---
+watch(
+    () => dictTabsStore.activeController?.lastSearchKeyword,
+    async (val) => {
+        const title = val || 'FstDict'
+        document.title = title
+        if (isTauri()) {
+            try {
+                await getCurrentWindow().setTitle(title)
+            } catch (error) {
+                console.error('Failed to set window title:', error)
+            }
+        }
+    }
+)
+
+// --- Viewport / sidebar ---
 const handleResize = (): void => {
     viewportWidth.value = window.innerWidth
 }
 
-const initHeaderPaddingRight = () => {
+const initHeaderPaddingRight = (): void => {
     if (!isTauri()) {
         headerPaddingRight.value = 0
         return
-    } else {
-        if (platform() === 'macos') {
-            headerPaddingRight.value = 0
-        } else {
-            if (envFromRoute.value === ENV.MAIN) {
-                headerPaddingRight.value = 138
-            }
-        }
+    }
+    if (platform() === 'macos') {
+        headerPaddingRight.value = 0
+    } else if (envFromRoute.value === ENV.MAIN) {
+        headerPaddingRight.value = 138
     }
 }
 
 // --- Lifecycle ---
+/**
+ * (Re)build the page for the route's session id. Runs on first mount AND on
+ * in-page route changes (AppLayout routes to /dict/:newId without leaving the
+ * page - the original single-session watcher on route.params.id).
+ *
+ * Unlike a full rebuild, a route change REBINDS ONLY the active tab's
+ * WebSocket to the new session id; every other tab stays mounted and keeps
+ * its connection and its state.
+ */
 const initDictPage = async (): Promise<void> => {
-    // Apply anki mode class
+    const sessionId = Number(route.params.id)
+    envFromRoute.value = (route.query.env as string) || ''
+    initialKeyword.value = (route.query.keyword as string) || ''
+
+    // Anki mode class on the body.
     if (envFromRoute.value === 'anki') {
         document.body.classList.add('anki-mode')
     } else {
         document.body.classList.remove('anki-mode')
     }
 
+    document.title = 'FstDict'
     initHeaderPaddingRight()
-    initSortable()
+
+    // First mount: opens the initial tab. Route change: rebinds the ACTIVE tab.
+    dictTabsStore.resetActiveTabSession(sessionId)
+
     await setupTauriListeners()
-    setupWebSocket()
-    window.addEventListener('resize', handleResize)
     showPopoverWordOptions.value = window.innerWidth < 700
 }
 
 onMounted(async () => {
-    envFromRoute.value = (route.query.env as string) || ''
+    window.addEventListener('resize', handleResize)
     await initDictPage()
 })
+
+// In-page session switch: rebuild the tabs for the new route session id.
+watch(
+    () => route.params.id,
+    async () => {
+        await initDictPage()
+    }
+)
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
     unlistenTextSelected?.()
     unlistenOcrResult?.()
+    document.body.classList.remove('anki-mode')
 })
-
-onBeforeUnmount(() => {
-    document.title = 'FstDict'
-    if (sortableInstance) {
-        sortableInstance.destroy()
-        sortableInstance = null
-    }
-})
-
-// Route change handler
-watch(
-    () => route.params.id,
-    async () => {
-        webSocket.value?.close()
-        await initDictPage()
-    }
-)
 
 watch(
     () => props.isMainSidebarCollapsed,
@@ -662,169 +317,18 @@ watch(
     }
 )
 
-watch(() => lastSearchKeyword.value, async (val) => {
-    if (isTauri()) {
-        try {
-            await getCurrentWindow().setTitle(val)
-        } catch (error) {
-            console.error('Failed to set window title:', error)
-        }
+watch(
+    () => viewportWidth.value,
+    (width) => {
+        showPopoverWordOptions.value = width < 700
     }
-})
-
-watch(() => viewportWidth.value, (width) => {
-    showPopoverWordOptions.value = width < 700
-})
-
-// Router guard for cleanup
-router.beforeEach(async () => {
-    webSocket.value?.close()
-    return true
-})
-
-// --- Tab State & Data ---
-let tabIndex = 2
-const editableTabsValue = ref('2')
-const editableTabs = ref([
-    { title: 'Tab 1', name: '1', content: 'Tab 1 content' },
-    { title: 'Tab 2', name: '2', content: 'Tab 2 content' },
-])
-// --- SortableJS Logic ---
-const tabRef = ref<TabsInstance>()
-const ns = useGetDerivedNamespace().value
-let sortableInstance: Sortable | null = null
-
-// Inside script setup
-const initSortable = () => {
-    if (sortableInstance) sortableInstance.destroy()
-
-    const tabListRef = tabRef.value?.tabNavRef?.tabListRef
-    if (!tabListRef) return
-
-    sortableInstance = new Sortable(tabListRef, {
-        animation: 150,
-        draggable: `.${ns}-tabs__item`,
-        filter: '.is-disabled', // Ignore disabled tabs
-
-        // --- CRITICAL FIXES ---
-        forceFallback: true, // 1. Fixes drag in Tauri & consistent ghosting
-        // fallbackClass: 'sortable-fallback', // 2. optional: style the dragging item
-
-        onEnd: (event) => {
-            const { oldIndex, newIndex } = event
-
-            // Safety check
-            if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
-
-            // 3. Move the item in the array
-            // NOTE: We must create a new array ref reference to trigger Vue reactivity correctly
-            const newTabs = [...editableTabs.value]
-            const [movedItem] = newTabs.splice(oldIndex, 1)
-            newTabs.splice(newIndex, 0, movedItem)
-            editableTabs.value = newTabs
-
-            // 4. Force Element Plus to re-render the tab bar line
-            // (The blue underline often gets stuck in the old position)
-            nextTick(() => {
-                tabRef.value?.tabNavRef?.tabBarRef?.update()
-            })
-        }
-    })
-}
-
-
-// --- CRUD Actions (Add / Remove) ---
-const handleTabsEdit = async (
-    targetName: TabPaneName | undefined,
-    action: 'remove' | 'add'
-) => {
-    if (action === 'add') {
-        const newTabName = `${++tabIndex}`
-        editableTabs.value.push({
-            title: `New Tab ${newTabName}`,
-            name: newTabName,
-            content: `New Tab ${newTabName} content`,
-        })
-        editableTabsValue.value = newTabName
-
-    } else if (action === 'remove') {
-        const tabs = editableTabs.value
-        let activeName = editableTabsValue.value
-
-        if (activeName === targetName) {
-            tabs.forEach((tab, index) => {
-                if (tab.name === targetName) {
-                    const nextTab = tabs[index + 1] || tabs[index - 1]
-                    if (nextTab) {
-                        activeName = nextTab.name
-                    }
-                }
-            })
-        }
-
-        editableTabsValue.value = activeName
-        editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
-    }
-
-    // Re-initialize Sortable after DOM updates to sync with new elements
-    await nextTick()
-    initSortable()
-}
-
-
-
+)
 </script>
 
 <style scoped>
-/* :deep(.el-menu--vertical) {
-    border-right: none;
-} */
-
 :deep(.no-padding-main) {
     padding: 0;
     flex: 1;
     overflow-y: auto;
-}
-
-:deep(.collapse-custom-icon) {
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
-    margin-right: 8px;
-    vertical-align: middle;
-}
-
-:deep(.el-collapse-item__arrow) {
-    flex-shrink: 0;
-}
-
-:deep(.sticky-collapse) {
-    border: none;
-}
-
-:deep(.sticky-collapse .el-collapse-item__header) {
-    /* position: sticky; */
-    /* top: 0; */
-    background: transparent;
-    /* backdrop-filter: blur(10px); */
-    /* padding-right: 20px; */
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-.dict-iframe-container :deep(.el-collapse-item__content) {
-    background-color: transparent;
-}
-
-.dict-iframe-container :deep(.el-collapse-item__wrap) {
-    background-color: transparent;
-}
-
-/* :deep(.sticky-collapse .el-collapse-item__header) {
-    border: none;
-} */
-
-.empty-state {
-    text-align: center;
 }
 </style>
