@@ -32,9 +32,9 @@
             </el-collapse-item>
 
             <!-- One collapse section per dictionary -->
-            <el-collapse-item v-for="(htmlList, dictName) in controller.lookupResults" :key="dictName"
-                :id="`dict-iframe-container-${dictName}`" class="dict-iframe-container" :title="dictName"
-                :name="dictName" :is-active="true">
+            <el-collapse-item v-for="(htmlList, dictName) in controller.lookupResults"
+                :key="`${controller.lookupSeq}-${dictName}`" :id="`dict-iframe-container-${dictName}`"
+                class="dict-iframe-container" :title="dictName" :name="dictName" :is-active="true">
                 <template #icon="{ isActive }">
                     <el-icon v-show="!isActive" class="el-collapse-item__arrow">
                         <CaretRight />
