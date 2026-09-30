@@ -1,5 +1,6 @@
 :root {
     --header-height: 50px;
+    --tab-height: 25px;
     --item-hover: var(--el-color-primary-light-5);
     --item-active: var(--el-color-primary-light-3);
     --splitter-color: rgba(255, 255, 255, 0.5);
@@ -13,6 +14,11 @@
     --glass-focus-bg: rgba(255, 255, 255, 0.18);
     --glass-active-bg: rgba(255, 255, 255, 0.5);
     --app-header-bg: rgba(243, 243, 242, 0.3);
+
+    --tab-bg: rgba(205, 205, 205, 0.8);
+    --tab-hover-bg: rgba(205, 205, 205, 0.3);
+    --tab-active-bg: var(--app-header-bg);
+
     --sticky-header-wrapper-bg: rgba(236, 236, 235, 0.72);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
     --scrollbar-background: rgba(217, 217, 217, 0.5);
@@ -33,6 +39,11 @@
     --glass-hover-bg: rgba(0, 0, 0, 0.01);
     --glass-focus-bg: rgba(0, 0, 0, 0.18);
     --glass-active-bg: rgba(0, 0, 0, 0.5);
+
+    --tab-bg: rgba(34, 34, 34, 0.8);
+    --tab-hover-bg: rgba(34, 34, 34, 0.3);
+    --tab-active-bg: var(--app-header-bg);
+
     --scrollbar-background: rgba(107, 107, 107, 1);
     --puff-loader-color: rgba(255, 255, 255, 0.7);
 }

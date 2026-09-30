@@ -25,10 +25,11 @@
 <template>
     <div class="common-layout" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
-            <el-header :height="`calc(var(--header-height) + 40px)`" id="fstdict-header" class="fstdict-header" :style="{
-                '--header-padding-right': `${headerPaddingRight}px`,
-                '--header-padding-left': `${headerPaddingLeft}px`,
-            }">
+            <el-header :height="`calc(var(--header-height) + var(--tab-height))`" id="fstdict-header"
+                class="fstdict-header" :style="{
+                    '--header-padding-right': `${headerPaddingRight}px`,
+                    '--header-padding-left': `${headerPaddingLeft}px`,
+                }">
                 <el-container>
                     <!-- Shared title bar: every data prop follows the ACTIVE tab -->
                     <el-header data-tauri-drag-region :height="`var(--header-height)`" class="fstdict-titlebar">
@@ -53,7 +54,6 @@
                             :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
                             :is-main-sidebar-collapsed="isMainSidebarCollapsed" />
                     </el-header>
-
                     <!-- Tab bar row -->
                     <el-main data-tauri-drag-region style="padding: 0;">
                         <DictTabs @add-tab="requestNewSession" @close-tab="dictTabsStore.closeTab" />

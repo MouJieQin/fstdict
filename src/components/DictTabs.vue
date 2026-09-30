@@ -16,7 +16,7 @@
 -->
 <template>
     <el-tabs v-model="activeId" type="card" editable class="dict-tabs" ref="tabRef" @edit="handleTabsEdit">
-        <el-tab-pane v-for="tab in store.tabs" :key="tab.id" :name="tab.id" :label="tab.title" />
+        <el-tab-pane v-for="tab in store.tabs" :key="tab.id" :name="tab.id" :label="ellipsisLabel(tab.title)" />
     </el-tabs>
 </template>
 
@@ -41,6 +41,12 @@ const activeId = computed<string>({
     get: () => store.activeTabId,
     set: (id: string) => store.activateTab(id),
 })
+
+const ellipsisLabel = (label: string): string => {
+    if (label.length <= 20) return label
+    return `${label.slice(0, 20)}...`
+}
+
 
 const tabRef = ref<TabsInstance>()
 const ns = useGetDerivedNamespace().value
@@ -125,5 +131,44 @@ onBeforeUnmount(() => {
 
 :deep(.dict-tabs .el-tabs__header) {
     margin-bottom: 0;
+}
+
+:deep(.el-tabs__header) {
+    height: var(--tab-height);
+    margin: 0;
+    padding-right: 1rem;
+    border: none;
+}
+
+:deep(.el-tabs__item) {
+    height: var(--tab-height);
+    line-height: var(--tab-height);
+    background-color: var(--tab-bg);
+    color: var(--el-text-color-regular);
+}
+
+:deep(.el-tabs__item:hover) {
+    background-color: var(--tab-hover-bg);
+    color: var(--el-text-color-regular);
+
+}
+
+:deep(.el-tabs__item.is-active) {
+    background-color: var(--tab-active-bg);
+    color: var(--el-text-color-regular);
+    border: none;
+}
+
+:deep(.el-tabs__nav-prev),
+:deep(.el-tabs__nav-next) {
+    height: var(--tab-height);
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:deep(.el-tabs__nav-wrap) {
+    height: 100%;
 }
 </style>
