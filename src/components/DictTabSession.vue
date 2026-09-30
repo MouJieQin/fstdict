@@ -238,8 +238,11 @@ const handleSessionConfig = (message: any): void => {
     setupOcrLangType()
 
     if (message.data.is_right_after_connection) {
+        console.log("controller.lastSearchKeyword:", controller.lastSearchKeyword)
         if (props.initialKeyword) {
             controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
+        } else if (controller.lastSearchKeyword) {
+            controller.webSocket?.sendLookupKeyword2(controller.lastSearchKeyword, controller.sessionConfig, controller.leftHistory)
         }
     }
 }
@@ -266,34 +269,6 @@ const setupWebSocket = (sessionId: number): void => {
     controller.sessionId = sessionId
     controller.webSocket = useSessionWebSocket(sessionId)
     controller.webSocket.setMessageHandler(handleWebSocketMessage as any)
-}
-
-/**
- * Clear every session-scoped field before this tab rebinds to a different
- * session (in-page /dict/:id switch). Keeps the tab mounted - only its
- * WebSocket and its data are replaced.
- */
-const resetSessionState = (): void => {
-    controller.keyword = ''
-    controller.lastSearchKeyword = ''
-    controller.hasResultLastSearch = false
-    controller.redirectWord = ''
-    controller.lookupResults = {}
-    controller.noteContent = ''
-    controller.leftHistory = false
-    controller.isWordFavorited = false
-    controller.sessionConfig = getDefaultSessionConfig('default')
-    controller.dictsInfo = {}
-    controller.sessionDictsSettingInfo = []
-    controller.sessionsNameId = []
-    controller.folderWords = {}
-    controller.searchHistory = []
-    controller.wordOptions = []
-    controller.iframeKeydownEvent = null
-    controller.ankiProgress = {}
-    controller.addDictMsgs = []
-    controller.lookupSeq += 1 // signals the results panel to reset scroll
-    dictTabsStore.setTabTitle(props.tabId, 'New Tab')
 }
 
 const handleWebSocketMessage = async (message: any): Promise<void> => {
@@ -369,7 +344,6 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
 watch(
     () => props.sessionId,
     (id) => {
-        resetSessionState()
         if (id != null) setupWebSocket(id)
     },
     { immediate: true }

@@ -1,6 +1,7 @@
 import { WebSocketService } from '@/common/websocket-client'
 import type { SessionConfig } from '@/common/type-interface'
 import { WS_BASE_URL } from '@/common/constants'
+import { getDictSettingsForLookup } from '@/common/utility'
 
 export class SessionWebSocketService extends WebSocketService {
     constructor(sessionId: number) {
@@ -35,6 +36,12 @@ export class SessionWebSocketService extends WebSocketService {
         })
     }
 
+    public sendLookupKeyword2(keyword: string, sessionConfig: SessionConfig, leftHistory = true): void {
+        const dictSettings = getDictSettingsForLookup(sessionConfig.dict_setting_option_name)
+        this.sendLookupKeyword(keyword, sessionConfig.default_folder.id, dictSettings, leftHistory)
+    }
+
+
     public sendLookupKeywordRequest(keyword: string): void {
         this.sendTyped('lookup_keyword_request', { keyword })
     }
@@ -53,7 +60,7 @@ export class SessionWebSocketService extends WebSocketService {
     }
 
     public sendUpdateShortcutSystemConfig(shortcutName: string, shortcuts: string[]): void {
-        this.sendTyped('update_shortcut_config', { shortcut_name: shortcutName, shortcuts})
+        this.sendTyped('update_shortcut_config', { shortcut_name: shortcutName, shortcuts })
     }
 
     // --- Favorites ---

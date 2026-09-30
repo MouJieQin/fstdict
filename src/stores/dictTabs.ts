@@ -26,10 +26,7 @@ import type {
     FolderWords,
     WordInfoWithLastSearch,
 } from '@/common/type-interface'
-import type { useSessionWebSocket } from '@/common/session-websocket-client'
-
-/** WebSocket client instance type (returned by the session factory). */
-export type DictSessionWebSocket = ReturnType<typeof useSessionWebSocket>
+import type { SessionWebSocketService } from '@/common/session-websocket-client'
 
 /**
  * Reactive runtime state of ONE dictionary tab.
@@ -39,7 +36,7 @@ export type DictSessionWebSocket = ReturnType<typeof useSessionWebSocket>
  */
 export interface TabController {
     // --- Connection ---
-    webSocket: DictSessionWebSocket | null
+    webSocket: SessionWebSocketService | null
     sessionId: number | null
 
     // --- Input / lookup ---
