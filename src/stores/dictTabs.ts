@@ -78,6 +78,12 @@ export interface DictTabEntry {
     sessionId: number | null
     controller: TabController | null
     /**
+     * Keyword this tab should look up immediately after its WebSocket opens
+     * (deep link). Usually ""; set when a tab is created from a context-menu
+     * "lookup selection" action or from the route query.
+     */
+    initialKeyword: string
+    /**
      * Immutable insertion index. Keeps the content-area v-for in stable order
      * (see tabsByInsertionOrder); the tab bar's own `tabs` array may be
      * reordered by drag, but this number never changes.
@@ -140,10 +146,22 @@ export const useDictTabsStore = defineStore('dictTabs', {
          * Create a new tab entry and activate it.
          * @param sessionId backend session to bind (null => idle tab, no WebSocket)
          * @param title tab label (usually updated to the searched word on first lookup)
+         * @param initialKeyword keyword to look up once this tab's WebSocket opens
          */
-        createTab(sessionId: number | null = null, title = 'New Tab'): string {
+        createTab(
+            sessionId: number | null = null,
+            title = 'New Tab',
+            initialKeyword = ''
+        ): string {
             const id = nextTabId()
-            this.tabs.push({ id, title, sessionId, controller: null, order: ++tabOrderSeed })
+            this.tabs.push({
+                id,
+                title,
+                sessionId,
+                controller: null,
+                initialKeyword,
+                order: ++tabOrderSeed,
+            })
             this.activeTabId = id
             return id
         },

@@ -88,12 +88,15 @@ export const TAURI_CMD = {
     TRIGGER_NOTIFICATION: 'trigger_notification',
     SHOW_UPDATER_WINDOW: 'show_updater_window',
     SET_UPDATER_WINDOW_SIZE: 'set_updater_window_size',
+    SHOW_CONTEXT_MENU: 'show_context_menu',
 } as const
 
 // --- Tauri event names ---
 export const TAURI_EVENT = {
     TEXT_SELECTED: 'cgevent-select',
     OCR_RESULT: 'cgevent-ocr',
+    /** Rust -> webview: a native context-menu item was clicked ("new-tab" | "lookup-selection"). */
+    CTX_MENU_ACTION: 'ctx-menu-action',
 } as const
 
 // --- WebSocket message types ---
@@ -126,6 +129,8 @@ export const IFRAME_MSG = {
     SOUND_CLICK: 'SOUND_CLICK',
     LOCATION_CLICK: 'LOCATION_CLICK',
     KEYDOWN: 'KEYDOWN',
+    /** Right-click inside a dictionary iframe (carries the selected text + click coords). */
+    CONTEXT_MENU: 'CONTEXT_MENU',
 } as const
 
 // --- Iframe URL schemes ---

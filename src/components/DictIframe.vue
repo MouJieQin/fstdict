@@ -29,6 +29,10 @@ const emit = defineEmits<{
     (e: 'entry-click', path: string): void
     (e: 'location-click', dictionaryName: string, offsetTop: number): void
     (e: 'keydown', event: unknown): void
+    (
+        e: 'context-menu',
+        payload: { selectedText: string; x: number; y: number }
+    ): void
 }>()
 
 const iframeRef = ref<HTMLIFrameElement | null>(null)
@@ -198,6 +202,30 @@ function injectKeydownHandler(doc: Document): void {
     doc.body.appendChild(script)
 }
 
+/**
+ * Forward right-clicks inside the iframe to the parent so the native
+ * context menu can be popped up (with the selected text if any).
+ * The listener is registered on the iframe's document object, so it
+ * survives body.innerHTML rewrites (same trick as the click handler).
+ */
+function injectContextMenuHandler(doc: Document): void {
+    const script = doc.createElement('script')
+    script.textContent = `
+    document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+      const text = (window.getSelection()?.toString() || '').trim();
+      window.parent.postMessage({
+        type: '${IFRAME_MSG.CONTEXT_MENU}',
+        iframeId: '${iframeId.value}',
+        selectedText: text,
+        x: e.clientX,
+        y: e.clientY
+      }, '*');
+    });
+  `
+    doc.body.appendChild(script)
+}
+
 async function renderIframe(): Promise<void> {
     const iframe = iframeRef.value
     if (!iframe) return
@@ -213,6 +241,7 @@ async function renderIframe(): Promise<void> {
         await injectScripts(doc)
         injectClickHandler(doc)
         injectKeydownHandler(doc)
+        injectContextMenuHandler(doc)
     }
 
     doc.body.innerHTML = processHtml(props.html)
@@ -285,6 +314,22 @@ function handleLocationClick(offsetTop: number): void {
     emit('location-click', props.dictionaryName, offsetTop)
 }
 
+/**
+ * Right-click inside the iframe: convert the iframe-local click coords to
+ * parent-window viewport coords and bubble the selection up to DictPage,
+ * which pops the native context menu at that position.
+ */
+function handleContextMenu(data: { selectedText: string; x: number; y: number }): void {
+    const iframe = iframeRef.value
+    if (!iframe) return
+    const rect = iframe.getBoundingClientRect()
+    emit('context-menu', {
+        selectedText: data.selectedText,
+        x: rect.left + data.x,
+        y: rect.top + data.y,
+    })
+}
+
 function setupMessageListener(): void {
     messageListener = (e: MessageEvent) => {
         if (e.data?.iframeId !== iframeId.value) return
@@ -301,6 +346,9 @@ function setupMessageListener(): void {
                 break
             case IFRAME_MSG.KEYDOWN:
                 emit('keydown', e.data)
+                break
+            case IFRAME_MSG.CONTEXT_MENU:
+                handleContextMenu(e.data)
                 break
         }
     }

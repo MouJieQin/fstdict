@@ -57,7 +57,8 @@
                         :base-path="controller.dictsInfo[dictName]?.data || ''"
                         :dictionary-root="controller.dictsInfo[dictName]?.root || ''"
                         :is-dark="systemConfigStore.isDark" @entry-click="emit('entry-click', $event)"
-                        @location-click="handleLocationClick" @keydown="emit('iframe-keydown', $event)" />
+                        @location-click="handleLocationClick" @keydown="emit('iframe-keydown', $event)"
+                        @context-menu="emit('context-menu', $event)" />
                 </div>
             </el-collapse-item>
         </el-collapse>
@@ -137,6 +138,7 @@ const props = defineProps({
 const emit = defineEmits<{
     (e: 'entry-click', entryPath: string): void
     (e: 'iframe-keydown', evt: unknown): void
+    (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 
 const systemConfigStore = useSystemConfigStore()

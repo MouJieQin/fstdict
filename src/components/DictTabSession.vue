@@ -37,7 +37,7 @@
 
         <!-- Results panel (independent per tab) -->
         <el-splitter-panel :min="400">
-            <DictResultsPanel :controller="controller" :env="env" />
+            <DictResultsPanel :controller="controller" :env="env" @context-menu="emit('context-menu', $event)" />
         </el-splitter-panel>
     </el-splitter>
 </template>
@@ -80,6 +80,7 @@ const emit = defineEmits<{
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
     (e: 'redirect-session', sessionId: number): void
+    (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 
 // --- Stores ---
@@ -240,6 +241,7 @@ const handleSessionConfig = (message: any): void => {
     if (message.data.is_right_after_connection) {
         console.log("controller.lastSearchKeyword:", controller.lastSearchKeyword)
         if (props.initialKeyword) {
+            initialKeywordSent = true
             controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
         } else if (controller.lastSearchKeyword) {
             controller.webSocket?.sendLookupKeyword2(controller.lastSearchKeyword, controller.sessionConfig, controller.leftHistory)
@@ -338,15 +340,40 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
 }
 
 // --- Lifecycle ---
+/**
+ * Guards the per-tab "initial keyword" deep link so it is sent exactly once
+ * per session bind: normally the backend's session_config (sent right after
+ * the connection opens, is_right_after_connection=true) triggers it; the
+ * ws-open watcher below is a fallback for backends that do not set that flag.
+ */
+let initialKeywordSent = false
+
 // Connect as soon as a session id is available (initial or assigned later).
-// When the id CHANGES (route-driven rebind), drop the old connection, clear
-// the session-scoped state, then open a fresh one.
+// When the id CHANGES (route-driven rebind), drop the old connection and
+// open a fresh one; the deep-link guard is reset for the new session.
 watch(
     () => props.sessionId,
     (id) => {
+        initialKeywordSent = false
         if (id != null) setupWebSocket(id)
     },
     { immediate: true }
+)
+
+// Fallback deep link: if the WebSocket reaches OPEN but the backend never
+// sent session_config with is_right_after_connection, send the tab's
+// initial keyword ourselves (once, after a short grace period).
+watch(
+    () => controller.webSocket?.status.value,
+    (status) => {
+        if (status !== 'open' || initialKeywordSent || !props.initialKeyword) return
+        setTimeout(() => {
+            if (!initialKeywordSent && props.initialKeyword) {
+                initialKeywordSent = true
+                controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
+            }
+        }, 1200)
+    }
 )
 
 onMounted(() => {

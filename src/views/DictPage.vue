@@ -73,9 +73,9 @@
             <el-main class="no-padding-main">
                 <DictTabSession v-for="tab in tabsByInsertionOrder" v-show="tab.id === dictTabsStore.activeTabId"
                     :key="tab.id" :tab-id="tab.id" :session-id="tab.sessionId" :env="envFromRoute"
-                    :initial-keyword="initialKeyword" :show-popover="showPopoverWordOptions"
+                    :initial-keyword="tab.initialKeyword" :show-popover="showPopoverWordOptions"
                     @create-session="handleCreateSession" @session-error="handleSessionError"
-                    @redirect-session="handleRedirectSession" />
+                    @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
             </el-main>
         </el-container>
     </div>
@@ -87,7 +87,7 @@ import { useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
-import { isTauri } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 
 // Components
 import TitleBar from '@/components/TitleBar/TitleBar.vue'
@@ -98,7 +98,7 @@ import DictTabSession from '@/components/DictTabSession.vue'
 import { useDictTabsStore } from '@/stores/dictTabs'
 
 // Constants
-import { ENV, TAURI_EVENT } from '@/common/constants'
+import { ENV, TAURI_EVENT, TAURI_CMD } from '@/common/constants'
 import { getDefaultSessionConfig } from '@/common/utility'
 
 const emit = defineEmits<{
@@ -140,7 +140,6 @@ const defaultSessionConfig = getDefaultSessionConfig('default')
 
 // --- Window-level state ---
 const envFromRoute = ref('')
-const initialKeyword = ref('')
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
 const viewportWidth = ref(window.innerWidth)
@@ -192,9 +191,71 @@ const handleRedirectSession = (sessionId: number): void => {
     dictTabsStore.activateSessionTab(sessionId)
 }
 
+// --- Native context menu (right-click) ---
+/**
+ * The last text that was selected when the native menu was opened. The Rust
+ * menu click only tells us WHICH item was chosen, so we keep the payload
+ * here and apply it when the action event arrives.
+ */
+const lastContextMenuSelection = ref('')
+
+/** Text of the current selection in the MAIN document ("" if none). */
+const getMainDocumentSelection = (): string =>
+    window.getSelection()?.toString().trim() ?? ''
+
+/**
+ * Open a NEW tab bound to the active session, then immediately look up
+ * `text` in it (the tab deep-links via its per-tab initialKeyword once its
+ * WebSocket opens). This is the "在 New Tab 中查询" menu action.
+ */
+const openTabWithKeyword = (text: string): void => {
+    const sessionId = dictTabsStore.activeTab?.sessionId
+    if (sessionId == null) {
+        console.warn('[DictPage] No active tab session to clone.')
+        return
+    }
+    dictTabsStore.createTab(sessionId, text || 'New Tab', text)
+}
+
+/**
+ * Ask Rust to pop up the NATIVE context menu at (x, y) CSS-pixel coords.
+ * The selected text decides which items the menu shows (Rust builds it).
+ */
+const showContextMenu = (x: number, y: number, selectedText: string): void => {
+    if (!isTauri()) return
+    lastContextMenuSelection.value = selectedText
+    const dpr = window.devicePixelRatio || 1
+    invoke(TAURI_CMD.SHOW_CONTEXT_MENU, {
+        x: x * dpr,
+        y: y * dpr,
+        selectedText,
+    }).catch((err) => console.error('[DictPage] show_context_menu failed:', err))
+}
+
+/** Right-click anywhere in the MAIN document. */
+const onDocumentContextMenu = (e: MouseEvent): void => {
+    if (!isTauri()) return // keep the browser's default menu in plain-web dev
+    e.preventDefault() // suppress the webview's default browser menu
+    showContextMenu(e.clientX, e.clientY, getMainDocumentSelection())
+}
+
+/**
+ * Right-click inside a dictionary IFRAME. The iframe posts its selection
+ * and click coords; coords were already converted to parent-window viewport
+ * space by DictIframe, so we can pop the menu directly.
+ */
+const handleIframeContextMenu = (payload: {
+    selectedText: string
+    x: number
+    y: number
+}): void => {
+    showContextMenu(payload.x, payload.y, payload.selectedText)
+}
+
 // --- Tauri event listeners (target the ACTIVE tab only) ---
 let unlistenTextSelected: (() => void) | null = null
 let unlistenOcrResult: (() => void) | null = null
+let unlistenCtxMenu: (() => void) | null = null
 
 const setupTauriListeners = async (): Promise<void> => {
     // Idempotent: release previous subscriptions before rebinding, so
@@ -203,7 +264,18 @@ const setupTauriListeners = async (): Promise<void> => {
     unlistenTextSelected = null
     await unlistenOcrResult?.()
     unlistenOcrResult = null
+    await unlistenCtxMenu?.()
+    unlistenCtxMenu = null
     try {
+        // Context-menu actions apply in every window that hosts a DictPage.
+        unlistenCtxMenu = await listen(TAURI_EVENT.CTX_MENU_ACTION, (event) => {
+            const action = event.payload as string
+            if (action === 'new-tab') {
+                requestNewSession()
+            } else if (action === 'lookup-selection') {
+                openTabWithKeyword(lastContextMenuSelection.value)
+            }
+        })
         if (envFromRoute.value === ENV.SELECTION) {
             unlistenTextSelected = await listen(TAURI_EVENT.TEXT_SELECTED, (event) => {
                 const controller = dictTabsStore.activeController
@@ -268,7 +340,6 @@ const initHeaderPaddingRight = (): void => {
 const initDictPage = async (): Promise<void> => {
     const sessionId = Number(route.params.id)
     envFromRoute.value = (route.query.env as string) || ''
-    initialKeyword.value = (route.query.keyword as string) || ''
 
     // Anki mode class on the body.
     if (envFromRoute.value === 'anki') {
@@ -283,12 +354,20 @@ const initDictPage = async (): Promise<void> => {
     // First mount: opens the initial tab. Route change: rebinds the ACTIVE tab.
     dictTabsStore.resetActiveTabSession(sessionId)
 
+    // Deep-link: a route keyword is looked up by the (rebound) active tab
+    // right after its WebSocket opens.
+    const keyword = (route.query.keyword as string) || ''
+    const tab = dictTabsStore.activeTab
+    if (tab) tab.initialKeyword = keyword
+
     await setupTauriListeners()
     showPopoverWordOptions.value = window.innerWidth < 700
 }
 
 onMounted(async () => {
     window.addEventListener('resize', handleResize)
+    // Right-click anywhere in the main document -> native context menu.
+    // document.addEventListener('contextmenu', onDocumentContextMenu)
     await initDictPage()
 })
 
@@ -302,8 +381,10 @@ watch(
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
+    document.removeEventListener('contextmenu', onDocumentContextMenu)
     unlistenTextSelected?.()
     unlistenOcrResult?.()
+    unlistenCtxMenu?.()
     document.body.classList.remove('anki-mode')
 })
 

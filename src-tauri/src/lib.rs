@@ -1,5 +1,6 @@
 mod app_state;
 mod commands;
+mod context_menu;
 mod globalevent;
 mod shortcuts;
 mod sidecar;
@@ -91,6 +92,7 @@ pub async fn run() {
             commands::show_updater_window,
             commands::set_updater_window_size,
             commands::show_setting_window,
+            context_menu::show_context_menu,
             #[cfg(target_os = "macos")]
             commands::check_screen_recording,
             #[cfg(target_os = "macos")]
@@ -109,7 +111,9 @@ pub async fn run() {
             commands::set_main_window_pinned,
         ])
         .manage(DoubleCopyTracker::default())
-        .manage(PythonServer::default());
+        .manage(PythonServer::default())
+        .manage(context_menu::ContextMenuWindow::default())
+        .on_menu_event(context_menu::menu_event_handler());
 
     let app = builder
         .setup(|app| {
