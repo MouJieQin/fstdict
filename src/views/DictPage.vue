@@ -24,7 +24,7 @@
 -->
 <template>
     <div class="common-layout" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
-        <el-container>
+        <el-container :style="{ '--tab-height': `${tabHeight}px` }">
             <el-header :height="`calc(var(--header-height) + var(--tab-height))`" id="fstdict-header"
                 class="fstdict-header" :style="{
                     '--header-padding-right': `${headerPaddingRight}px`,
@@ -98,7 +98,7 @@ import DictTabSession from '@/components/DictTabSession.vue'
 import { useDictTabsStore } from '@/stores/dictTabs'
 
 // Constants
-import { ENV, TAURI_EVENT, TAURI_CMD } from '@/common/constants'
+import { ENV, TAURI_EVENT, TAURI_CMD, TAB_HEIGHT } from '@/common/constants'
 import { getDefaultSessionConfig } from '@/common/utility'
 
 const emit = defineEmits<{
@@ -131,6 +131,8 @@ const activeController = computed(() => dictTabsStore.activeController)
  */
 const tabsByInsertionOrder = computed(() => dictTabsStore.tabsByInsertionOrder)
 
+const tabsCount = computed(() => dictTabsStore.tabs.length)
+
 /**
  * Fallback session config for the shared TitleBar while no tab controller
  * is registered yet (first render) - TitleBar reads default_folder.id, so
@@ -142,6 +144,8 @@ const defaultSessionConfig = getDefaultSessionConfig('default')
 const envFromRoute = ref('')
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
+const tabHeight = ref(0)
+
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
 
@@ -309,6 +313,11 @@ watch(
         }
     }
 )
+
+
+watch(() => tabsCount.value, (newVal) => {
+    tabHeight.value = newVal > 1 ? TAB_HEIGHT : 0
+})
 
 // --- Viewport / sidebar ---
 const handleResize = (): void => {

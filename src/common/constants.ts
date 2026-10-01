@@ -44,6 +44,7 @@ export const IFRAME_HEIGHT_DEBOUNCE_MS = 200
 
 // --- Layout ---
 export const HEADER_HEIGHT_VAR = '--header-height'
+export const TAB_HEIGHT = 25
 export const MOBILE_BREAKPOINT = 700
 export const WORD_OPTIONS_DEFAULT_WIDTH = 300
 export const MIN_DETAIL_PANEL_WIDTH = 400
