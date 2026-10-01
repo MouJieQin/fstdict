@@ -166,7 +166,7 @@
 
 /* ============= Dictionary Layout ============= */
 .word-options {
-    padding: 0 5px calc(var(--header-height) + var(--tab-height) + 5px) 1rem;
+    padding: 3px 5px calc(var(--header-height) + var(--tab-height) + 5px) 1rem;
     height: 100vh;
 }
 

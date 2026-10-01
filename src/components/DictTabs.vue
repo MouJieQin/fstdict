@@ -125,6 +125,7 @@ onBeforeUnmount(() => {
 <style scoped>
 /* The panes are pure labels; the content is rendered by DictResultsPanel,
    so hide el-tabs' content wrapper entirely. */
+
 :deep(.dict-tabs .el-tabs__content) {
     display: none;
 }
@@ -138,6 +139,7 @@ onBeforeUnmount(() => {
     margin: 0;
     padding-right: 1rem;
     border: none;
+    overflow: hidden;
 }
 
 :deep(.el-tabs__item) {
