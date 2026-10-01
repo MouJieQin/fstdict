@@ -1,6 +1,5 @@
 mod app_state;
 mod commands;
-mod context_menu;
 mod globalevent;
 mod shortcuts;
 mod sidecar;
@@ -10,7 +9,7 @@ mod window;
 use std::fs;
 use std::path::PathBuf;
 
-use fstdict_common::logger::init_logging;
+use fstdict_common::{context_menu, logger::init_logging};
 use log::{debug, error, info};
 use tauri::{Manager, RunEvent};
 use tokio::sync::mpsc;

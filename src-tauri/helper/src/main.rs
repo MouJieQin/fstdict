@@ -13,7 +13,7 @@ mod window;
 use std::fs;
 use std::path::PathBuf;
 
-use fstdict_common::logger::init_logging;
+use fstdict_common::{context_menu, logger::init_logging};
 use tauri::{ActivationPolicy, Manager};
 use tokio::sync::mpsc;
 
@@ -36,10 +36,13 @@ async fn main() {
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
             window::commands::set_theme,
+            context_menu::show_context_menu,
             window::commands::set_selection_window_pinned,
             window::commands::set_main_window_pinned,
             window::commands::trigger_notification
         ])
+        .manage(context_menu::ContextMenuWindow::default())
+        .on_menu_event(context_menu::menu_event_handler())
         .setup(|app| {
             // Run as accessory (dockless) application on macOS
             app.set_activation_policy(ActivationPolicy::Accessory);
