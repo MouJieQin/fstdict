@@ -1,3 +1,4 @@
+use crate::window::manage;
 #[cfg(target_os = "macos")]
 use crate::window::permission_window;
 use crate::window::setting;
@@ -28,6 +29,11 @@ pub fn set_updater_window_size(app_handle: AppHandle, width: f64, height: f64) {
 #[tauri::command]
 pub async fn show_setting_window(app_handle: AppHandle) {
     let _ = setting::show_setting_window(&app_handle);
+}
+
+#[tauri::command]
+pub async fn show_manage_window(app_handle: AppHandle) {
+    let _ = manage::show_manage_window(&app_handle);
 }
 // ── macOS-only accessibility & launch commands ──
 #[cfg(target_os = "macos")]

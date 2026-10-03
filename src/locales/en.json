@@ -62,6 +62,10 @@
         "toggleHelper": "Toggle Helper Window",
         "screenshotOcr": "Screenshot OCR"
     },
+    "manage": {
+        "title": "Manage",
+        "installedDicts": "Installed Dictionaries"
+    },
     "dictSettings": {
         "createTitle": "Create Preset",
         "createPrompt": "Enter a name for the new dictionary setting preset",
@@ -101,7 +105,8 @@
         "deleteCancelled": "Delete cancelled"
     },
     "appLayout": {
-        "dictionary": "Dictionary"
+        "dictionary": "Dictionary",
+        "manage": "Manage"
     },
     "searchMethod": {
         "prefix": "Prefix Search",

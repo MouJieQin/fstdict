@@ -25,12 +25,12 @@
                                         </template>
                                     </el-menu-item>
 
-                                    <el-menu-item index="shortcut" @click="handleItemClick('shortcut')">
+                                    <el-menu-item index="manage" @click="handleItemClick('manage')">
                                         <template #title>
                                             <el-icon>
-                                                <Setting />
+                                                <Menu />
                                             </el-icon>
-                                            {{ t('settings.shortcut') }}
+                                            {{ t('appLayout.manage') }}
                                         </template>
                                     </el-menu-item>
 
@@ -86,7 +86,7 @@ import { useSessionWebSocket } from '@/common/session-websocket-client'
 
 // Icons
 import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
-import { Setting } from '@element-plus/icons-vue'
+import { Setting, Menu } from '@element-plus/icons-vue'
 
 import DictPage from '@/views/DictPage.vue'
 
@@ -131,9 +131,10 @@ const handleSettingClick = async (): Promise<void> => {
     await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
 }
 
-const handleItemClick = (index: string): void => {
-    if (index === "wordLookup") {
+const handleItemClick = async (index: string): Promise<void> => {
+    if (index === "manage") {
         menuRef.value?.updateActiveIndex(activeTabIndex.value)
+        await invoke(TAURI_CMD.SHOW_MANAGE_WINDOW)
     } else {
         activeTabIndex.value = index
     }

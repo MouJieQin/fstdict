@@ -91,6 +91,7 @@ pub async fn run() {
             commands::show_updater_window,
             commands::set_updater_window_size,
             commands::show_setting_window,
+            commands::show_manage_window,
             context_menu::show_context_menu,
             #[cfg(target_os = "macos")]
             commands::check_screen_recording,
