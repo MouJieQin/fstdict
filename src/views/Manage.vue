@@ -11,6 +11,15 @@
                                 </el-icon>{{ t('manage.installedDicts') }}
                             </template>
                         </el-menu-item>
+
+                        <el-menu-item index="glossary" @click="handleItemClick('glossary')">
+                            <template #title>
+                                <el-icon>
+                                    <Star />
+                                </el-icon>{{ t('manage.glossary') }}
+                            </template>
+                        </el-menu-item>
+
                     </el-menu>
                 </el-scrollbar>
             </el-aside>
@@ -20,6 +29,8 @@
                 <el-scrollbar class="scroll-container">
                     <InstalledDictionary v-show="activeTabIndex === 'general'" :web-socket="webSocket"
                         :dicts-info="dictsInfo" :add-dict-msgs="addDictMsgs" @clear:add-dict-msgs="addDictMsgs = []" />
+                    <GlossaryOverview v-show="activeTabIndex === 'glossary'" :web-socket="webSocket" :folder-words="{}"
+                        :anki-progresses="ankiProgresses" />
                     <Shortcut v-show="activeTabIndex === 'shortcut'" :web-socket="webSocket" />
                 </el-scrollbar>
             </el-main>
@@ -32,6 +43,7 @@ import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import type { MenuInstance, ElMenu } from 'element-plus'
 
 import { PiBooks } from 'vue-icons-plus/pi'
+import { Star } from '@element-plus/icons-vue'
 
 import type { DictsInfo } from '@/common/type-interface'
 
@@ -51,12 +63,16 @@ import { useI18n } from 'vue-i18n'
 
 // --- Components ---
 import InstalledDictionary from '@/components/Manage/InstalledDictionary.vue'
+import GlossaryOverview from '@/components/Manage/GlossaryOverview.vue'
+
 
 const { t } = useI18n()
 
 // --- Stores ---
 const systemConfigStore = useSystemConfigStore()
 const dictConfigStore = useDictConfigStore()
+const folderConfigStore = useFolderConfigStore()
+
 
 // --- Reactive state ---
 const webSocket = ref<ReturnType<typeof useSessionWebSocket> | null>(null)
@@ -64,6 +80,7 @@ const activeTabIndex = ref('general')
 const menuRef = ref<MenuInstance>()
 const dictsInfo = ref<DictsInfo>({})
 const addDictMsgs = ref<any[]>([])
+const ankiProgresses = ref<Record<string, any>>({})
 
 // --- WebSocket setup ---
 const setupWebSocket = (): void => {
@@ -87,6 +104,12 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
             break
         case 'add_dictionary':
             addDictMsgs.value.push(message.data)
+            break
+        case 'folder_config':
+            folderConfigStore.setFolderConfig(message.data)
+            break
+        case 'anki_progress':
+            ankiProgresses.value[message.deck_name] = message.data
             break
     }
 }

@@ -64,7 +64,8 @@
     },
     "manage": {
         "title": "Manage",
-        "installedDicts": "Installed Dictionaries"
+        "installedDicts": "Installed Dictionaries",
+        "glossary": "Glossary"
     },
     "dictSettings": {
         "createTitle": "Create Preset",

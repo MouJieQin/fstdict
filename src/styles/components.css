@@ -870,6 +870,20 @@
     background-color: var(--app-glass-mimic-overlay-bg) !important;
 }
 
+.config-class .el-table {
+    background-color: transparent !important;
+    --el-table-tr-bg-color: transparent !important;
+    --el-table-header-bg-color: var(--app-glass-mimic-overlay-bg) !important;
+}
+
+.config-class .el-table__inner {
+    background-color: var(--app-glass-mimic-overlay-bg) !important;
+}
+
+.config-class .el-table-column {
+    background-color: transparent !important;
+}
+
 .el-radio-button__inner {
     background-color: var(--app-glass-mimic-overlay-bg) !important;
 }

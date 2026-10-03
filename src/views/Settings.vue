@@ -88,9 +88,9 @@
                                 <el-button :icon="Document" size="small" @click="openFolderWords(row)"
                                     :aria-label="$t('settings.viewWords')" />
                                 <el-popconfirm :confirm-button-text="$t('common.delete')" confirm-button-type="danger"
-                                    :cancel-button-text="$t('common.cancel')" 
-                                    :icon="Delete" icon-color="var(--el-color-danger)"
-                                    :title="$t('settings.deleteFolder')" @confirm="deleteFolder(row.id)">
+                                    :cancel-button-text="$t('common.cancel')" :icon="Delete"
+                                    icon-color="var(--el-color-danger)" :title="$t('settings.deleteFolder')"
+                                    @confirm="deleteFolder(row.id)">
                                     <template #reference>
                                         <el-button :icon="Delete" size="small"
                                             :aria-label="$t('settings.deleteFolder')" />
@@ -209,8 +209,9 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch, computed, onBeforeMount, Text } from 'vue'
-import type { PropType, FormInstance, FormRules } from 'vue'
+import type { PropType } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
 // Icons
