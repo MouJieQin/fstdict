@@ -62,6 +62,13 @@
         "toggleHelper": "Toggle Helper Window",
         "screenshotOcr": "Screenshot OCR"
     },
+    "sessionSettings": {
+        "title": "Session Settings",
+        "name": "Session Name",
+        "dictGroup": "Dictionary Group",
+        "defaultFolder": "Folder",
+        "ocrLang": "OCR Language"
+    },
     "manage": {
         "title": "Manage",
         "installedDicts": "Installed Dictionaries",

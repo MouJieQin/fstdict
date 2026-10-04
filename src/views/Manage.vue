@@ -48,7 +48,7 @@
                         :dicts-info="dictsInfo" :add-dict-msgs="addDictMsgs" @clear:add-dict-msgs="addDictMsgs = []" />
                     <GlossaryOverview v-show="activeTabIndex === 'glossary'" :web-socket="webSocket"
                         :folder-words="folderWords" :anki-progresses="ankiProgresses" />
-                    <FavoriteWords v-if="showFavoriteWords" :web-socket="webSocket" :folder-id="viewingFolderId"
+                    <FavoriteWords v-show="showFavoriteWords" :web-socket="webSocket" :folder-id="viewingFolderId"
                         :folderName="folderName" :favorite-words="viewingFolderWords" />
                 </el-scrollbar>
             </el-main>

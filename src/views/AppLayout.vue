@@ -1,7 +1,7 @@
 <template>
     <div class="app-container" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
-            <el-aside id="app-sidebar" v-if="showSidebar" class="app-sidebar"
+            <el-aside v-if="showSidebar"  id="app-sidebar" class="app-sidebar"
                 :class="{ 'is-collapsed': isMainSidebarCollapsed }" :width="isMainSidebarCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">

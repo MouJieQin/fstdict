@@ -47,6 +47,7 @@
                             :redirect-word="activeController?.redirectWord" @change:keyword="handleTitleBarKeyword"
                             @clear:add-dict-msgs="handleClearAddDictMsgs"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
+                            @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             :iframe-keydown-event="activeController?.iframeKeydownEvent"
                             :anki-progress="activeController?.ankiProgress"
                             :add-dict-msgs="activeController?.addDictMsgs"

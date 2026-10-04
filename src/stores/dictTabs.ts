@@ -54,6 +54,7 @@ export interface TabController {
     lookupSeq: number
 
     // --- Session config & meta ---
+    showConfigPanel: boolean
     sessionConfig: SessionConfig
     dictsInfo: DictsInfo
     sessionDictsSettingInfo: DictsSettingInfo

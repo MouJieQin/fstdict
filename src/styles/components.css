@@ -125,36 +125,16 @@
 
 /* ============= Sidebar ============= */
 
-/* 1. aside：宽度过渡是核心 */
-.app-sidebar {
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    white-space: nowrap; /* 防止折叠时菜单文字换行 */
-}
-
-/* 2. 内部内容：固定宽度 + 淡出 */
-.sidebar-inner {
-    width: 200px;
-    transition: opacity 0.25s ease;
-}
-
-.main-menu {
-    --el-menu-bg-color: var(--main-menu-bg-color);
-}
-
-/* 3. 折叠状态：内容淡出并禁用交互 */
-.app-sidebar.is-collapsed .sidebar-inner {
-    opacity: 0;
-    pointer-events: none;
-}
-
 .app-sidebar {
     transition:
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         visibility 0.3s;
+    overflow: hidden;
+    white-space: nowrap;
 }
-.app-sidebar.is-collapsed {
-    visibility: hidden;
+
+.main-menu {
+    --el-menu-bg-color: var(--main-menu-bg-color);
 }
 
 /* ============= Footer ============= */
@@ -162,6 +142,17 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+}
+
+/* ============= Session Config aside panel ============= */
+
+.session-config-aside {
+    transition:
+        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0.3s;
+    overflow: hidden;
+    white-space: nowrap;
+    /* background-color: bisque; */
 }
 
 /* ============= Dictionary Layout ============= */

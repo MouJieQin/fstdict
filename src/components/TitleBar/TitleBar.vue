@@ -51,9 +51,8 @@
 
             <el-button :icon="ImBooks" text id="titlebar-dictss-button" @click="dictDialogVisible = !dictDialogVisible"
                 class="floating-window-titlebar-button" size="small" />
-            <el-button :icon="Setting" text id="titlebar-setting-button"
-                @click="settingsDialogVisible = !settingsDialogVisible" class="floating-window-titlebar-button"
-                size="small" />
+            <el-button :icon="Setting" text id="titlebar-setting-button" @click="emit('toggle:config-panel')"
+                class="floating-window-titlebar-button" size="small" />
 
             <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
                 class="floating-window-titlebar-button" size="small" />
@@ -292,6 +291,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
     (e: 'toggle:main-sidebar', isCollapsed: boolean): void
+    (e: 'toggle:config-panel'): void
     (e: 'change:keyword', keyword: string): void
     (e: 'clear:addDictMsgs'): void
 }>()

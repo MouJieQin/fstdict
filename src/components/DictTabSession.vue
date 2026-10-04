@@ -25,21 +25,29 @@
   - iframes and scroll positions are preserved without serialization.
 -->
 <template>
-    <el-splitter ref="splitterRef">
-        <!-- Word options panel (independent per tab) -->
-        <el-splitter-panel v-if="!showPopover" :size="wordOptionsSize" @update:size="handlePanelResize">
-            <div class="word-options">
-                <WordOptions :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
-                    :word-options="controller.wordOptions" :search-history="controller.searchHistory"
-                    :keyword="controller.keyword" />
-            </div>
-        </el-splitter-panel>
+    <el-container>
+        <el-main style="padding:0">
+            <el-splitter ref="splitterRef">
+                <!-- Word options panel (independent per tab) -->
+                <el-splitter-panel v-if="!showPopover" :size="wordOptionsSize" @update:size="handlePanelResize">
+                    <div class="word-options">
+                        <WordOptions :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
+                            :word-options="controller.wordOptions" :search-history="controller.searchHistory"
+                            :keyword="controller.keyword" />
+                    </div>
+                </el-splitter-panel>
 
-        <!-- Results panel (independent per tab) -->
-        <el-splitter-panel :min="400">
-            <DictResultsPanel :controller="controller" :env="env" @context-menu="emit('context-menu', $event)" />
-        </el-splitter-panel>
-    </el-splitter>
+                <!-- Results panel (independent per tab) -->
+                <el-splitter-panel :min="400">
+                    <DictResultsPanel :controller="controller" :env="env"
+                        @context-menu="emit('context-menu', $event)" />
+                </el-splitter-panel>
+            </el-splitter>
+        </el-main>
+        <el-aside :width="controller.showConfigPanel ? '100%' : '0px'" class="session-config-aside">
+            <SessionSetting :web-socket="controller.webSocket" :session-config="controller.sessionConfig" />
+        </el-aside>
+    </el-container>
 </template>
 
 <script setup lang="ts">
@@ -49,6 +57,8 @@ import { invoke } from '@tauri-apps/api/core'
 // Components
 import WordOptions from '@/components/WordOptions.vue'
 import DictResultsPanel from '@/components/DictResultsPanel.vue'
+import SessionSetting from '@/views/SessionSetting.vue'
+
 
 // WebSocket & stores
 import { useSessionWebSocket } from '@/common/session-websocket-client'
@@ -105,6 +115,7 @@ const controller = reactive<TabController>({
     isWordFavorited: false,
     lookupSeq: 0,
 
+    showConfigPanel: false,
     sessionConfig: getDefaultSessionConfig('default'),
     dictsInfo: {},
     sessionDictsSettingInfo: [],
