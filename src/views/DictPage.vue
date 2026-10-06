@@ -75,6 +75,7 @@
                 <DictTabSession v-for="tab in tabsByInsertionOrder" v-show="tab.id === dictTabsStore.activeTabId"
                     :key="tab.id" :tab-id="tab.id" :session-id="tab.sessionId" :env="envFromRoute"
                     :initial-keyword="tab.initialKeyword" :show-popover="showPopoverWordOptions"
+                    @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                     @create-session="handleCreateSession" @session-error="handleSessionError"
                     @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
             </el-main>

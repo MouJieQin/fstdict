@@ -45,7 +45,8 @@
             </el-splitter>
         </el-main>
         <el-aside :width="controller.showConfigPanel ? '100%' : '0px'" class="session-config-aside">
-            <SessionSetting :web-socket="controller.webSocket" :session-config="controller.sessionConfig" />
+            <SessionSetting :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
+                @toggle:config-panel="emit('toggle:config-panel')" />
         </el-aside>
     </el-container>
 </template>
@@ -87,6 +88,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+    (e: 'toggle:config-panel'): void
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
     (e: 'redirect-session', sessionId: number): void

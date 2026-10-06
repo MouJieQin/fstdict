@@ -155,6 +155,19 @@
     /* background-color: bisque; */
 }
 
+.sticky-session-config-icon {
+    position: sticky;
+    top: 20px;
+    left: 0;
+    color: var(--el-text-color-regular);
+    /* margin-bottom: calc(0px - var(--el-collapse-header-height)); */
+    /* background: var(--sticky-header-wrapper-bg); */
+}
+
+.sticky-session-config-icon:hover {
+    background-color: var(--item-hover);
+}
+
 /* ============= Dictionary Layout ============= */
 .word-options {
     padding: 3px 5px calc(var(--header-height) + var(--tab-height) + 5px) 1rem;
@@ -845,6 +858,7 @@
 .system-config-title {
     font-size: 24px;
     font-weight: bold;
+    color: var(--el-text-color-primary);
     /* margin-bottom: 20px; */
     text-align: center;
 }

@@ -1,5 +1,8 @@
 <template>
     <div class="setting-container">
+        <el-icon size="20" class="sticky-session-config-icon" @click="emit('toggle:config-panel')">
+            <Expand />
+        </el-icon>
         <p class="system-config-title">{{ $t('sessionSettings.title') }}</p>
         <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="auto" class="config-form">
             <div class="config-class">
@@ -50,6 +53,10 @@ import { useI18n } from 'vue-i18n'
 
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 
+// icon
+import { Expand } from '@element-plus/icons-vue'
+
+
 
 // Stores & utilities
 import { useFolderConfigStore, useSystemConfigStore, useDictConfigStore } from '@/stores'
@@ -62,6 +69,10 @@ import type {
     FolderInfo,
     FolderWords,
 } from '@/common/type-interface'
+
+const emit = defineEmits<{
+    (e: 'toggle:config-panel'): void
+}>()
 
 const { t } = useI18n()
 

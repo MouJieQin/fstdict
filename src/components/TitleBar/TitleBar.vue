@@ -49,8 +49,6 @@
             <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button" size="small"
                 :disabled="!lastSearchKeyword" />
 
-            <el-button :icon="ImBooks" text id="titlebar-dictss-button" @click="dictDialogVisible = !dictDialogVisible"
-                class="floating-window-titlebar-button" size="small" />
             <el-button :icon="Setting" text id="titlebar-setting-button" @click="emit('toggle:config-panel')"
                 class="floating-window-titlebar-button" size="small" />
 
@@ -126,19 +124,6 @@
                 @update-visible="favoriteWordsDialogVisible = $event" :favorite-words="favoriteWords"
                 :folder-name="defaultFolderName" :folder-id="sessionConfig.default_folder.id ?? 0" />
         </el-dialog>
-
-        <el-dialog v-model="settingsDialogVisible" fullscreen>
-            <Settings :web-socket="webSocket" :setting-dialog-visible="settingsDialogVisible"
-                :session-config="sessionConfig" :folder-words="folderWords" :anki-progress="ankiProgress"
-                @update-visible="settingsDialogVisible = $event" />
-        </el-dialog>
-
-        <el-dialog v-model="dictDialogVisible" fullscreen>
-            <DictSelectAndSortDialog :web-socket="webSocket" :env="env" :dictSSDialogVisible="dictDialogVisible"
-                :session-config="sessionConfig" :dicts-info="dictsInfo" :add-dict-msgs="addDictMsgs"
-                :refresh-dics-settings-info-flag="refreshDicsSettingsInfoFlag"
-                @clear:add-dict-msgs="emit('clear:addDictMsgs')" />
-        </el-dialog>
     </div>
 </template>
 
@@ -153,14 +138,11 @@ import {
 import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
-import { ImBooks } from 'vue-icons-plus/im'
 import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
 import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled } from '@element-plus/icons-vue'
 
 // Components
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
-import DictSelectAndSortDialog from '@/components/Dialogs/DictSelectAndSortDialog.vue'
-import Settings from '@/views/Settings.vue'
 import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 
 // Composables & stores
@@ -303,9 +285,6 @@ const systemConfigStore = useSystemConfigStore()
 // --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
 const favoriteWordsDialogVisible = ref(false)
-const settingsDialogVisible = ref(false)
-const dictDialogVisible = ref(false)
-
 const noteKeyword = ref('')
 const noteContent = ref(props.noteContent)
 
