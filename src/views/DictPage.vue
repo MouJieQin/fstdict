@@ -72,19 +72,32 @@
         DOM nodes are never moved.
       -->
             <el-main class="no-padding-main">
-                <DictTabSession v-for="tab in tabsByInsertionOrder" v-show="tab.id === dictTabsStore.activeTabId"
-                    :key="tab.id" :tab-id="tab.id" :session-id="tab.sessionId" :env="envFromRoute"
-                    :initial-keyword="tab.initialKeyword" :show-popover="showPopoverWordOptions"
-                    @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
-                    @create-session="handleCreateSession" @session-error="handleSessionError"
-                    @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
+                <el-splitter ref="splitterRef">
+                    <el-splitter-panel max="100%">
+                        <DictTabSession v-for="tab in tabsByInsertionOrder"
+                            v-show="tab.id === dictTabsStore.activeTabId" :key="tab.id" :tab-id="tab.id"
+                            :session-id="tab.sessionId" :env="envFromRoute" :initial-keyword="tab.initialKeyword"
+                            :show-popover="showPopoverWordOptions"
+                            @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
+                            @create-session="handleCreateSession" @session-error="handleSessionError"
+                            @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
+                    </el-splitter-panel>
+                    <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize"
+                        style="transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s !important;">
+                        <GlossaryOptions :active-menu-index="activeMenuIndex"
+                            :web-socket="activeController?.webSocket ?? null"
+                            :session-config="activeController?.sessionConfig"
+                            :keyword="activeController?.lastSearchKeyword"
+                            :search-history="activeController?.searchHistory" />
+                    </el-splitter-panel>
+                </el-splitter>
             </el-main>
         </el-container>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -95,12 +108,13 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import TitleBar from '@/components/TitleBar/TitleBar.vue'
 import DictTabs from '@/components/DictTabs.vue'
 import DictTabSession from '@/components/DictTabSession.vue'
+import GlossaryOptions from '@/components/GlossaryOptions.vue'
 
 // Stores
 import { useDictTabsStore } from '@/stores/dictTabs'
 
 // Constants
-import { ENV, TAURI_EVENT, TAURI_CMD, TAB_HEIGHT } from '@/common/constants'
+import { ENV, TAURI_EVENT, TAURI_CMD, TAB_HEIGHT, MAIN_MENU_INDEX } from '@/common/constants'
 import { getDefaultSessionConfig } from '@/common/utility'
 
 const emit = defineEmits<{
@@ -115,6 +129,10 @@ const props = defineProps({
     isMainSidebarCollapsed: {
         type: Boolean,
         default: false,
+    },
+    activeMenuIndex: {
+        type: String,
+        default: '',
     },
 })
 
@@ -150,6 +168,58 @@ const tabHeight = ref(0)
 
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
+
+// Splitter sizing (local UI state of this tab).
+const showGlossaryPanel = ref(false)
+const glossaryPanelSize = ref<number | string>(0)
+const minGlossaryPanel = ref<number | string>(0)
+const splitterRef = ref<any>(null)
+
+const handlePanelResize = async (size: number): Promise<void> => {
+    if (size == 0) return
+    if (size <= 50) {
+        await collpaseGlossaryPanel()
+    } else {
+        glossaryPanelSize.value = size
+    }
+}
+
+const resizeGlossaryPanel = async (): Promise<void> => {
+    await nextTick()
+    if (splitterRef.value) {
+        const panelEl = splitterRef.value.$el?.querySelector('.el-splitter-panel')
+        if (panelEl) {
+            panelEl.style.flexBasis = glossaryPanelSize.value
+        }
+    }
+}
+
+const collpaseGlossaryPanel = async (): Promise<void> => {
+    showGlossaryPanel.value = false
+    minGlossaryPanel.value = 0
+    glossaryPanelSize.value = 0
+}
+
+const expandGlossaryPanel = async (): Promise<void> => {
+    showGlossaryPanel.value = true
+
+    minGlossaryPanel.value = "100px"
+    if (Number(glossaryPanelSize.value) <= 5) {
+        glossaryPanelSize.value = 200
+        await resizeGlossaryPanel()
+    }
+}
+
+watch(
+    () => props.activeMenuIndex,
+    (newIndex) => {
+        if (newIndex === MAIN_MENU_INDEX.HISTORY) {
+            expandGlossaryPanel()
+        } else if (newIndex === MAIN_MENU_INDEX.DICTIONARY) {
+            collpaseGlossaryPanel()
+        }
+    }
+)
 
 // --- TitleBar glue ---
 /** Typing in the shared search box targets the ACTIVE tab's keyword. */

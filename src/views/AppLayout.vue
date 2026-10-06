@@ -1,7 +1,7 @@
 <template>
     <div class="app-container" :class="{ 'is-main': envFromRoute === ENV.MAIN }">
         <el-container>
-            <el-aside v-if="showSidebar"  id="app-sidebar" class="app-sidebar"
+            <el-aside v-if="showSidebar" id="app-sidebar" class="app-sidebar"
                 :class="{ 'is-collapsed': isMainSidebarCollapsed }" :width="isMainSidebarCollapsed ? '0px' : '200px'">
                 <div class="common-layout">
                     <el-container style="height: 100vh">
@@ -16,8 +16,10 @@
                         </el-header>
                         <el-main style="padding: 0;">
                             <el-scrollbar>
-                                <el-menu ref="menuRef" default-active="dictionary" class="setting-menu">
-                                    <el-menu-item index="dictionary" @click="handleItemClick('dictionary')">
+                                <el-menu ref="menuRef" :default-active="MAIN_MENU_INDEX.DICTIONARY"
+                                    class="setting-menu">
+                                    <el-menu-item :index="MAIN_MENU_INDEX.DICTIONARY"
+                                        @click="handleItemClick(MAIN_MENU_INDEX.DICTIONARY)">
                                         <template #title>
                                             <el-icon>
                                                 <Setting />
@@ -34,13 +36,33 @@
                                         </template>
                                     </el-menu-item>
 
-                                    <el-menu-item index="wordLookup" @click="handleItemClick('wordLookup')">
+                                    <el-menu-item :index="MAIN_MENU_INDEX.HISTORY"
+                                        @click="handleItemClick(MAIN_MENU_INDEX.HISTORY)">
                                         <template #title>
                                             <el-icon>
-                                                <Setting />
-                                            </el-icon>{{ t('settings.wordLookup') }}
+                                                <VscHistory />
+                                            </el-icon>{{ t('appLayout.history') }}
                                         </template>
                                     </el-menu-item>
+
+                                    <el-sub-menu :index="MAIN_MENU_INDEX.GLOSSARY" class="customized-sub-menu">
+                                        <template #title>
+                                            <el-icon>
+                                                <PiFolderStar />
+                                            </el-icon>
+                                            <span>{{ t('appLayout.glossary') }}</span>
+                                        </template>
+                                        <div v-for="folder in folderConfigStore.folderConfig?.folders.folder_info"
+                                            :key="folder.id">
+                                            <el-menu-item
+                                                :index="`${MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX}${folder.id}`"
+                                                @click="handleItemClick(`${MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX}${folder.id}`)">
+                                                <template #title>
+                                                    <span>{{ folder.name }}</span>
+                                                </template>
+                                            </el-menu-item>
+                                        </div>
+                                    </el-sub-menu>
                                 </el-menu>
                             </el-scrollbar>
                         </el-main>
@@ -58,7 +80,7 @@
                 style="height: 100vh; padding: 0;margin: 0; border: 1px solid var(--splitter-color);" />
             <el-main style="padding:0">
                 <DictPage :show-sidebar="showSidebar" :is-main-sidebar-collapsed="isMainSidebarCollapsed"
-                    @toggle:main-sidebar="isMainSidebarCollapsed = $event" />
+                    @toggle:main-sidebar="isMainSidebarCollapsed = $event" :active-menu-index="activeTabIndex" />
             </el-main>
         </el-container>
     </div>
@@ -77,20 +99,31 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 
-import { ENV, TAURI_EVENT, TAURI_CMD } from '@/common/constants'
+import { ENV, TAURI_EVENT, MAIN_MENU_INDEX, TAURI_CMD } from '@/common/constants'
 
 // WebSocket & stores
 import { useSessionWebSocket } from '@/common/session-websocket-client'
-
-
+import {
+    useFolderConfigStore,
+    useDictConfigStore,
+    useSystemConfigStore,
+} from '@/stores'
 
 // Icons
 import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
 import { Setting, Menu } from '@element-plus/icons-vue'
+import { PiFolderStar } from 'vue-icons-plus/pi'
+import { VscHistory } from 'vue-icons-plus/vsc'
+
 
 import DictPage from '@/views/DictPage.vue'
 
 const { t } = useI18n()
+
+// --- Stores ---
+const systemConfigStore = useSystemConfigStore()
+const dictConfigStore = useDictConfigStore()
+const folderConfigStore = useFolderConfigStore()
 
 
 // --- Router & route ---
@@ -132,7 +165,7 @@ const handleSettingClick = async (): Promise<void> => {
 }
 
 const handleItemClick = async (index: string): Promise<void> => {
-    if (index === "manage") {
+    if (index === MAIN_MENU_INDEX.MANAGE) {
         menuRef.value?.updateActiveIndex(activeTabIndex.value)
         await invoke(TAURI_CMD.SHOW_MANAGE_WINDOW)
     } else {

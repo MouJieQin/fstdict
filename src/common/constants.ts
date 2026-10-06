@@ -93,6 +93,14 @@ export const TAURI_CMD = {
     SHOW_CONTEXT_MENU: 'show_context_menu',
 } as const
 
+export const MAIN_MENU_INDEX = {
+    DICTIONARY: 'dictionary',
+    MANAGE: 'manage',
+    HISTORY: 'history',
+    GLOSSARY: 'glossary',
+    FLOSSARY_FOLDERS_PREFIX: 'GlossaryFolders-',
+} as const
+
 // --- Tauri event names ---
 export const TAURI_EVENT = {
     TEXT_SELECTED: 'cgevent-select',

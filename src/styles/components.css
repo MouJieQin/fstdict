@@ -168,6 +168,14 @@
     background-color: var(--item-hover);
 }
 
+/* ============= Glossary Panel ============= */
+.glossary-panel {
+    transition:
+        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0.3s !important;
+    white-space: nowrap;
+}
+
 /* ============= Dictionary Layout ============= */
 .word-options {
     padding: 3px 5px calc(var(--header-height) + var(--tab-height) + 5px) 1rem;

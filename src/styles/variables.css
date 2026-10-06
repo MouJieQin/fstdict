@@ -4,7 +4,7 @@
     --item-hover: var(--el-color-primary-light-5);
     --item-active: var(--el-color-primary-light-3);
     --splitter-color: rgba(255, 255, 255, 0.5);
-    --word-options-panel-width: 330px;
+    --word-options-panel-width: 250px;
     --app-glass-mimic-overlay-bg: rgba(236, 236, 235, 0.97);
     --glass-bg: rgba(236, 236, 235, 0.72);
     --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);

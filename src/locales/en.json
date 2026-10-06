@@ -115,7 +115,9 @@
     },
     "appLayout": {
         "dictionary": "Dictionary",
-        "manage": "Manage"
+        "manage": "Manage",
+        "history": "History",
+        "glossary": "Glossary"
     },
     "searchMethod": {
         "prefix": "Prefix Search",
