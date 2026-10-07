@@ -502,6 +502,6 @@ watch(
 :deep(.no-padding-main) {
     padding: 0;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
 }
 </style>

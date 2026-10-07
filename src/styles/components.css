@@ -224,6 +224,10 @@
     height: 100vh;
 }
 
+.anchor-dict {
+    background-color: var(--head-bg-color) !important;
+}
+
 .word-detail {
     height: 100vh !important;
     padding-bottom: calc(var(--header-height) + var(--tab-height) + 2px);

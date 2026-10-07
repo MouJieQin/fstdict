@@ -13,6 +13,23 @@
   always shows "this tab's" lookup results.
 -->
 <template>
+    <el-anchor :container="wordDetailScrollbarRef" :offset="10" direction="horizontal" class="anchor-dict">
+        <el-scrollbar v-for="(_, dictName) in controller.lookupResults" :key="dictName"
+            style="overflow-x: auto !important;">
+            <el-anchor-link :href="`#dict-iframe-container-${dictName}`" @click.prevent="scrollToDictionary(dictName)">
+                <div style="display: flex; align-items: center; width: 200px;">
+                    <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                        <template #error>
+                            <BiSolidBookBookmark :size="25" />
+                        </template>
+                    </el-image>
+                    <el-text truncated>
+                        {{ dictName }}
+                    </el-text>
+                </div>
+            </el-anchor-link>
+        </el-scrollbar>
+    </el-anchor>
     <el-scrollbar class="word-detail" :class="{ 'anki-mode': env === 'anki', 'not-anki-mode': env !== 'anki' }"
         ref="wordDetailScrollbarRef" always>
         <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
