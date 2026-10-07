@@ -19,7 +19,7 @@
 
     --tab-bg: rgba(205, 205, 205, 0.8);
     --tab-hover-bg: rgba(205, 205, 205, 0.3);
-    --tab-active-bg: var(--app-header-bg);
+    --tab-active-bg: transparent;
 
     --sticky-header-wrapper-bg: rgba(236, 236, 235, 0.72);
     --body-scrollbar-background: rgba(0, 0, 0, 0);
@@ -31,6 +31,7 @@
 
 .dark {
     --app-header-bg: rgba(55, 55, 53, 0.8);
+    --button-hover-bg: rgba(0, 0, 0, 0.34);
     --splitter-color: rgba(0, 0, 0, 0.3);
     --sticky-header-wrapper-bg: rgba(81, 81, 81, 0.72);
     --app-glass-mimic-overlay-bg: rgba(42, 42, 40, 0.97);
@@ -44,7 +45,7 @@
 
     --tab-bg: rgba(34, 34, 34, 0.8);
     --tab-hover-bg: rgba(34, 34, 34, 0.3);
-    --tab-active-bg: var(--app-header-bg);
+    --tab-active-bg: transparent;
 
     --scrollbar-background: rgba(107, 107, 107, 1);
     --puff-loader-color: rgba(255, 255, 255, 0.7);

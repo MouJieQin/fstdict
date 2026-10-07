@@ -92,7 +92,7 @@
 
     <!-- Floating "locate dictionary" dropdown -->
     <el-dropdown placement="bottom-end" @command="scrollToDictionary" popper-class="vibrant-dropdown">
-        <el-button text class="locate-dict-button" circle bg style="background: var(--glass-bg);">
+        <el-button text class="locate-dict-button" circle bg>
             <el-icon>
                 <MoreFilled />
             </el-icon>

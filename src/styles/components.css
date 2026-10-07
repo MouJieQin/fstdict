@@ -267,8 +267,7 @@
     position: fixed;
     top: 90px;
     right: 20px;
-    /* background: var(--app-header-bg) !important; */
-    /* backdrop-filter: blur(10px) !important; */
+    background: var(--glass-bg);
 }
 
 /* ============= Dictionary Settings Dialog ============= */
