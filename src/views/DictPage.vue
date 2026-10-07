@@ -82,13 +82,12 @@
                             @create-session="handleCreateSession" @session-error="handleSessionError"
                             @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
                     </el-splitter-panel>
-                    <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize"
-                        style="transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s !important;">
+                    <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize">
                         <GlossaryOptions :active-menu-index="activeMenuIndex"
                             :web-socket="activeController?.webSocket ?? null"
                             :session-config="activeController?.sessionConfig"
-                            :keyword="activeController?.lastSearchKeyword"
-                            :search-history="activeController?.searchHistory" />
+                            :keyword="activeController?.lastSearchKeyword" :folder-name="folderName"
+                            :favorite-words="favoriteWords" :search-history="activeController?.searchHistory" />
                     </el-splitter-panel>
                 </el-splitter>
             </el-main>
@@ -97,12 +96,14 @@
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import type { WordInfoWithFavoriteAt } from '@/common/type-interface'
 
 // Components
 import TitleBar from '@/components/TitleBar/TitleBar.vue'
@@ -133,6 +134,15 @@ const props = defineProps({
     activeMenuIndex: {
         type: String,
         default: '',
+    },
+    folderName: {
+        type: String,
+        default: '',
+    },
+    favoriteWords: {
+        type: Array as PropType<WordInfoWithFavoriteAt[]>,
+        required: false,
+        default: () => [],
     },
 })
 
@@ -213,9 +223,10 @@ const expandGlossaryPanel = async (): Promise<void> => {
 watch(
     () => props.activeMenuIndex,
     (newIndex) => {
-        if (newIndex === MAIN_MENU_INDEX.HISTORY) {
+        if (newIndex === MAIN_MENU_INDEX.HISTORY || newIndex.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
             expandGlossaryPanel()
-        } else if (newIndex === MAIN_MENU_INDEX.DICTIONARY) {
+        }
+        else if (newIndex === MAIN_MENU_INDEX.DICTIONARY) {
             collpaseGlossaryPanel()
         }
     }

@@ -1,8 +1,10 @@
 :root {
     --header-height: 50px;
     --tab-height: 25px;
+    --glossary-panel-header-height: 2rem;
     --item-hover: var(--el-color-primary-light-5);
     --item-active: var(--el-color-primary-light-3);
+    --button-hover-bg: rgba(255, 255, 255, 0.34);
     --splitter-color: rgba(255, 255, 255, 0.5);
     --word-options-panel-width: 250px;
     --app-glass-mimic-overlay-bg: rgba(236, 236, 235, 0.97);

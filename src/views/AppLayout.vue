@@ -80,7 +80,8 @@
                 style="height: 100vh; padding: 0;margin: 0; border: 1px solid var(--splitter-color);" />
             <el-main style="padding:0">
                 <DictPage :show-sidebar="showSidebar" :is-main-sidebar-collapsed="isMainSidebarCollapsed"
-                    @toggle:main-sidebar="isMainSidebarCollapsed = $event" :active-menu-index="activeTabIndex" />
+                    @toggle:main-sidebar="isMainSidebarCollapsed = $event" :active-menu-index="activeTabIndex"
+                    :folder-name="folderName" :favorite-words="viewingFolderWords" />
             </el-main>
         </el-container>
     </div>
@@ -98,6 +99,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { isTauri, invoke } from '@tauri-apps/api/core'
+import type { DictsInfo, FolderWords } from '@/common/type-interface'
 
 import { ENV, TAURI_EVENT, MAIN_MENU_INDEX, TAURI_CMD } from '@/common/constants'
 
@@ -137,11 +139,26 @@ const isMainSidebarCollapsed = ref(false)
 const redirectWord = ref('')
 const menuRef = ref<MenuInstance>()
 const activeTabIndex = ref('dictionary')
+const folderWords = ref<FolderWords>({})
+const viewingFolderId = ref<number>(0)
 
 
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
 
+
+// --- Computed properties ---
+const viewingFolderWords = computed(() =>
+    folderWords.value[viewingFolderId.value] || []
+)
+
+const folderName = computed(() => {
+    const folder = folderConfigStore.folderConfig?.folders.folder_info.find(f => f.id === viewingFolderId.value)
+    if (folder) {
+        return folder.name
+    }
+    return ''
+})
 
 const initHeaderPaddingRight = () => {
     if (!isTauri()) {
@@ -168,14 +185,19 @@ const handleItemClick = async (index: string): Promise<void> => {
     if (index === MAIN_MENU_INDEX.MANAGE) {
         menuRef.value?.updateActiveIndex(activeTabIndex.value)
         await invoke(TAURI_CMD.SHOW_MANAGE_WINDOW)
-    } else {
-        activeTabIndex.value = index
+        return
     }
+    if (index.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
+        viewingFolderId.value = Number(index.replace(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX, ''))
+        webSocket.value?.sendFavoriteWordsRequest(viewingFolderId.value)
+    }
+    activeTabIndex.value = index
 }
 
 onMounted(async () => {
     envFromRoute.value = (route.query.env as string) || ENV.MAIN
     initHeaderPaddingRight()
+    setupWebSocket()
 })
 
 
@@ -188,6 +210,23 @@ watch(
         }
     }
 )
+
+// --- WebSocket setup ---
+const setupWebSocket = (): void => {
+    webSocket.value = useSessionWebSocket(0)
+
+    if (webSocket.value) {
+        webSocket.value.setMessageHandler(handleWebSocketMessage as any)
+    }
+}
+
+const handleWebSocketMessage = async (message: any): Promise<void> => {
+    switch (message.type) {
+        case 'favorite_words':
+            folderWords.value[message.data.folder_id] = message.data.words
+            break
+    }
+}
 
 </script>
 

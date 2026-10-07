@@ -125,7 +125,7 @@ const ANIMATION_MS = 240
  * If the user drags the word-options panel narrower than this many pixels,
  * the drag is finished and the panel folds away automatically. Tune freely.
  */
-const RESIZE_COLLAPSE_THRESHOLD_PX = 140
+const RESIZE_COLLAPSE_THRESHOLD_PX = 101
 /** The rendered `.el-splitter-panel` element of the word-options panel. */
 const wordOptionsPanelEl = (): HTMLElement | null =>
     splitterRef.value?.$el?.querySelector('.el-splitter-panel') ?? null

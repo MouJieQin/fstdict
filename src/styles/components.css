@@ -170,10 +170,52 @@
 
 /* ============= Glossary Panel ============= */
 .glossary-panel {
+    user-select: none !important;
+    -webkit-user-select: none !important;
     transition:
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         visibility 0.3s !important;
-    white-space: nowrap;
+
+    /* white-space: nowrap; */
+}
+
+.glossary-panel-header {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--glossary-panel-header-height);
+    padding: 0 1rem;
+}
+
+.glossary-panel-header .gloassary-title {
+    flex: 1;
+    max-width: 60%;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.glossary-panel-header .title-text {
+    color: var(--el-text-color-secondary) !important;
+}
+
+.glossary-panel-header .sort-icon {
+    color: var(--el-text-color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.glossary-options {
+    height: 100vh;
+    padding: 3px 5px
+        calc(
+            var(--header-height) + var(--tab-height) +
+                var(--glossary-panel-header-height) + 5px
+        )
+        1rem;
 }
 
 /* ============= Dictionary Layout ============= */
