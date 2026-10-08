@@ -12,6 +12,13 @@
   is the same reactive object the shared TitleBar reads, so the panel
   always shows "this tab's" lookup results.
 
+  IMPORTANT - why the DOM ids are prefixed with the tab id:
+  every tab renders a full copy of the results area, so
+  `dict-iframe-container-<dict>` would collide across tabs and
+  document.querySelector / getElementById would resolve to the FIRST tab.
+  All ids (collapse item, anchor href, locate target) are therefore
+  namespaced as `dict-iframe-container-<tabId>-<dict>`.
+
   Two layouts (prop `anchorLayout`, macOS Dictionary inspired):
 
     bar   - horizontal anchor bar; dictionary links that do not fit the
@@ -21,43 +28,68 @@
             `--dict-anchor-link-max-width`.
 
     ball  - no anchor bar at all; only the locate button, docked to the
-            bottom-right corner of this panel.
+            bottom-right corner of this panel (positioned against the
+            panel wrapper, never against the viewport).
 
-  Overflow detection is re-run whenever the bar is resized (ResizeObserver)
-  or a new lookup arrives (lookupSeq watch).
+  Scroll tracking: el-anchor receives the actual scroll element
+  (.el-scrollbar__wrap) via `anchorContainer`; passing the ElScrollbar
+  component instance instead would silently break the active underline.
 -->
 <template>
-    <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
-    <div v-if="anchorLayout === 'bar'" ref="anchorBarRef" class="anchor-bar">
-        <el-anchor :container="wordDetailScrollbarRef" :offset="10" direction="horizontal" class="anchor-dict">
-            <el-anchor-link v-for="(_, dictName) in controller.lookupResults" :key="dictName"
-                :href="`#dict-iframe-container-${dictName}`"
-                :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }"
-                @click.prevent="scrollToDictionary(dictName)">
-                <div class="anchor-link-content">
-                    <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
-                        <template #error>
-                            <BiSolidBookBookmark :size="25" />
-                        </template>
-                    </el-image>
-                    <el-text class="anchor-link-name">
-                        {{ dictName }}
-                    </el-text>
-                </div>
-            </el-anchor-link>
-        </el-anchor>
+    <div class="dict-results-panel">
+        <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
+        <div v-if="anchorLayout === 'bar' && Object.keys(controller.lookupResults).length > 0" ref="anchorBarRef"
+            class="anchor-bar">
+            <el-anchor :container="anchorContainer" :offset="0" :bound="0" :duration="200" direction="horizontal"
+                select-scroll-top class="anchor-dict">
+                <el-anchor-link v-for="(_, dictName) in controller.lookupResults" :key="dictName"
+                    :href="sectionHref(dictName)" :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }"
+                    @click.prevent>
+                    <div class="anchor-link-content">
+                        <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                            <template #error>
+                                <BiSolidBookBookmark :size="25" />
+                            </template>
+                        </el-image>
+                        <el-text class="anchor-link-name">
+                            {{ dictName }}
+                        </el-text>
+                    </div>
+                </el-anchor-link>
+            </el-anchor>
 
-        <!-- Overflowed dictionaries live in this inline "more" menu. -->
-        <el-dropdown v-show="overflowDictNames.length > 0" placement="bottom-end" popper-class="vibrant-dropdown"
+            <!-- Overflowed dictionaries live in this inline "more" menu. -->
+            <el-dropdown v-show="overflowDictNames.length > 0" placement="bottom-end" popper-class="vibrant-dropdown"
+                @command="scrollToDictionary">
+                <el-icon class="anchor-more-button">
+                    <DArrowRight />
+                </el-icon>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item v-for="dictName in overflowDictNames" :key="dictName" :command="dictName">
+                            <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                                <template #error>
+                                    <BiSolidBookBookmark :size="25" />
+                                </template>
+                            </el-image>
+                            {{ dictName }}
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+        </div>
+        <!-- Ball mode: only the locate button, docked bottom-right of the panel. -->
+        <el-dropdown v-if="anchorLayout === 'ball'" placement="bottom-end" popper-class="vibrant-dropdown"
             @command="scrollToDictionary">
-            <el-button text circle bg class="locate-dict-button anchor-more-button">
+            <el-button text circle bg class="locate-dict-button anchor-ball-button">
                 <el-icon>
                     <MoreFilled />
                 </el-icon>
             </el-button>
             <template #dropdown>
                 <el-dropdown-menu>
-                    <el-dropdown-item v-for="dictName in overflowDictNames" :key="dictName" :command="dictName">
+                    <el-dropdown-item v-for="(_, dictName) in controller.lookupResults" :key="dictName"
+                        :command="dictName">
                         <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
                             <template #error>
                                 <BiSolidBookBookmark :size="25" />
@@ -68,108 +100,83 @@
                 </el-dropdown-menu>
             </template>
         </el-dropdown>
+        <el-scrollbar class="word-detail" :class="{ 'anki-mode': env === 'anki', 'not-anki-mode': env !== 'anki' }"
+            ref="wordDetailScrollbarRef" always>
+            <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
+                <!-- Note panel (markdown, rendered client-side) -->
+                <el-collapse-item v-if="controller.noteContent" :title="$t('dictPage.myNotes')" name="notes"
+                    :is-active="true" class="dict-iframe-container">
+                    <template #icon="{ isActive }">
+                        <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                            <CaretRight />
+                        </el-icon>
+                        <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                            <CaretBottom />
+                        </el-icon>
+                        <BiSolidBookBookmark size="35" />
+                    </template>
+                    <div class="markdown-note-content" v-html="md.render(controller.noteContent ?? '')"></div>
+                </el-collapse-item>
+
+                <!-- One collapse section per dictionary -->
+                <el-collapse-item v-for="(htmlList, dictName) in controller.lookupResults"
+                    :key="`${controller.lookupSeq}-${dictName}`" :id="sectionId(dictName)" class="dict-iframe-container"
+                    :title="dictName" :name="dictName" :is-active="true">
+                    <template #icon="{ isActive }">
+                        <el-icon v-show="!isActive" class="el-collapse-item__arrow">
+                            <CaretRight />
+                        </el-icon>
+                        <el-icon v-show="isActive" class="el-collapse-item__arrow">
+                            <CaretBottom />
+                        </el-icon>
+                        <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
+                            <template #error>
+                                <BiSolidBookBookmark size="35" />
+                            </template>
+                        </el-image>
+                    </template>
+
+                    <div v-for="(html, index) in htmlList" :key="index">
+                        <div class="simple-divider"></div>
+                        <DictIframe :dictionary-name="dictName" :index="index" :html="html"
+                            :css-urls="controller.dictsInfo[dictName]?.css || []"
+                            :js-urls="controller.dictsInfo[dictName]?.js || []"
+                            :base-path="controller.dictsInfo[dictName]?.data || ''"
+                            :dictionary-root="controller.dictsInfo[dictName]?.root || ''"
+                            :is-dark="systemConfigStore.isDark" @entry-click="emit('entry-click', $event)"
+                            @location-click="handleLocationClick" @keydown="emit('iframe-keydown', $event)"
+                            @context-menu="emit('context-menu', $event)" />
+                    </div>
+                </el-collapse-item>
+            </el-collapse>
+
+            <!-- Empty state: nothing searched yet in this tab -->
+            <div v-show="!controller.lastSearchKeyword && !controller.hasResultLastSearch" class="empty-state">
+                <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
+                <br />
+                <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                    {{ $t('dictPage.noActiveDicts') }}
+                </p>
+                <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                    {{ dict.name }}
+                </p>
+            </div>
+
+            <!-- Empty state: searched but the backend returned no results -->
+            <div v-show="controller.lastSearchKeyword && !controller.hasResultLastSearch" class="empty-state">
+                <p class="dict-homepage-type-p">
+                    {{ $t('dictPage.noResults', { word: controller.lastSearchKeyword }) }}
+                </p>
+                <br />
+                <p v-if="showAddDictInfo" class="dict-homepage-type-p">
+                    {{ $t('dictPage.noActiveDicts') }}
+                </p>
+                <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
+                    {{ dict.name }}
+                </p>
+            </div>
+        </el-scrollbar>
     </div>
-
-    <el-scrollbar class="word-detail" :class="{ 'anki-mode': env === 'anki', 'not-anki-mode': env !== 'anki' }"
-        ref="wordDetailScrollbarRef" always>
-        <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
-            <!-- Note panel (markdown, rendered client-side) -->
-            <el-collapse-item v-if="controller.noteContent" :title="$t('dictPage.myNotes')" name="notes"
-                :is-active="true" class="dict-iframe-container">
-                <template #icon="{ isActive }">
-                    <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                        <CaretRight />
-                    </el-icon>
-                    <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                        <CaretBottom />
-                    </el-icon>
-                    <BiSolidBookBookmark size="35" />
-                </template>
-                <div class="markdown-note-content" v-html="md.render(controller.noteContent ?? '')"></div>
-            </el-collapse-item>
-
-            <!-- One collapse section per dictionary -->
-            <el-collapse-item v-for="(htmlList, dictName) in controller.lookupResults"
-                :key="`${controller.lookupSeq}-${dictName}`" :id="`dict-iframe-container-${dictName}`"
-                class="dict-iframe-container" :title="dictName" :name="dictName" :is-active="true">
-                <template #icon="{ isActive }">
-                    <el-icon v-show="!isActive" class="el-collapse-item__arrow">
-                        <CaretRight />
-                    </el-icon>
-                    <el-icon v-show="isActive" class="el-collapse-item__arrow">
-                        <CaretBottom />
-                    </el-icon>
-                    <el-image :src="getDictCover(dictName)" class="collapse-custom-icon">
-                        <template #error>
-                            <BiSolidBookBookmark size="35" />
-                        </template>
-                    </el-image>
-                </template>
-
-                <div v-for="(html, index) in htmlList" :key="index">
-                    <div class="simple-divider"></div>
-                    <DictIframe :dictionary-name="dictName" :index="index" :html="html"
-                        :css-urls="controller.dictsInfo[dictName]?.css || []"
-                        :js-urls="controller.dictsInfo[dictName]?.js || []"
-                        :base-path="controller.dictsInfo[dictName]?.data || ''"
-                        :dictionary-root="controller.dictsInfo[dictName]?.root || ''"
-                        :is-dark="systemConfigStore.isDark" @entry-click="emit('entry-click', $event)"
-                        @location-click="handleLocationClick" @keydown="emit('iframe-keydown', $event)"
-                        @context-menu="emit('context-menu', $event)" />
-                </div>
-            </el-collapse-item>
-        </el-collapse>
-
-        <!-- Empty state: nothing searched yet in this tab -->
-        <div v-show="!controller.lastSearchKeyword && !controller.hasResultLastSearch" class="empty-state">
-            <p class="dict-homepage-type-p">{{ $t('dictPage.typeToLookup') }}</p>
-            <br />
-            <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                {{ $t('dictPage.noActiveDicts') }}
-            </p>
-            <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
-                {{ dict.name }}
-            </p>
-        </div>
-
-        <!-- Empty state: searched but the backend returned no results -->
-        <div v-show="controller.lastSearchKeyword && !controller.hasResultLastSearch" class="empty-state">
-            <p class="dict-homepage-type-p">
-                {{ $t('dictPage.noResults', { word: controller.lastSearchKeyword }) }}
-            </p>
-            <br />
-            <p v-if="showAddDictInfo" class="dict-homepage-type-p">
-                {{ $t('dictPage.noActiveDicts') }}
-            </p>
-            <p v-for="dict in activeDictionaries" :key="dict.name" class="dict-homepage-dict-p">
-                {{ dict.name }}
-            </p>
-        </div>
-    </el-scrollbar>
-
-    <!-- Ball mode: only the locate button, docked bottom-right of this panel.
-         (`.el-splitter` is the nearest positioned ancestor; the results panel
-         is its rightmost full-height panel, so bottom-right lands inside it.) -->
-    <el-dropdown v-if="anchorLayout === 'ball'" placement="bottom-end" popper-class="vibrant-dropdown"
-        @command="scrollToDictionary">
-        <el-button text circle bg class="locate-dict-button anchor-ball-button">
-            <el-icon>
-                <MoreFilled />
-            </el-icon>
-        </el-button>
-        <template #dropdown>
-            <el-dropdown-menu>
-                <el-dropdown-item v-for="(_, dictName) in controller.lookupResults" :key="dictName" :command="dictName">
-                    <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
-                        <template #error>
-                            <BiSolidBookBookmark :size="25" />
-                        </template>
-                    </el-image>
-                    {{ dictName }}
-                </el-dropdown-item>
-            </el-dropdown-menu>
-        </template>
-    </el-dropdown>
 </template>
 
 <script setup lang="ts">
@@ -181,7 +188,7 @@ import type { TabController } from '@/stores/dictTabs'
 import { useSystemConfigStore } from '@/stores'
 import DictIframe from '@/components/DictIframe.vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
-import { CaretRight, CaretBottom, MoreFilled } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, MoreFilled, DArrowRight } from '@element-plus/icons-vue'
 
 const props = defineProps({
     /** Runtime state of the tab this panel belongs to. */
@@ -194,12 +201,21 @@ const props = defineProps({
         default: '',
     },
     /**
+     * Id of the tab this panel belongs to. Used to namespace all DOM ids,
+     * otherwise dictionary sections from different tabs would collide and
+     * locate/scroll would always resolve to the FIRST tab.
+     */
+    tabId: {
+        type: String,
+        default: '',
+    },
+    /**
      * 'bar'  => horizontal anchor bar + inline overflow "more" button
      * 'ball' => only the locate button (docked bottom-right of the panel)
      */
     anchorLayout: {
         type: String as PropType<'bar' | 'ball'>,
-        default: 'ball',
+        default: 'bar',
     },
 })
 
@@ -230,6 +246,54 @@ const showAddDictInfo = computed(() => !activeDictionaries.value.length)
 
 const getDictCover = (dictName: string): string =>
     props.controller.dictsInfo[dictName]?.cover_url || ''
+
+// --- Per-tab DOM id namespace ---
+
+/** Raw element id of a dictionary section (unique per tab). */
+const sectionId = (dictName: string): string =>
+    `dict-iframe-container-${props.tabId}-${dictName}`
+
+/**
+ * CSS selector-safe href for the anchor link. el-anchor resolves targets
+ * with document.querySelector, so the id must be CSS-escaped (dict names
+ * may contain '.', '(', ':' ... which would otherwise break the selector).
+ */
+const sectionHref = (dictName: string): string => {
+    const id = sectionId(dictName)
+    const escape: (s: string) => string =
+        typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+            ? (s) => CSS.escape(s)
+            : (s) => s
+    return `#${escape(id)}`
+}
+
+// --- Anchor scroll container ---
+
+/**
+ * The ACTUAL scroll element of the results area. el-anchor must observe the
+ * .el-scrollbar__wrap (not the ElScrollbar instance) for its active-state
+ * underline to follow manual scrolling.
+ */
+const anchorContainer = ref<HTMLElement | null>(null)
+
+/**
+ * The scrollbar's wrapRef is exposed as a plain property (not reactive), so
+ * a computed would never see it flip to a value. Poll a few times after
+ * mount (and re-ensure after each lookup re-render) until it exists.
+ */
+let containerTries = 0
+const ensureAnchorContainer = (): void => {
+    const wrap = wordDetailScrollbarRef.value?.wrapRef
+    if (wrap) {
+        anchorContainer.value = wrap
+        containerTries = 0
+        return
+    }
+    if (containerTries < 40) {
+        containerTries += 1
+        window.setTimeout(ensureAnchorContainer, 25)
+    }
+}
 
 // --- Anchor bar overflow ("more" dropdown) ---
 
@@ -284,16 +348,24 @@ onMounted(() => {
         resizeObserver.observe(wrap)
     }
     measureOverflow()
+    ensureAnchorContainer()
 })
 
 onBeforeUnmount(() => {
     resizeObserver?.disconnect()
     resizeObserver = null
     cancelAnimationFrame(measureRaf)
+    containerTries = 0
 })
 
-// A fresh lookup re-renders the anchor links -> re-measure.
-watch(() => props.controller.lookupSeq, () => measureOverflow())
+// A fresh lookup re-renders the anchor links -> re-measure + re-ensure.
+watch(
+    () => props.controller.lookupSeq,
+    () => {
+        measureOverflow()
+        nextTick(() => ensureAnchorContainer())
+    }
+)
 
 // Switching layouts toggles the bar itself; re-measure once it is mounted.
 watch(
@@ -328,9 +400,9 @@ watch(
     }
 )
 
-/** Expand a dictionary section and scroll it into view (locate dropdown). */
+/** Expand a dictionary section and scroll it into view (locate menu/ball). */
 const scrollToDictionary = async (dictName: string): Promise<void> => {
-    const element = document.getElementById(`dict-iframe-container-${dictName}`)
+    const element = document.getElementById(sectionId(dictName))
     if (!element) return
 
     if (!activeNames.value.includes(dictName)) {
@@ -360,7 +432,7 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     if (!scrollbar || !scrollbar.wrapRef) return
     const wrap = scrollbar.wrapRef
 
-    const iframeEl = document.getElementById(`dict-iframe-container-${dictionaryName}`)
+    const iframeEl = document.getElementById(sectionId(dictionaryName))
     if (!iframeEl) return
 
     const wrapRect = wrap.getBoundingClientRect()
@@ -376,6 +448,27 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 </script>
 
 <style scoped>
+/*
+ * Panel shell: fills its splitter panel, keeps the anchor bar on top and
+ * the results scrollbar filling the rest. `position: relative` anchors the
+ * ball-mode locate button to THIS panel (never the viewport).
+ */
+.dict-results-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+/* Override the global 100vh scrollbar so it fills the panel instead. */
+.dict-results-panel :deep(.word-detail) {
+    /* height: auto !important; */
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 0 !important;
+}
+
 /* ============ Anchor bar (bar layout) ============ */
 .anchor-bar {
     display: flex;
@@ -398,7 +491,8 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 
 /* Overflowed links keep layout space but are invisible (clipped tail). */
 .anchor-bar :deep(.el-anchor__item.is-overflowed) {
-    visibility: hidden;
+    /* visibility: hidden; */
+    display: none;
 }
 
 /* One link: icon + name, capped width, name truncated with "…". */
@@ -424,12 +518,11 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 }
 
 /* ============ Ball layout ============ */
-/* Docked inside this panel (the splitter is the nearest positioned
-   ancestor; the results panel is its rightmost full-height panel). */
+/* Docked to the bottom-right of THIS panel (the panel shell is relative). */
 .anchor-ball-button {
     position: absolute;
-    right: 20px;
-    bottom: 20px;
+    right: 10px;
+    top: 5px;
     z-index: 20;
 }
 

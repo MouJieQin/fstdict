@@ -21,7 +21,7 @@
   - iframes and scroll positions are preserved without serialization.
 -->
 <template>
-    <el-container>
+    <el-container class="tab-session">
         <el-main style="padding: 0">
             <el-splitter ref="splitterRef" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
                 <!-- Word options panel (independent per tab) -->
@@ -35,7 +35,7 @@
                 </el-splitter-panel>
                 <!-- Results panel (independent per tab) -->
                 <el-splitter-panel :min="400">
-                    <DictResultsPanel :controller="controller" :env="env"
+                    <DictResultsPanel :controller="controller" :env="env" :tab-id="props.tabId"
                         @context-menu="emit('context-menu', $event)" />
                 </el-splitter-panel>
             </el-splitter>
@@ -431,5 +431,24 @@ onBeforeUnmount(() => {
 :global(body.dict-resizing *) {
     user-select: none !important;
     -webkit-user-select: none !important;
+}
+
+/*
+ * Constrain the tab shell and clip the splitter panels: the ONLY scroll
+ * containers must be the inner el-scrollbar wrap and the word-options
+ * virtual list - no phantom panel-level scrollbar, no wheel capture by
+ * a middle layer. (Panel heights are driven by the calc(...) rules in
+ * components.css, so nothing here fights them.)
+ */
+.tab-session {
+    height: 100%;
+}
+
+.tab-session .el-main {
+    min-height: 0;
+}
+
+.tab-session :deep(.el-splitter-panel) {
+    overflow: hidden;
 }
 </style>

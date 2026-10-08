@@ -219,28 +219,44 @@
 }
 
 /* ============= Dictionary Layout ============= */
+/*
+ * The visible content area starts below the header (header-height +
+ * tab-height). 100vh would push the scrollbar below the fold; subtracting
+ * the header makes the scroll container EXACTLY the visible area, so the
+ * UseVirtualList scrollbar stays on screen with a proportional thumb.
+ * --tab-height is inlined by DictPage (0 with one tab, 25px with more).
+ */
 .word-options {
-    padding: 3px 5px calc(var(--header-height) + var(--tab-height) + 5px) 1rem;
-    height: 100vh;
+    padding: 3px 5px 5px 1rem;
+    height: calc(100vh - var(--header-height) - var(--tab-height));
 }
 
-.anchor-dict {
-    background-color: var(--head-bg-color) !important;
+.el-anchor {
+    height: 30px;
+    border: none !important;
+    /* padding: 0 !important; */
+    /* display: flex; */
+    /* align-items: center; */
+    /* justify-content: flex-end; */
+    background-color: transparent !important;
 }
 
+/*
+ * Same visible-area sizing as .word-options: the results scrollbar fills
+ * exactly the area below the header, so the custom bar stays on screen.
+ * overflow:hidden on the ROOT is required - the old overflow-y:auto
+ * stacked a SECOND native scrollbar on el-scrollbar's own custom one.
+ */
 .word-detail {
-    height: 100vh !important;
-    padding-bottom: calc(var(--header-height) + var(--tab-height) + 2px);
+    height: calc(100vh - var(--header-height) - var(--tab-height)) !important;
 }
 
 .word-detail.not-anki-mode {
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .word-detail.anki-mode {
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     max-width: 800px;
     margin: 0 auto;
 }
