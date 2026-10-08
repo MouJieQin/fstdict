@@ -123,6 +123,10 @@ export class SessionWebSocketService extends WebSocketService {
         this.sendTyped('favorite_words_request', { folder_id: folderId })
     }
 
+    public sendNoteWordsRequest(): void {
+        this.sendTyped('note_words_request')
+    }
+
     public sendSearchHistoryRequest(): void {
         this.sendTyped('search_history_request')
     }

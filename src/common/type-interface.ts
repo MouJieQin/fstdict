@@ -81,6 +81,11 @@ export interface WordInfo {
     word: string
     created_at: string | null
     query_count: number
+    last_searched: string | null
+}
+
+export interface WordInfoWithNoteUpdateAt extends WordInfo {
+    updated_at: string | null
 }
 
 export interface WordInfoWithFavoriteAt extends WordInfo {
@@ -91,9 +96,6 @@ export interface FolderWords {
     [folder_id: number]: WordInfoWithFavoriteAt[]
 }
 
-export interface WordInfoWithLastSearch extends WordInfo {
-    last_searched: string | null
-}
 
 // --- System configuration ---
 export interface AppearanceConfig {

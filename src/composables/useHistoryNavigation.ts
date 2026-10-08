@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import type { Ref } from 'vue'
-import type { WordInfoWithLastSearch} from '@/common/type-interface'
+import type { WordInfo} from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getDictSettingsForLookup } from '@/common/utility'
 import type { SessionConfig } from '@/common/type-interface'
@@ -8,7 +8,7 @@ import type { SessionConfig } from '@/common/type-interface'
 interface UseHistoryNavigationOptions {
     webSocket: Ref<SessionWebSocketService | null>
     sessionConfig: Ref<SessionConfig>
-    searchHistory: Ref<WordInfoWithLastSearch[]>
+    searchHistory: Ref<WordInfo[]>
     leftHistory: Ref<boolean>
     hasResultLastSearch: Ref<boolean>
 }

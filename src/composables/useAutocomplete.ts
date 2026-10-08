@@ -3,7 +3,7 @@ import type { Ref } from 'vue'
 import type { ElInput } from 'element-plus'
 import { willScanAllFstNodes, getDictSettingsForLookup } from '@/common/utility'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { SessionConfig, WordInfo } from '@/common/type-interface'
 import {
     DEBOUNCE_SEARCH_MS,
     AUTOCOMPLETE_ITEM_HEIGHT,
@@ -20,7 +20,7 @@ interface LinkItem {
 interface UseAutocompleteOptions {
     webSocket: Ref<SessionWebSocketService | null>
     sessionConfig: Ref<SessionConfig>
-    searchHistory: Ref<WordInfoWithLastSearch[]>
+    searchHistory: Ref<WordInfo[]>
     wordOptions: Ref<string[]>
     showPopover: Ref<boolean>
     firstChar: Ref<string>

@@ -325,6 +325,13 @@ class SessionMessageHandler:
         """Request search history for this session."""
         await SessionManager.send_search_history(session_id, connection_id)
 
+    @staticmethod
+    async def _handle_note_words_request(
+        websocket: WebSocket, session_id: int, connection_id: int, message: dict
+    ):
+        """Request list of note words in a folder."""
+        await SessionManager.send_note_words(session_id, connection_id)
+
     # -----------------------------------------------------------------------
     # Word favorites and notes
     # -----------------------------------------------------------------------
@@ -581,6 +588,7 @@ _HANDLER_MAP = {
     "folder_config": SessionMessageHandler._handle_folder_config,
     "favorite_words_request": SessionMessageHandler._handle_favorite_words_request,
     "search_history_request": SessionMessageHandler._handle_search_history_request,
+    "note_words_request": SessionMessageHandler._handle_note_words_request,
 
     # Word favorites & notes
     "toggle_favor": SessionMessageHandler._handle_toggle_favor,

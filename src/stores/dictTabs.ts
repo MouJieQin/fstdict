@@ -24,7 +24,7 @@ import type {
     SessionConfig,
     DictsSettingInfo,
     FolderWords,
-    WordInfoWithLastSearch,
+    WordInfo,
 } from '@/common/type-interface'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 
@@ -63,7 +63,7 @@ export interface TabController {
 
     // --- History / options ---
     folderWords: FolderWords
-    searchHistory: WordInfoWithLastSearch[]
+    searchHistory: WordInfo[]
     wordOptions: string[]
 
     // --- Misc ---

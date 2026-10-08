@@ -117,3 +117,9 @@ class SessionManager:
         history = Utils.db.get_search_history()
         msg = {"type": "search_history", "data": {"words": history}}
         await SessionManager.send_to_connection(session_id, connection_id, json.dumps(msg))
+
+    @staticmethod
+    async def send_note_words(session_id: int, connection_id: int) -> None:
+        note_words = Utils.db.get_note_words()
+        msg = {"type": "note_words", "data": {"words": note_words}}
+        await SessionManager.send_to_connection(session_id, connection_id, json.dumps(msg))

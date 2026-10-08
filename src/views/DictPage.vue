@@ -87,7 +87,8 @@
                             :web-socket="activeController?.webSocket ?? null"
                             :session-config="activeController?.sessionConfig"
                             :keyword="activeController?.lastSearchKeyword" :folder-name="folderName"
-                            :favorite-words="favoriteWords" :search-history="activeController?.searchHistory" />
+                            :favorite-words="favoriteWords" :search-history="activeController?.searchHistory"
+                            :note-words="noteWords" />
                     </el-splitter-panel>
                 </el-splitter>
             </el-main>
@@ -103,7 +104,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { invoke, isTauri } from '@tauri-apps/api/core'
-import type { WordInfoWithFavoriteAt } from '@/common/type-interface'
+import type { WordInfoWithFavoriteAt, WordInfoWithNoteUpdateAt } from '@/common/type-interface'
 
 // Components
 import TitleBar from '@/components/TitleBar/TitleBar.vue'
@@ -134,6 +135,11 @@ const props = defineProps({
     activeMenuIndex: {
         type: String,
         default: '',
+    },
+    noteWords: {
+        type: Array as PropType<WordInfoWithNoteUpdateAt[]>,
+        required: false,
+        default: () => [],
     },
     folderName: {
         type: String,
@@ -223,7 +229,7 @@ const expandGlossaryPanel = async (): Promise<void> => {
 watch(
     () => props.activeMenuIndex,
     (newIndex) => {
-        if (newIndex === MAIN_MENU_INDEX.HISTORY || newIndex.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
+        if (newIndex === MAIN_MENU_INDEX.HISTORY || newIndex === MAIN_MENU_INDEX.NOTES || newIndex.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
             expandGlossaryPanel()
         }
         else if (newIndex === MAIN_MENU_INDEX.DICTIONARY) {

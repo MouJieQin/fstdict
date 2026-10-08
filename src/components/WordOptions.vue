@@ -27,7 +27,7 @@ import { UseVirtualList } from '@vueuse/components'
 
 import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { SessionConfig, WordInfo } from '@/common/type-interface'
 import { getDictSettingsForLookup } from '@/common/utility'
 
 const ITEM_HEIGHT = 30
@@ -52,7 +52,7 @@ const props = defineProps({
         default: () => [],
     },
     searchHistory: {
-        type: Array as PropType<WordInfoWithLastSearch[]>,
+        type: Array as PropType<WordInfo[]>,
         required: true,
         default: () => [],
     },

@@ -97,6 +97,7 @@ export const MAIN_MENU_INDEX = {
     DICTIONARY: 'dictionary',
     MANAGE: 'manage',
     HISTORY: 'history',
+    NOTES: 'notes',
     GLOSSARY: 'glossary',
     FLOSSARY_FOLDERS_PREFIX: 'GlossaryFolders-',
 } as const

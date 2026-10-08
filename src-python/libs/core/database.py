@@ -291,12 +291,19 @@ class FstDictDatabase:
 
     def get_folder_words(self, folder_id: int) -> List[Dict]:
         cursor = self.conn.execute("""
-            SELECT w.word, w.created_at, w.query_count, wf.created_at as favorited_at
-            FROM word_favorites wf
-            JOIN words w ON wf.word_id = w.id
-            WHERE wf.folder_id = ?
-            ORDER BY wf.created_at DESC
-        """, (folder_id,))
+                SELECT
+                    w.word,
+                    w.created_at,
+                    w.query_count,
+                    MAX(h.searched_at) AS last_searched,
+                    wf.created_at AS favorited_at
+                FROM word_favorites wf
+                JOIN words w ON wf.word_id = w.id
+                LEFT JOIN word_search_history h ON w.id = h.word_id
+                WHERE wf.folder_id = ?
+                GROUP BY w.id, wf.id
+                ORDER BY wf.created_at DESC
+            """, (folder_id,))
         return [dict(row) for row in cursor.fetchall()]
 
     def get_folder_words_by_name(self, folder_name: str) -> List[Dict]:
@@ -309,13 +316,17 @@ class FstDictDatabase:
 
     def get_search_history(self, limit: int = 100) -> List[Dict]:
         cursor = self.conn.execute("""
-            SELECT DISTINCT w.word, w.query_count, MAX(h.searched_at) as last_searched
-            FROM word_search_history h
-            JOIN words w ON h.word_id = w.id
-            GROUP BY w.id
-            ORDER BY last_searched DESC
-            LIMIT ?
-        """, (limit,))
+                SELECT DISTINCT
+                    w.word,
+                    w.created_at,
+                    w.query_count,
+                    MAX(h.searched_at) AS last_searched
+                FROM word_search_history h
+                JOIN words w ON h.word_id = w.id
+                GROUP BY w.id
+                ORDER BY last_searched DESC
+                LIMIT ?
+            """, (limit,))
         return [dict(row) for row in cursor.fetchall()]
 
     # --- Word notes ---
@@ -351,3 +362,19 @@ class FstDictDatabase:
                 WHERE word_id = (SELECT id FROM words WHERE word = ?)
             """, (word,))
             return cursor.rowcount > 0
+
+    def get_note_words(self) -> List[Dict]:
+        cursor = self.conn.execute("""
+            SELECT
+                w.word,
+                w.created_at,
+                w.query_count,
+                MAX(h.searched_at) AS last_searched,
+                wn.updated_at
+            FROM words w
+            JOIN word_notes wn ON w.id = wn.word_id
+            LEFT JOIN word_search_history h ON w.id = h.word_id
+            GROUP BY w.id, wn.id
+            ORDER BY wn.updated_at DESC
+        """)
+        return [dict(row) for row in cursor.fetchall()]

@@ -154,7 +154,7 @@ import { useWindowPin } from '@/composables/useWindowPin'
 // Types
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type {
-    WordInfoWithLastSearch,
+    WordInfo,
     FolderWords,
     SessionConfig,
     DictInfo,
@@ -208,7 +208,7 @@ const props = defineProps({
         default: false,
     },
     searchHistory: {
-        type: Array as PropType<WordInfoWithLastSearch[]>,
+        type: Array as PropType<WordInfo[]>,
         required: true,
         default: () => [],
     },

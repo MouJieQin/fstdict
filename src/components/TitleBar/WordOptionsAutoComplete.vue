@@ -63,7 +63,7 @@ import SearchMethodSelect from '@/components/TitleBar/SearchMethodSelect.vue'
 import ThreeDotsLoader from '@/components/Svgs/ThreeDotsLoader.vue'
 import { useAutocomplete } from '@/composables/useAutocomplete'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
-import type { SessionConfig, WordInfoWithLastSearch } from '@/common/type-interface'
+import type { SessionConfig, WordInfo } from '@/common/type-interface'
 import { useI18n } from 'vue-i18n'
 
 
@@ -73,7 +73,7 @@ const props = defineProps<{
     sessionConfig: SessionConfig
     redirectWord: string
     redirectHistoryWord: string
-    searchHistory: WordInfoWithLastSearch[]
+    searchHistory: WordInfo[]
     wordOptions: string[]
     showPopoverWordOptions: boolean
     focusInputFlag: boolean

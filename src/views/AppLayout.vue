@@ -22,7 +22,7 @@
                                         @click="handleItemClick(MAIN_MENU_INDEX.DICTIONARY)">
                                         <template #title>
                                             <el-icon>
-                                                <Setting />
+                                                <BsSearch />
                                             </el-icon>{{ t('appLayout.dictionary') }}
                                         </template>
                                     </el-menu-item>
@@ -42,6 +42,15 @@
                                             <el-icon>
                                                 <VscHistory />
                                             </el-icon>{{ t('appLayout.history') }}
+                                        </template>
+                                    </el-menu-item>
+
+                                    <el-menu-item :index="MAIN_MENU_INDEX.NOTES"
+                                        @click="handleItemClick(MAIN_MENU_INDEX.NOTES)">
+                                        <template #title>
+                                            <el-icon>
+                                                <Notebook />
+                                            </el-icon>{{ t('appLayout.notes') }}
                                         </template>
                                     </el-menu-item>
 
@@ -81,7 +90,7 @@
             <el-main style="padding:0">
                 <DictPage :show-sidebar="showSidebar" :is-main-sidebar-collapsed="isMainSidebarCollapsed"
                     @toggle:main-sidebar="isMainSidebarCollapsed = $event" :active-menu-index="activeTabIndex"
-                    :folder-name="folderName" :favorite-words="viewingFolderWords" />
+                    :folder-name="folderName" :favorite-words="viewingFolderWords" :note-words="noteWords" />
             </el-main>
         </el-container>
     </div>
@@ -99,7 +108,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { isTauri, invoke } from '@tauri-apps/api/core'
-import type { DictsInfo, FolderWords } from '@/common/type-interface'
+import type { DictsInfo, FolderWords, WordInfoWithNoteUpdateAt } from '@/common/type-interface'
 
 import { ENV, TAURI_EVENT, MAIN_MENU_INDEX, TAURI_CMD } from '@/common/constants'
 
@@ -113,9 +122,10 @@ import {
 
 // Icons
 import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
-import { Setting, Menu } from '@element-plus/icons-vue'
+import { Setting, Menu, Notebook } from '@element-plus/icons-vue'
 import { PiFolderStar } from 'vue-icons-plus/pi'
 import { VscHistory } from 'vue-icons-plus/vsc'
+import { BsSearch } from 'vue-icons-plus/bs'
 
 
 import DictPage from '@/views/DictPage.vue'
@@ -140,6 +150,7 @@ const redirectWord = ref('')
 const menuRef = ref<MenuInstance>()
 const activeTabIndex = ref('dictionary')
 const folderWords = ref<FolderWords>({})
+const noteWords = ref<WordInfoWithNoteUpdateAt[]>([])
 const viewingFolderId = ref<number>(0)
 
 
@@ -187,6 +198,9 @@ const handleItemClick = async (index: string): Promise<void> => {
         await invoke(TAURI_CMD.SHOW_MANAGE_WINDOW)
         return
     }
+    if (index === MAIN_MENU_INDEX.NOTES) {
+        webSocket.value?.sendNoteWordsRequest()
+    }
     if (index.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
         viewingFolderId.value = Number(index.replace(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX, ''))
         webSocket.value?.sendFavoriteWordsRequest(viewingFolderId.value)
@@ -224,6 +238,9 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
     switch (message.type) {
         case 'favorite_words':
             folderWords.value[message.data.folder_id] = message.data.words
+            break
+        case 'note_words':
+            noteWords.value = message.data.words
             break
     }
 }
