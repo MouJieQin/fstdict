@@ -267,10 +267,12 @@
     margin: 0 10px;
 }
 
+/*
+ * Positioning is controlled by DictResultsPanel per layout:
+ *   bar  -> .anchor-more-button (inline, follows the anchor bar)
+ *   ball -> .anchor-ball-button (absolute, bottom-right of the panel)
+ */
 .locate-dict-button {
-    position: fixed;
-    top: 90px;
-    right: 20px;
     background: var(--glass-bg);
 }
 

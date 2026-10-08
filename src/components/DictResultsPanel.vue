@@ -11,25 +11,65 @@
   Data comes from the tab's `controller` prop (see TabController), which
   is the same reactive object the shared TitleBar reads, so the panel
   always shows "this tab's" lookup results.
+
+  Two layouts (prop `anchorLayout`, macOS Dictionary inspired):
+
+    bar   - horizontal anchor bar; dictionary links that do not fit the
+            available width are hidden (visibility only, layout kept) and
+            collected into an inline "more" dropdown that follows the bar
+            (NOT floating). Link names truncate with an ellipsis past
+            `--dict-anchor-link-max-width`.
+
+    ball  - no anchor bar at all; only the locate button, docked to the
+            bottom-right corner of this panel.
+
+  Overflow detection is re-run whenever the bar is resized (ResizeObserver)
+  or a new lookup arrives (lookupSeq watch).
 -->
 <template>
-    <el-anchor :container="wordDetailScrollbarRef" :offset="10" direction="horizontal" class="anchor-dict">
-        <el-scrollbar v-for="(_, dictName) in controller.lookupResults" :key="dictName"
-            style="overflow-x: auto !important;">
-            <el-anchor-link :href="`#dict-iframe-container-${dictName}`" @click.prevent="scrollToDictionary(dictName)">
-                <div style="display: flex; align-items: center; width: 200px;">
+    <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
+    <div v-if="anchorLayout === 'bar'" ref="anchorBarRef" class="anchor-bar">
+        <el-anchor :container="wordDetailScrollbarRef" :offset="10" direction="horizontal" class="anchor-dict">
+            <el-anchor-link v-for="(_, dictName) in controller.lookupResults" :key="dictName"
+                :href="`#dict-iframe-container-${dictName}`"
+                :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }"
+                @click.prevent="scrollToDictionary(dictName)">
+                <div class="anchor-link-content">
                     <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
                         <template #error>
                             <BiSolidBookBookmark :size="25" />
                         </template>
                     </el-image>
-                    <el-text truncated>
+                    <el-text class="anchor-link-name">
                         {{ dictName }}
                     </el-text>
                 </div>
             </el-anchor-link>
-        </el-scrollbar>
-    </el-anchor>
+        </el-anchor>
+
+        <!-- Overflowed dictionaries live in this inline "more" menu. -->
+        <el-dropdown v-show="overflowDictNames.length > 0" placement="bottom-end" popper-class="vibrant-dropdown"
+            @command="scrollToDictionary">
+            <el-button text circle bg class="locate-dict-button anchor-more-button">
+                <el-icon>
+                    <MoreFilled />
+                </el-icon>
+            </el-button>
+            <template #dropdown>
+                <el-dropdown-menu>
+                    <el-dropdown-item v-for="dictName in overflowDictNames" :key="dictName" :command="dictName">
+                        <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                            <template #error>
+                                <BiSolidBookBookmark :size="25" />
+                            </template>
+                        </el-image>
+                        {{ dictName }}
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </template>
+        </el-dropdown>
+    </div>
+
     <el-scrollbar class="word-detail" :class="{ 'anki-mode': env === 'anki', 'not-anki-mode': env !== 'anki' }"
         ref="wordDetailScrollbarRef" always>
         <el-collapse class="sticky-collapse" expand-icon-position="left" v-model="activeNames">
@@ -107,9 +147,12 @@
         </div>
     </el-scrollbar>
 
-    <!-- Floating "locate dictionary" dropdown -->
-    <el-dropdown placement="bottom-end" @command="scrollToDictionary" popper-class="vibrant-dropdown">
-        <el-button text class="locate-dict-button" circle bg>
+    <!-- Ball mode: only the locate button, docked bottom-right of this panel.
+         (`.el-splitter` is the nearest positioned ancestor; the results panel
+         is its rightmost full-height panel, so bottom-right lands inside it.) -->
+    <el-dropdown v-if="anchorLayout === 'ball'" placement="bottom-end" popper-class="vibrant-dropdown"
+        @command="scrollToDictionary">
+        <el-button text circle bg class="locate-dict-button anchor-ball-button">
             <el-icon>
                 <MoreFilled />
             </el-icon>
@@ -130,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { PropType } from 'vue'
 import MarkdownIt from 'markdown-it'
 import type { ScrollbarInstance } from 'element-plus'
@@ -149,6 +192,14 @@ const props = defineProps({
     env: {
         type: String,
         default: '',
+    },
+    /**
+     * 'bar'  => horizontal anchor bar + inline overflow "more" button
+     * 'ball' => only the locate button (docked bottom-right of the panel)
+     */
+    anchorLayout: {
+        type: String as PropType<'bar' | 'ball'>,
+        default: 'ball',
     },
 })
 
@@ -179,6 +230,83 @@ const showAddDictInfo = computed(() => !activeDictionaries.value.length)
 
 const getDictCover = (dictName: string): string =>
     props.controller.dictsInfo[dictName]?.cover_url || ''
+
+// --- Anchor bar overflow ("more" dropdown) ---
+
+/** Reserve this much bar width for the inline "more" button. */
+const MORE_BUTTON_RESERVED_PX = 44
+
+/** Dictionary names that do not fit the anchor bar (shown in the menu). */
+const overflowDictNames = ref<string[]>([])
+
+const anchorBarRef = ref<HTMLElement>()
+let measureRaf = 0
+let resizeObserver: ResizeObserver | null = null
+
+/**
+ * Recompute which dictionary links overflow the bar. Overflowed links keep
+ * their layout (visibility:hidden, not display:none), so measuring is stable
+ * and there is no reflow flash; the clipped tail is simply invisible, like
+ * the macOS Dictionary anchor bar.
+ */
+const measureOverflow = (): void => {
+    if (props.anchorLayout !== 'bar') {
+        overflowDictNames.value = []
+        return
+    }
+    cancelAnimationFrame(measureRaf)
+    measureRaf = requestAnimationFrame(() => {
+        const wrap = anchorBarRef.value
+        const names = Object.keys(props.controller.lookupResults)
+        if (!wrap || !names.length) {
+            overflowDictNames.value = []
+            return
+        }
+        const links = Array.from(wrap.querySelectorAll<HTMLElement>('.el-anchor__link'))
+        const wrapRect = wrap.getBoundingClientRect()
+        const avail = wrapRect.width - MORE_BUTTON_RESERVED_PX
+        const overflow: string[] = []
+        links.forEach((link, i) => {
+            const name = names[i]
+            if (!name) return
+            if (link.getBoundingClientRect().right - wrapRect.left > avail) {
+                overflow.push(name)
+            }
+        })
+        overflowDictNames.value = overflow
+    })
+}
+
+onMounted(() => {
+    const wrap = anchorBarRef.value
+    if (wrap && typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => measureOverflow())
+        resizeObserver.observe(wrap)
+    }
+    measureOverflow()
+})
+
+onBeforeUnmount(() => {
+    resizeObserver?.disconnect()
+    resizeObserver = null
+    cancelAnimationFrame(measureRaf)
+})
+
+// A fresh lookup re-renders the anchor links -> re-measure.
+watch(() => props.controller.lookupSeq, () => measureOverflow())
+
+// Switching layouts toggles the bar itself; re-measure once it is mounted.
+watch(
+    () => props.anchorLayout,
+    (mode) => {
+        if (mode === 'bar') {
+            nextTick(() => measureOverflow())
+        } else {
+            overflowDictNames.value = []
+            cancelAnimationFrame(measureRaf)
+        }
+    }
+)
 
 /**
  * A new lookup in this tab (controller.lookupSeq was bumped):
@@ -248,6 +376,64 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 </script>
 
 <style scoped>
+/* ============ Anchor bar (bar layout) ============ */
+.anchor-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.anchor-bar :deep(.el-anchor) {
+    flex: 1;
+    min-width: 0;
+}
+
+.anchor-bar :deep(.el-anchor--horizontal .el-anchor__list) {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+/* Overflowed links keep layout space but are invisible (clipped tail). */
+.anchor-bar :deep(.el-anchor__item.is-overflowed) {
+    visibility: hidden;
+}
+
+/* One link: icon + name, capped width, name truncated with "…". */
+.anchor-link-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: var(--dict-anchor-link-max-width, 180px);
+}
+
+.anchor-link-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The "more" button follows the anchor bar inline (NOT floating). */
+.anchor-more-button {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* ============ Ball layout ============ */
+/* Docked inside this panel (the splitter is the nearest positioned
+   ancestor; the results panel is its rightmost full-height panel). */
+.anchor-ball-button {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    z-index: 20;
+}
+
+/* ============ Results area (shared) ============ */
 :deep(.collapse-custom-icon) {
     flex-shrink: 0;
     width: 2rem;
