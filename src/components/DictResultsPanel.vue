@@ -36,17 +36,16 @@
   component instance instead would silently break the active underline.
 -->
 <template>
-    <div class="dict-results-panel">
+    <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
         <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
-        <div v-if="anchorLayout === 'bar' && Object.keys(controller.lookupResults).length > 0" ref="anchorBarRef"
-            class="anchor-bar">
-            <el-anchor :container="anchorContainer" :offset="0" :bound="0" :duration="200" direction="horizontal"
-                select-scroll-top class="anchor-dict">
+        <div ref="anchorBarRef" class="anchor-bar">
+            <el-anchor v-if="showAnchorBar" :container="anchorContainer" :offset="0" :bound="0" :duration="200"
+                direction="horizontal" select-scroll-top class="anchor-dict">
                 <el-anchor-link v-for="(_, dictName) in controller.lookupResults" :key="dictName"
                     :href="sectionHref(dictName)" :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }"
                     @click.prevent>
                     <div class="anchor-link-content">
-                        <el-image :src="getDictCover(dictName)" class="dropdown-custom-icon">
+                        <el-image :src="getDictCover(dictName)" class="anchor-custom-icon">
                             <template #error>
                                 <BiSolidBookBookmark :size="25" />
                             </template>
@@ -232,6 +231,9 @@ const md = new MarkdownIt({
     breaks: true,
     xhtmlOut: true,
 })
+
+const dictAnchorHeight = computed(() => showAnchorBar.value ? 25 : 0)
+const showAnchorBar = computed(() => props.anchorLayout === 'bar' && Object.keys(props.controller.lookupResults).length > 0)
 
 // Collapse selection: local per-panel UI state (persists via v-show).
 const activeNames = ref<string[]>([])
@@ -457,7 +459,7 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    /* height: 100%; */
     min-height: 0;
 }
 
@@ -471,16 +473,32 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 
 /* ============ Anchor bar (bar layout) ============ */
 .anchor-bar {
+    height: var(--dict-anchor-height);
     display: flex;
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    border-bottom: 1px solid var(--el-border-color-light);
+    border-bottom: 1px solid var(--app-header-bg);
+}
+
+.anchor-dict {
+    height: var(--dict-anchor-height);
 }
 
 .anchor-bar :deep(.el-anchor) {
     flex: 1;
     min-width: 0;
+    background-color: transparent;
+}
+
+.anchor-custom-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    /* margin-right: 8px; */
+    margin-bottom: 3px;
+    vertical-align: middle;
+    border-radius: 3px;
 }
 
 .anchor-bar :deep(.el-anchor--horizontal .el-anchor__list) {
@@ -509,6 +527,9 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--el-text-color-primary);
+    /* padding-bottom: 3px; */
 }
 
 /* The "more" button follows the anchor bar inline (NOT floating). */

@@ -45,12 +45,10 @@
                             :has-result-last-search="activeController?.hasResultLastSearch"
                             :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"
                             :redirect-word="activeController?.redirectWord" @change:keyword="handleTitleBarKeyword"
-                            @clear:add-dict-msgs="handleClearAddDictMsgs"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             :iframe-keydown-event="activeController?.iframeKeydownEvent"
                             :anki-progress="activeController?.ankiProgress"
-                            :add-dict-msgs="activeController?.addDictMsgs"
                             :refresh-dics-settings-info-flag="activeController?.refreshDicsSettingsInfoFlag"
                             :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
                             :is-main-sidebar-collapsed="isMainSidebarCollapsed" />

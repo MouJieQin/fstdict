@@ -6,7 +6,7 @@
                 <p class="config-class-title">{{ $t('settings.favoriteFolders') }}</p>
 
                 <el-table v-if="localFolderConfig" :data="localFolderConfig.folders.folder_info" height="350"
-                    style="width: 100%" @selection-change="handleSelectionChange" >
+                    style="width: 100%" @selection-change="handleSelectionChange">
                     <el-table-column type="selection" width="55" />
                     <el-table-column fixed prop="name" :label="$t('settings.name')" width="130" show-overflow-tooltip
                         sortable />
@@ -114,7 +114,6 @@ import { useI18n } from 'vue-i18n'
 
 // Components
 import AnkiIcon from '@/components/Icons/AnkiIcon.vue'
-import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 import AnkiProgress from '@/components/Dialogs/AnkiProgress.vue'
 
 // Stores & utilities

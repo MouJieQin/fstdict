@@ -231,16 +231,6 @@
     height: calc(100vh - var(--header-height) - var(--tab-height));
 }
 
-.el-anchor {
-    height: 30px;
-    border: none !important;
-    /* padding: 0 !important; */
-    /* display: flex; */
-    /* align-items: center; */
-    /* justify-content: flex-end; */
-    background-color: transparent !important;
-}
-
 /*
  * Same visible-area sizing as .word-options: the results scrollbar fills
  * exactly the area below the header, so the custom bar stays on screen.
@@ -248,7 +238,10 @@
  * stacked a SECOND native scrollbar on el-scrollbar's own custom one.
  */
 .word-detail {
-    height: calc(100vh - var(--header-height) - var(--tab-height)) !important;
+    height: calc(
+        100vh - var(--header-height) - var(--tab-height) -
+            var(--dict-anchor-height) - 5px
+    ) !important;
 }
 
 .word-detail.not-anki-mode {
@@ -472,6 +465,7 @@
     height: 1.25rem;
     margin-right: 8px;
     vertical-align: middle;
+    border-radius: 3px;
 }
 
 .collapse-custom-icon {
@@ -480,6 +474,7 @@
     height: 2rem;
     margin-right: 8px;
     vertical-align: middle;
+    border-radius: 3px;
 }
 
 /* Sticky collapse headers */

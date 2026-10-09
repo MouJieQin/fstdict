@@ -9,7 +9,7 @@
                 <el-table-column fixed="left" :label="$t('favoriteWords.actions')" width="130">
                     <template #default="{ row }">
                         <el-button-group>
-                            <el-button :icon="BsHeartbreak" size="small" @click="removeFavorite(row)"
+                            <el-button :icon="LuStarOff" size="small" @click="removeFavorite(row)"
                                 :aria-label="$t('favoriteWords.removeFromFavorites')" />
                             <el-button :icon="BsSearch" size="small" @click="lookupWord(row)"
                                 :aria-label="$t('favoriteWords.lookupWord')" />
@@ -30,8 +30,8 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import { computed } from 'vue'
-import { BsHeartbreak, BsSearch } from 'vue-icons-plus/bs'
-
+import { BsSearch } from 'vue-icons-plus/bs'
+import { LuStarOff } from 'vue-icons-plus/lu'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { WordInfoWithFavoriteAt } from '@/common/type-interface'
 

@@ -41,9 +41,9 @@
 
             <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')" placement="bottom"
                 effect="customized">
-                <el-button :icon="BsHeart" text class="floating-window-titlebar-button" size="small" disabled />
+                <el-button :icon="Star" text class="floating-window-titlebar-button" size="small" disabled />
             </el-tooltip>
-            <el-button v-else :icon="isWordFavorited ? BsHeartFill : BsHeart" text @click="toggleFavorite"
+            <el-button v-else :icon="isWordFavorited ? StarFilled : Star" text @click="toggleFavorite"
                 class="floating-window-titlebar-button" size="small" :disabled="!canFavorite" />
 
             <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button" size="small"
@@ -118,12 +118,6 @@
                 </div>
             </template>
         </el-dialog>
-
-        <el-dialog v-model="favoriteWordsDialogVisible" fullscreen>
-            <FavoriteWords :favorite-words-dialog-visible="favoriteWordsDialogVisible" :web-socket="webSocket"
-                @update-visible="favoriteWordsDialogVisible = $event" :favorite-words="favoriteWords"
-                :folder-name="defaultFolderName" :folder-id="sessionConfig.default_folder.id ?? 0" />
-        </el-dialog>
     </div>
 </template>
 
@@ -133,17 +127,16 @@ import type { PropType } from 'vue'
 
 // Icons
 import {
-    BsPin, BsPinAngleFill, BsHeartFill, BsHeart,
+    BsPin, BsPinAngleFill,
 } from 'vue-icons-plus/bs'
 import { BiUserCheck, BiUser, BiUserPlus, BiUserMinus } from 'vue-icons-plus/bi'
 import { LiaUserEditSolid } from 'vue-icons-plus/lia'
 import { PiUserSwitch } from 'vue-icons-plus/pi'
 import { VscLayoutSidebarLeftOff } from 'vue-icons-plus/vsc'
-import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled } from '@element-plus/icons-vue'
+import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled, Star, StarFilled } from '@element-plus/icons-vue'
 
 // Components
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
-import FavoriteWords from '@/components/Dialogs/FavoriteWords.vue'
 
 // Composables & stores
 import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
