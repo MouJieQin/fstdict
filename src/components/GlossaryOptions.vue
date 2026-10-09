@@ -69,20 +69,24 @@ import { MAIN_MENU_INDEX } from '@/common/constants'
 import { BsSortDown, BsSortUpAlt } from 'vue-icons-plus/bs'
 import { Sort, Check } from '@element-plus/icons-vue'
 
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
+
 const WORD_SORT_METHOD = {
-    LAST_SEARCH: 'Last Search',
-    SEARCH_COUNT: 'Search Count',
-    ALPHABET: 'Alphabet',
+    LAST_SEARCH: t('glossaryOptions.lastSearch'),
+    SEARCH_COUNT: t('glossaryOptions.searchCount'),
+    ALPHABET: t('glossaryOptions.alphabetical'),
 } as const
 
 const FAVORITE_SORT_METHOD = {
     ...WORD_SORT_METHOD,
-    ADD_TIME: 'Add Time',
+    ADD_TIME: t('glossaryOptions.addTime'),
 } as const
 
 const NOTE_SORT_METHOD = {
     ...WORD_SORT_METHOD,
-    UPDATE_TIME: 'Update Time',
+    UPDATE_TIME: t('glossaryOptions.updateTime'),
 } as const
 
 const sortDescending = ref<boolean>(true)
@@ -146,12 +150,12 @@ const glossarySize = ref<number>(0)
 
 const displayList = computed(() => {
     if (props.activeMenuIndex === MAIN_MENU_INDEX.HISTORY) {
-        glossaryName.value = 'History'
+        glossaryName.value = t('glossaryOptions.history')
         glossarySize.value = historyWords.value.length
         sortMethods.value = Object.values(WORD_SORT_METHOD)
         return historyWords.value.map((item) => item.word)
     } else if (props.activeMenuIndex === MAIN_MENU_INDEX.NOTES) {
-        glossaryName.value = 'Notes'
+        glossaryName.value = t('glossaryOptions.notes')
         glossarySize.value = props.noteWords.length
         sortMethods.value = Object.values(NOTE_SORT_METHOD)
         return noteWords.value.map((item) => item.word)
@@ -176,8 +180,7 @@ const historyWords = computed(() => {
 const noteWords = computed(() => {
     if (activeSortMethod.value === NOTE_SORT_METHOD.UPDATE_TIME) {
         return sortDescending.value ? props.noteWords.sort((a, b) => Date.parse(b.updated_at ?? '') - Date.parse(a.updated_at ?? '')) : props.noteWords.sort((a, b) => Date.parse(a.updated_at ?? '') - Date.parse(b.updated_at ?? ''))
-    }
-    else if (activeSortMethod.value === FAVORITE_SORT_METHOD.SEARCH_COUNT) {
+    } else if (activeSortMethod.value === FAVORITE_SORT_METHOD.SEARCH_COUNT) {
         return sortDescending.value ? props.noteWords.sort((a, b) => b.query_count - a.query_count) : props.noteWords.sort((a, b) => a.query_count - b.query_count)
     } else if (activeSortMethod.value === FAVORITE_SORT_METHOD.ALPHABET) {
         return sortDescending.value ? props.noteWords.sort((a, b) => b.word.localeCompare(a.word)) : props.noteWords.sort((a, b) => a.word.localeCompare(b.word))

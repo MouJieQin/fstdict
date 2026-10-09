@@ -69,6 +69,15 @@
         "defaultFolder": "Folder",
         "ocrLang": "OCR Language"
     },
+    "glossaryOptions": {
+        "notes": "Notes",
+        "history": "History",
+        "lastSearch": "Last Search",
+        "searchCount": "Search Count",
+        "alphabetical": "Alphabetical",
+        "updateTime": "Update Time",
+        "addTime": "Add Time"
+    },
     "manage": {
         "title": "Manage",
         "installedDicts": "Installed Dictionaries",

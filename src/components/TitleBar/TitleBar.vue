@@ -249,10 +249,6 @@ const props = defineProps({
         required: true,
         default: () => ({}),
     },
-    addDictMsgs: {
-        type: Array,
-        default: () => [],
-    },
     refreshDicsSettingsInfoFlag: {
         type: Boolean,
         default: true,
@@ -275,7 +271,6 @@ const emit = defineEmits<{
     (e: 'toggle:main-sidebar', isCollapsed: boolean): void
     (e: 'toggle:config-panel'): void
     (e: 'change:keyword', keyword: string): void
-    (e: 'clear:addDictMsgs'): void
 }>()
 
 // --- Stores ---
