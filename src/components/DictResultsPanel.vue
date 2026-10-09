@@ -188,6 +188,8 @@ import { useSystemConfigStore } from '@/stores'
 import DictIframe from '@/components/DictIframe.vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { CaretRight, CaretBottom, MoreFilled, DArrowRight } from '@element-plus/icons-vue'
+import debounce from 'lodash/debounce'
+
 
 const props = defineProps({
     /** Runtime state of the tab this panel belongs to. */
@@ -334,8 +336,9 @@ const measureOverflow = (): void => {
         const overflow: string[] = []
         links.forEach((link, i) => {
             const name = names[i]
-            if (!name) return
-            if (link.getBoundingClientRect().right - wrapRect.left > avail) {
+            const width = link.getBoundingClientRect().right - wrapRect.left
+            console.log(name, width, avail)
+            if (name && (width > avail)) {
                 overflow.push(name)
             }
         })
@@ -343,13 +346,15 @@ const measureOverflow = (): void => {
     })
 }
 
+const measureOverflowDebounce = debounce(measureOverflow, 50)
+
 onMounted(() => {
     const wrap = anchorBarRef.value
     if (wrap && typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => measureOverflow())
+        resizeObserver = new ResizeObserver(() => measureOverflowDebounce())
         resizeObserver.observe(wrap)
     }
-    measureOverflow()
+    measureOverflowDebounce()
     ensureAnchorContainer()
 })
 
@@ -364,7 +369,7 @@ onBeforeUnmount(() => {
 watch(
     () => props.controller.lookupSeq,
     () => {
-        measureOverflow()
+        measureOverflowDebounce()
         nextTick(() => ensureAnchorContainer())
     }
 )
@@ -374,7 +379,7 @@ watch(
     () => props.anchorLayout,
     (mode) => {
         if (mode === 'bar') {
-            nextTick(() => measureOverflow())
+            nextTick(() => measureOverflowDebounce())
         } else {
             overflowDictNames.value = []
             cancelAnimationFrame(measureRaf)
@@ -459,7 +464,6 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     position: relative;
     display: flex;
     flex-direction: column;
-    /* height: 100%; */
     min-height: 0;
 }
 
@@ -495,7 +499,6 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     flex-shrink: 0;
     width: 1rem;
     height: 1rem;
-    /* margin-right: 8px; */
     margin-bottom: 3px;
     vertical-align: middle;
     border-radius: 3px;
@@ -504,12 +507,17 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
 .anchor-bar :deep(.el-anchor--horizontal .el-anchor__list) {
     display: flex;
     flex-wrap: nowrap;
-    overflow: hidden;
+    /* overflow-x: auto; */
+    /* overflow: hidden; */
 }
 
 /* Overflowed links keep layout space but are invisible (clipped tail). */
 .anchor-bar :deep(.el-anchor__item.is-overflowed) {
-    /* visibility: hidden; */
+    visibility: hidden;
+    /* display: none; */
+}
+
+.anchor-bar .anchor-underline {
     display: none;
 }
 
@@ -529,7 +537,6 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     white-space: nowrap;
     font-size: 0.8rem;
     color: var(--el-text-color-primary);
-    /* padding-bottom: 3px; */
 }
 
 /* The "more" button follows the anchor bar inline (NOT floating). */

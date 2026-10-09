@@ -201,7 +201,7 @@ const favoriteWords = computed(() => {
     } else if (activeSortMethod.value === FAVORITE_SORT_METHOD.ALPHABET) {
         return sortDescending.value ? props.favoriteWords.sort((a, b) => b.word.localeCompare(a.word)) : props.favoriteWords.sort((a, b) => a.word.localeCompare(b.word))
     } else {
-        return props.favoriteWords.sort((a, b) => Date.parse(b.last_searched ?? '') - Date.parse(a.last_searched ?? ''))
+        return sortDescending.value ? props.favoriteWords.sort((a, b) => Date.parse(b.last_searched ?? '') - Date.parse(a.last_searched ?? '')) : props.favoriteWords.sort((a, b) => Date.parse(a.last_searched ?? '') - Date.parse(b.last_searched ?? ''))
     }
 })
 

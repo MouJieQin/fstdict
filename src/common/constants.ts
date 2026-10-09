@@ -64,9 +64,9 @@ export const SEARCH_METHOD = {
 } as const
 
 // --- Environment identifiers ---
-export const TAURI_ENV_VALUES = new Set(['', 'helper_main', 'helper_selection'])
+export const TAURI_ENV_VALUES = new Set(['main', 'helper_main', 'helper_selection'])
 export const ENV = {
-    MAIN: '',
+    MAIN: 'main',
     HELPER: 'helper_main',
     SELECTION: 'helper_selection',
     ANKI: 'anki',
