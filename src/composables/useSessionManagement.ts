@@ -14,9 +14,10 @@ const MAX_SESSION_NAME_LENGTH = 30
 export function useSessionManagement(
     webSocket: () => SessionWebSocketService | null,
     currentSessionId: () => number,
-    env: () => string
+    env: () => string,
+    emitRedirectSession: (sessionId: number) => void,
 ) {
-    const router = useRouter()
+    // const router = useRouter()
     const systemConfigStore = useSystemConfigStore()
     const { t } = useI18n()
 
@@ -37,10 +38,12 @@ export function useSessionManagement(
             webSocket()?.sendUpdateSystemConfig(systemConfig)
         }
 
-        router.push({
-            path: `/dict/${sessionId}`,
-            query: { env: envValue },
-        })
+        emitRedirectSession(sessionId)
+
+        // router.push({
+        //     path: `/dict/${sessionId}`,
+        //     query: { env: envValue },
+        // })
     }
 
     const createSession = async (): Promise<void> => {
@@ -101,7 +104,6 @@ export function useSessionManagement(
                 }
             )
             webSocket()?.sendRemoveSession()
-            redirectSession(1)
         } catch {
             // User cancelled
         }

@@ -15,7 +15,7 @@
   Parent communication (via emits):
     create-session(sessionId)  - backend asked us to open another session
     session-error(tabId)       - this session no longer exists on the backend
-    redirect-session(sessionId)- window config says we should switch sessions
+    activate-session(sessionId)- window config says we should switch sessions
   Every tab stays MOUNTED (DictPage toggles visibility with v-show), so:
   - background tabs keep receiving WebSocket updates,
   - iframes and scroll positions are preserved without serialization.
@@ -80,7 +80,7 @@ const emit = defineEmits<{
     (e: 'toggle:config-panel'): void
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
-    (e: 'redirect-session', sessionId: number): void
+    (e: 'activate-session', sessionId: number): void
     (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 // --- Stores ---
@@ -238,7 +238,7 @@ const handleSessionsNameId = (data: any): void => {
     }
     if (targetId !== undefined && targetId !== controller.sessionId) {
         // The window config wants a different session -> let the parent switch.
-        emit('redirect-session', targetId)
+        emit('activate-session', targetId)
     }
 }
 /** A lookup result belongs to THIS tab (every tab has its own WebSocket). */

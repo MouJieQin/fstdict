@@ -45,6 +45,7 @@
                             :has-result-last-search="activeController?.hasResultLastSearch"
                             :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"
                             :redirect-word="activeController?.redirectWord" @change:keyword="handleTitleBarKeyword"
+                            @redirect-session="handleRedirectSession"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             :iframe-keydown-event="activeController?.iframeKeydownEvent"
@@ -78,7 +79,7 @@
                             :show-popover="showPopoverWordOptions"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             @create-session="handleCreateSession" @session-error="handleSessionError"
-                            @redirect-session="handleRedirectSession" @context-menu="handleIframeContextMenu" />
+                            @activate-session="handleActivateSession" @context-menu="handleIframeContextMenu" />
                     </el-splitter-panel>
                     <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize">
                         <GlossaryOptions :active-menu-index="activeMenuIndex"
@@ -279,6 +280,10 @@ const handleSessionError = (tabId: string): void => {
 
 /** Window config says this tab should use another session: switch to it. */
 const handleRedirectSession = (sessionId: number): void => {
+    initDictPage(sessionId)
+}
+
+const handleActivateSession = (sessionId: number): void => {
     dictTabsStore.activateSessionTab(sessionId)
 }
 
@@ -433,8 +438,7 @@ const initHeaderPaddingRight = (): void => {
  * WebSocket to the new session id; every other tab stays mounted and keeps
  * its connection and its state.
  */
-const initDictPage = async (): Promise<void> => {
-    const sessionId = Number(route.params.id)
+const initDictPage = async (sessionId: number): Promise<void> => {
     envFromRoute.value = (route.query.env as string) || ''
 
     // Anki mode class on the body.
@@ -464,16 +468,8 @@ onMounted(async () => {
     window.addEventListener('resize', handleResize)
     // Right-click anywhere in the main document -> native context menu.
     // document.addEventListener('contextmenu', onDocumentContextMenu)
-    await initDictPage()
+    await initDictPage(1)
 })
-
-// In-page session switch: rebuild the tabs for the new route session id.
-watch(
-    () => route.params.id,
-    async () => {
-        await initDictPage()
-    }
-)
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)

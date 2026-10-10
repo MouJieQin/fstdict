@@ -3,8 +3,8 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-rou
 const routes: RouteRecordRaw[] = [
 
     {
-        path: '/dict/:id',
-        name: 'Dict',
+        path: '/',
+        name: 'Home',
         component: () => import('@/views/AppLayout.vue'),
         props: true,
     },
@@ -39,14 +39,6 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
     history: createWebHashHistory(),
     routes,
-})
-
-// Redirect root to default dict page
-router.beforeEach((to) => {
-    if (to.path === '/') {
-        return '/dict/1'
-    }
-    return true
 })
 
 export default router

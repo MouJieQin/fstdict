@@ -264,6 +264,7 @@ const emit = defineEmits<{
     (e: 'toggle:main-sidebar', isCollapsed: boolean): void
     (e: 'toggle:config-panel'): void
     (e: 'change:keyword', keyword: string): void
+    (e: 'redirect-session', sessionId: number): void
 }>()
 
 // --- Stores ---
@@ -301,6 +302,9 @@ const {
 // --- Session management ---
 const sessionIdRef = () => props.sessionId
 const envRef = () => props.env
+const emitRedirectSession = (sessionId: number) => {
+    emit('redirect-session', sessionId)
+}
 
 const {
     sessionsNameId,
@@ -308,7 +312,8 @@ const {
 } = useSessionManagement(
     () => props.webSocket,
     sessionIdRef,
-    envRef
+    envRef,
+    emitRedirectSession,
 )
 
 // --- Focus input ---

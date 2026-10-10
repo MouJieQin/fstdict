@@ -16,7 +16,7 @@ pub fn setup_main_window(app: &mut App) -> Result<(), tauri::Error> {
     let app_handle = app.handle().clone();
     let config_file = "main-window-state.json";
     let state = WindowState::load(&app_handle, config_file);
-    let main_url = WebviewUrl::App("#/dict/1?env=main".into());
+    let main_url = WebviewUrl::App("#/?env=main".into());
 
     let mut builder = WebviewWindowBuilder::new(app, "main", main_url)
         .title("FstDict")
