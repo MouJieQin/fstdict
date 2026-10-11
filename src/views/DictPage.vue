@@ -280,7 +280,11 @@ const handleSessionError = (tabId: string): void => {
 
 /** Window config says this tab should use another session: switch to it. */
 const handleRedirectSession = (sessionId: number): void => {
-    initDictPage(sessionId)
+    const tab = dictTabsStore.activeTab
+    if (!tab) return
+    const keyword = (route.query.keyword as string) || ''
+    tab.initialKeyword = keyword
+    tab.sessionId = sessionId
 }
 
 const handleActivateSession = (sessionId: number): void => {
@@ -438,7 +442,7 @@ const initHeaderPaddingRight = (): void => {
  * WebSocket to the new session id; every other tab stays mounted and keeps
  * its connection and its state.
  */
-const initDictPage = async (sessionId: number): Promise<void> => {
+const initDictPage = async (): Promise<void> => {
     envFromRoute.value = (route.query.env as string) || ''
 
     // Anki mode class on the body.
@@ -452,26 +456,38 @@ const initDictPage = async (sessionId: number): Promise<void> => {
     initHeaderPaddingRight()
 
     // First mount: opens the initial tab. Route change: rebinds the ACTIVE tab.
-    dictTabsStore.resetActiveTabSession(sessionId)
+    // dictTabsStore.resetActiveTabSession(sessionId)
 
     // Deep-link: a route keyword is looked up by the (rebound) active tab
     // right after its WebSocket opens.
     const keyword = (route.query.keyword as string) || ''
     const tab = dictTabsStore.activeTab
-    if (tab) tab.initialKeyword = keyword
+    if (tab && keyword) tab.initialKeyword = keyword
 
     await setupTauriListeners()
     showPopoverWordOptions.value = window.innerWidth < 700
 }
 
+const resetActiveTabSession = (sessionId: number) => {
+    const tab = dictTabsStore.activeTab
+    if (!tab) return
+    const keyword = (route.query.keyword as string) || ''
+    tab.initialKeyword = keyword
+    tab.sessionId = sessionId
+}
+
+
+
 onMounted(async () => {
     window.addEventListener('resize', handleResize)
+    await dictTabsStore.loadTabs()
     // Right-click anywhere in the main document -> native context menu.
     // document.addEventListener('contextmenu', onDocumentContextMenu)
-    await initDictPage(1)
+    await initDictPage()
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
+    await dictTabsStore.saveTabs()
     window.removeEventListener('resize', handleResize)
     document.removeEventListener('contextmenu', onDocumentContextMenu)
     unlistenTextSelected?.()

@@ -337,7 +337,6 @@ const measureOverflow = (): void => {
         links.forEach((link, i) => {
             const name = names[i]
             const width = link.getBoundingClientRect().right - wrapRect.left
-            console.log(name, width, avail)
             if (name && (width > avail)) {
                 overflow.push(name)
             }

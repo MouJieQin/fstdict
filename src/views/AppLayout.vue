@@ -118,6 +118,7 @@ import {
     useFolderConfigStore,
     useDictConfigStore,
     useSystemConfigStore,
+    useDictTabsStore,
 } from '@/stores'
 
 // Icons
@@ -136,6 +137,8 @@ const { t } = useI18n()
 const systemConfigStore = useSystemConfigStore()
 const dictConfigStore = useDictConfigStore()
 const folderConfigStore = useFolderConfigStore()
+const dictTabsStore = useDictTabsStore()
+
 
 
 // --- Router & route ---
@@ -212,6 +215,10 @@ onMounted(async () => {
     envFromRoute.value = (route.query.env as string) || ENV.MAIN
     initHeaderPaddingRight()
     setupWebSocket()
+})
+
+onBeforeUnmount(async () => {
+    // await dictTabsStore.saveTabs()
 })
 
 

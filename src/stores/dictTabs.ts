@@ -18,6 +18,9 @@
  */
 
 import { defineStore } from 'pinia'
+import { Store } from '@tauri-apps/plugin-store'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import { isTauri } from '@tauri-apps/api/core'
 import type {
     DictsInfo,
     SessionNameId,
@@ -92,6 +95,20 @@ export interface DictTabEntry {
     order: number
 }
 
+export interface DictTabEntryState {
+    id: string
+    title: string
+    sessionId: number | null
+    initialKeyword: string
+    order: number
+}
+
+export interface DictTabsState {
+    tabs: DictTabEntryState[]
+    activeTabId: string
+    initialSessionId: number | null
+}
+
 let tabIdSeed = 0
 let tabOrderSeed = 0
 
@@ -124,9 +141,50 @@ export const useDictTabsStore = defineStore('dictTabs', {
         tabsByInsertionOrder(state): DictTabEntry[] {
             return [...state.tabs].sort((a, b) => a.order - b.order)
         },
+
+        /** Convert the store state to a serializable format. */
+        toSerializableState(state): DictTabsState {
+            return {
+                tabs: state.tabs.map((t) => ({
+                    id: t.id,
+                    title: t.title,
+                    sessionId: t.sessionId,
+                    initialKeyword: t.initialKeyword,
+                    order: t.order,
+                })),
+                activeTabId: state.activeTabId,
+                initialSessionId: state.initialSessionId,
+            }
+        },
     },
 
     actions: {
+        /** Save the current tab list to disk. */
+        async saveTabs(): Promise<void> {
+            if (!isTauri()) return
+            const windowLabel = await getCurrentWindow().label
+            const store = await Store.load(`windows/dict-tabs.json`)
+            await store.set(`${windowLabel}`, this.toSerializableState)
+        },
+
+        async loadTabs(): Promise<void> {
+            if (!isTauri()) return
+            const windowLabel = await getCurrentWindow().label
+            const store = await Store.load(`windows/dict-tabs.json`)
+            const windowTabs = await store.get(`${windowLabel}`) as DictTabsState
+            if (!windowTabs) {
+                this.initialSessionId = 1
+                this.createTab(this.initialSessionId)
+                return
+            }
+            let activeTabId = ''
+            for (const tab of windowTabs.tabs) {
+                const tabId = this.createTab(tab.sessionId, tab.title, tab.title)
+                if (tab.id === windowTabs.activeTabId) activeTabId = tabId
+            }
+            this.activateTab(activeTabId)
+        },
+
         /**
          * Rebind the ACTIVE tab to a new session (in-page /dict/:id switch).
          * ONLY the active tab is affected - every other tab keeps its WebSocket
@@ -227,6 +285,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
         unregisterController(tabId: string): void {
             const tab = this.tabs.find((t) => t.id === tabId)
             if (tab) tab.controller = null
+            this.saveTabs()
         },
 
         /** Update a tab's label (used when a lookup gives the tab a real word). */
