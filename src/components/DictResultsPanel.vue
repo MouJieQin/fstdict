@@ -142,9 +142,9 @@
                             :js-urls="controller.dictsInfo[dictName]?.js || []"
                             :base-path="controller.dictsInfo[dictName]?.data || ''"
                             :dictionary-root="controller.dictsInfo[dictName]?.root || ''"
-                            :is-dark="systemConfigStore.isDark" @entry-click="emit('entry-click', $event)"
-                            @location-click="handleLocationClick" @keydown="emit('iframe-keydown', $event)"
-                            @context-menu="emit('context-menu', $event)" />
+                            :is-dark="systemConfigStore.isDark" :TriggerUpdateHeight="TriggerUpdateHeight"
+                            @entry-click="emit('entry-click', $event)" @location-click="handleLocationClick"
+                            @keydown="emit('iframe-keydown', $event)" @context-menu="emit('context-menu', $event)" />
                     </div>
                 </el-collapse-item>
             </el-collapse>
@@ -310,6 +310,7 @@ const overflowDictNames = ref<string[]>([])
 const anchorBarRef = ref<HTMLElement>()
 let measureRaf = 0
 let resizeObserver: ResizeObserver | null = null
+const TriggerUpdateHeight = ref(false)
 
 /**
  * Recompute which dictionary links overflow the bar. Overflowed links keep
@@ -342,6 +343,7 @@ const measureOverflow = (): void => {
             }
         })
         overflowDictNames.value = overflow
+        TriggerUpdateHeight.value = !TriggerUpdateHeight.value
     })
 }
 

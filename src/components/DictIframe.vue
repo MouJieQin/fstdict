@@ -22,6 +22,7 @@ interface Props {
     basePath: string
     dictionaryRoot: string
     isDark: boolean
+    TriggerUpdateHeight: boolean
 }
 
 const props = defineProps<Props>()
@@ -358,6 +359,8 @@ function setupMessageListener(): void {
 
 // ============== Watchers ==============
 watch(() => props.isDark, updateDarkMode)
+
+watch(() => props.TriggerUpdateHeight, updateIframeHeightDebounced)
 
 watch(
     () => [props.html, props.basePath],
