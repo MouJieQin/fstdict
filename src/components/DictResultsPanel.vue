@@ -41,9 +41,9 @@
         <div ref="anchorBarRef" class="anchor-bar">
             <el-anchor v-if="showAnchorBar" :container="anchorContainer" :offset="0" :bound="0" :duration="200"
                 direction="horizontal" select-scroll-top class="anchor-dict">
-                <el-anchor-link v-for="(_, dictName) in controller.lookupResults" :key="dictName"
-                    :href="sectionHref(dictName)" :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }"
-                    @click.prevent>
+                <el-anchor-link v-for="(_, dictName) in controller.lookupResults"
+                    :key="`${controller.lookupSeq}--${dictName}`" :href="sectionHref(dictName)"
+                    :class="{ 'is-overflowed': overflowDictNames.includes(dictName) }" @click.prevent>
                     <div class="anchor-link-content">
                         <el-image :src="getDictCover(dictName)" class="anchor-custom-icon">
                             <template #error>

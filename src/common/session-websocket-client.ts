@@ -1,6 +1,6 @@
 import { WebSocketService } from '@/common/websocket-client'
 import type { SessionConfig } from '@/common/type-interface'
-import { WS_BASE_URL } from '@/common/constants'
+import { WS_BASE_URL, SEARCH_METHOD } from '@/common/constants'
 import { getDictSettingsForLookup } from '@/common/utility'
 
 export class SessionWebSocketService extends WebSocketService {
@@ -161,6 +161,12 @@ export class SessionWebSocketService extends WebSocketService {
             search_method: searchMethod,
             dict_settings: dictSettings,
         })
+    }
+
+    public sendKeywordOptionsWithPrefixDistance(keyword: string, sessionConfig: SessionConfig): void {
+        const dictSettings = getDictSettingsForLookup(sessionConfig.dict_setting_option_name)
+        this.sendKeywordOptionsSearch(keyword, SEARCH_METHOD.PREFIX_DISTANCE, dictSettings)
+
     }
 
     public sendKeywordOptionsSearch2(keyword: string, sessionConfig: SessionConfig): void {

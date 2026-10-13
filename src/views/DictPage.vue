@@ -77,7 +77,7 @@
                         <DictTabSession v-for="tab in tabsByInsertionOrder"
                             v-show="tab.id === dictTabsStore.activeTabId" :key="tab.id" :tab-id="tab.id"
                             :session-id="tab.sessionId" :env="envFromRoute" :initial-keyword="tab.initialKeyword"
-                            :show-popover="showPopoverWordOptions"
+                            :initial-keyword-to-show="tab.initialKeywordToShow" :show-popover="showPopoverWordOptions"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             @create-session="handleCreateSession" @session-error="handleSessionError"
                             @activate-session="handleActivateSession" @context-menu="handleIframeContextMenu" />
@@ -285,6 +285,7 @@ const handleRedirectSession = (sessionId: number): void => {
     if (!tab) return
     const keyword = (route.query.keyword as string) || ''
     tab.initialKeyword = keyword
+    tab.initialKeywordToShow = keyword
     tab.sessionId = sessionId
 }
 
@@ -315,7 +316,8 @@ const openTabWithKeyword = (text: string): void => {
         console.warn('[DictPage] No active tab session to clone.')
         return
     }
-    dictTabsStore.createTab(sessionId, text || 'New Tab', text)
+    const tabId = dictTabsStore.createTab(sessionId, text || 'New Tab', text, text)
+    // dictTabsStore.activateTab(tabId)
 }
 
 /**
@@ -454,28 +456,18 @@ const initDictPage = async (): Promise<void> => {
     document.title = 'FstDict'
     initHeaderPaddingRight()
 
-    // First mount: opens the initial tab. Route change: rebinds the ACTIVE tab.
-    // dictTabsStore.resetActiveTabSession(sessionId)
-
     // Deep-link: a route keyword is looked up by the (rebound) active tab
     // right after its WebSocket opens.
     const keyword = (route.query.keyword as string) || ''
     const tab = dictTabsStore.activeTab
-    if (tab && keyword) tab.initialKeyword = keyword
+    if (tab && keyword) {
+        tab.initialKeywordToShow = keyword
+        tab.initialKeyword = keyword
+    }
 
     await setupTauriListeners()
     showPopoverWordOptions.value = window.innerWidth < 700
 }
-
-const resetActiveTabSession = (sessionId: number) => {
-    const tab = dictTabsStore.activeTab
-    if (!tab) return
-    const keyword = (route.query.keyword as string) || ''
-    tab.initialKeyword = keyword
-    tab.sessionId = sessionId
-}
-
-
 
 onMounted(async () => {
     window.addEventListener('resize', handleResize)

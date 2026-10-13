@@ -105,6 +105,5 @@ async def dictionary_session_websocket(websocket: WebSocket, client_id: str):
         logger.error(f"Session {session_id} WebSocket error: {e}", exc_info=True)
     finally:
         # Clean up connection from session map
-        if session_id in Utils.session_websockets:
-            if connection_id in Utils.session_websockets[session_id]:
-                del Utils.session_websockets[session_id][connection_id]
+        if session_id in Utils.session_websockets and connection_id in Utils.session_websockets[session_id]:
+            del Utils.session_websockets[session_id][connection_id]

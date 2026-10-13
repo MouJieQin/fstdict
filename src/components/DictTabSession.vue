@@ -73,6 +73,7 @@ const props = defineProps<{
     env: string
     /** Keyword passed in the route query (deep-link lookup right after connect). */
     initialKeyword: string
+    initialKeywordToShow: string
     /** Narrow-window mode: hide the word-options panel (owned by the parent). */
     showPopover: boolean
 }>()
@@ -80,7 +81,6 @@ const emit = defineEmits<{
     (e: 'toggle:config-panel'): void
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
-    (e: 'activate-session', sessionId: number): void
     (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 // --- Stores ---
@@ -236,10 +236,6 @@ const handleSessionsNameId = (data: any): void => {
     } else if (props.env === ENV.SELECTION) {
         targetId = config?.app?.windows?.helper_selection?.session_id
     }
-    if (targetId !== undefined && targetId !== controller.sessionId) {
-        // The window config wants a different session -> let the parent switch.
-        emit('activate-session', targetId)
-    }
 }
 /** A lookup result belongs to THIS tab (every tab has its own WebSocket). */
 const handleLookupKeyword = (data: any): void => {
@@ -271,12 +267,11 @@ const handleSessionConfig = (message: any): void => {
     setupOcrLangType()
     if (message.data.is_right_after_connection) {
         console.log("controller.lastSearchKeyword:", controller.lastSearchKeyword)
-        if (props.initialKeyword) {
-            initialKeywordSent = true
-            // controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
-            controller.keyword = props.initialKeyword
+        if (props.initialKeyword || props.initialKeywordToShow) {
             controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, false)
-            controller.webSocket?.sendKeywordOptionsSearch2(props.initialKeyword, controller.sessionConfig)
+            controller.keyword = props.initialKeywordToShow
+            // use prefix distance search, otherwise it may overwhelm the option panel
+            controller.webSocket?.sendKeywordOptionsWithPrefixDistance(props.initialKeywordToShow, controller.sessionConfig)
         } else if (controller.lastSearchKeyword) {
             controller.webSocket?.sendLookupKeyword2(controller.lastSearchKeyword, controller.sessionConfig, controller.leftHistory)
         }
@@ -292,9 +287,7 @@ const handleTauriNotification = async (data: any): Promise<void> => {
     if (props.env !== ENV.HELPER) return
     await invoke('trigger_notification', { message: data.message || '' })
 }
-const handleSettingClick = async (): Promise<void> => {
-    await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
-}
+
 // --- WebSocket setup (one independent connection per tab) ---
 const setupWebSocket = (sessionId: number): void => {
     controller.webSocket?.close()
@@ -368,30 +361,22 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
     }
 }
 // --- Lifecycle ---
-/**
- * Guards the per-tab "initial keyword" deep link so it is sent exactly once
- * per session bind: normally the backend's session_config (sent right after
- * the connection opens, is_right_after_connection=true) triggers it; the
- * ws-open watcher below is a fallback for backends that do not set that flag.
- */
-let initialKeywordSent = false
 // Connect as soon as a session id is available (initial or assigned later).
 // When the id CHANGES (route-driven rebind), drop the old connection and
 // open a fresh one; the deep-link guard is reset for the new session.
 watch(
     () => props.sessionId,
     (id) => {
-        initialKeywordSent = false
         if (id != null) setupWebSocket(id)
     },
     { immediate: true }
 )
 
-onMounted(() => {
+onMounted(async () => {
     // Expose this tab's runtime state to the store (shared TitleBar reads it).
     dictTabsStore.registerController(props.tabId, controller)
 })
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
     document.body.classList.remove('dict-resizing')
     controller.webSocket?.close()
     dictTabsStore.unregisterController(props.tabId)

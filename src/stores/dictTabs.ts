@@ -87,6 +87,8 @@ export interface DictTabEntry {
      * "lookup selection" action or from the route query.
      */
     initialKeyword: string
+
+    initialKeywordToShow: string
     /**
      * Immutable insertion index. Keeps the content-area v-for in stable order
      * (see tabsByInsertionOrder); the tab bar's own `tabs` array may be
@@ -100,7 +102,7 @@ export interface DictTabEntryState {
     title: string
     sessionId: number | null
     initialKeyword: string
-    order: number
+    initialKeywordToShow: string
 }
 
 export interface DictTabsState {
@@ -149,9 +151,9 @@ export const useDictTabsStore = defineStore('dictTabs', {
                 tabs: state.tabs.map((t) => ({
                     id: t.id,
                     title: t.title,
+                    initialKeyword: t.controller?.lastSearchKeyword ?? '',
+                    initialKeywordToShow: t.controller?.keyword ?? '',
                     sessionId: t.sessionId,
-                    initialKeyword: t.initialKeyword,
-                    order: t.order,
                 })),
                 activeTabId: state.activeTabId,
                 initialSessionId: state.initialSessionId,
@@ -163,14 +165,14 @@ export const useDictTabsStore = defineStore('dictTabs', {
         /** Save the current tab list to disk. */
         async saveTabs(): Promise<void> {
             if (!isTauri()) return
-            const windowLabel = await getCurrentWindow().label
+            const windowLabel = getCurrentWindow().label
             const store = await Store.load(`windows/dict-tabs.json`)
             await store.set(`${windowLabel}`, this.toSerializableState)
         },
 
         async loadTabs(): Promise<void> {
             if (!isTauri()) return
-            const windowLabel = await getCurrentWindow().label
+            const windowLabel = getCurrentWindow().label
             const store = await Store.load(`windows/dict-tabs.json`)
             const windowTabs = await store.get(`${windowLabel}`) as DictTabsState
             if (!windowTabs) {
@@ -180,26 +182,10 @@ export const useDictTabsStore = defineStore('dictTabs', {
             }
             let activeTabId = ''
             for (const tab of windowTabs.tabs) {
-                const tabId = this.createTab(tab.sessionId, tab.title, tab.title)
+                const tabId = this.createTab(tab.sessionId, tab.title, tab.initialKeywordToShow, tab.initialKeyword, false)
                 if (tab.id === windowTabs.activeTabId) activeTabId = tabId
             }
-            this.activateTab(activeTabId)
-        },
-
-        /**
-         * Rebind the ACTIVE tab to a new session (in-page /dict/:id switch).
-         * ONLY the active tab is affected - every other tab keeps its WebSocket
-         * and its runtime state untouched. On first mount (no tabs yet) a fresh
-         * initial tab is created instead.
-         */
-        resetActiveTabSession(sessionId: number | null): void {
-            this.initialSessionId = sessionId
-            if (this.tabs.length === 0) {
-                this.createTab(sessionId)
-                return
-            }
-            const tab = this.tabs.find((t) => t.id === this.activeTabId)
-            if (tab) tab.sessionId = sessionId
+            this.activeTabId = activeTabId
         },
 
         /**
@@ -211,7 +197,9 @@ export const useDictTabsStore = defineStore('dictTabs', {
         createTab(
             sessionId: number | null = null,
             title = 'New Tab',
-            initialKeyword = ''
+            initialKeywordToShow = '',
+            initialKeyword: string = initialKeywordToShow,
+            save = true,
         ): string {
             const id = nextTabId()
             this.tabs.push({
@@ -220,9 +208,11 @@ export const useDictTabsStore = defineStore('dictTabs', {
                 sessionId,
                 controller: null,
                 initialKeyword,
+                initialKeywordToShow,
                 order: ++tabOrderSeed,
             })
             this.activeTabId = id
+            if (save) this.saveTabs()
             return id
         },
 
@@ -239,6 +229,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
         /** Activate an existing tab by id (no-op when the id is unknown). */
         activateTab(id: string): void {
             if (this.tabs.some((t) => t.id === id)) this.activeTabId = id
+            this.saveTabs()
         },
 
         /**
@@ -262,6 +253,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
                 const next = this.tabs[index] ?? this.tabs[index - 1]
                 this.activeTabId = next.id
             }
+            this.saveTabs()
         },
 
         /**
@@ -274,12 +266,14 @@ export const useDictTabsStore = defineStore('dictTabs', {
             const [moved] = tabs.splice(oldIndex, 1)
             tabs.splice(newIndex, 0, moved)
             this.tabs = tabs
+            this.saveTabs()
         },
 
         /** Attach a tab's runtime controller (called by DictTabSession on mount). */
         registerController(tabId: string, controller: TabController): void {
             const tab = this.tabs.find((t) => t.id === tabId)
             if (tab) tab.controller = controller
+            this.saveTabs()
         },
 
         /** Detach a tab's controller (called by DictTabSession on unmount). */
@@ -293,6 +287,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
         setTabTitle(tabId: string, title: string): void {
             const tab = this.tabs.find((t) => t.id === tabId)
             if (tab) tab.title = title || 'New Tab'
+            this.saveTabs()
         },
     },
 })

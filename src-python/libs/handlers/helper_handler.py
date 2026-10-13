@@ -24,9 +24,6 @@ class HelperMessageHandler:
                 await HelperMessageHandler._handle_register_request(message["data"])
             elif msg_type == "unregister_request":
                 await HelperMessageHandler._handle_unregister_request(message["data"])
-            elif msg_type == "connect_cgevent_server":
-                HelperMessageHandler._trigger_cgevent_connection()
-
             elif msg_type == "toggle_helper_selection_hide":
                 await HelperMessageHandler._handle_toggle_helper_selection_hide(message["data"]["enabled"])
 
@@ -68,20 +65,6 @@ class HelperMessageHandler:
             # If no more registrations for this event, unregister from server
             if not Utils.cgevent_register_map[event_type]:
                 await Utils.cgevent_ws_client.send_unregister_request(event_type)
-
-    @staticmethod
-    def _trigger_cgevent_connection():
-        """Trigger CGEvent server connection via HTTP API (runs in background thread)."""
-        def connect_task():
-            try:
-                url = "http://127.0.0.1:5959/api/connectcgevent"
-                with urllib.request.urlopen(url) as resp:
-                    logger.info(json.loads(resp.read()))
-            except Exception as e:
-                logger.error(f"Failed to trigger CGEvent connection: {e}")
-
-        thread = threading.Thread(target=connect_task, daemon=True)
-        thread.start()
 
     @staticmethod
     async def _try_send_main_message(msg: dict):
