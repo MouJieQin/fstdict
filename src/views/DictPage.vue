@@ -416,6 +416,14 @@ watch(() => tabsCount.value, (newVal) => {
     tabHeight.value = newVal > 1 ? TAB_HEIGHT : 0
 })
 
+watch(() => dictTabsStore.redirectWord,
+    (newVal) => {
+        if (dictTabsStore.activeController) {
+            dictTabsStore.activeController.keyword = newVal
+        }
+    }
+)
+
 // --- Viewport / sidebar ---
 const handleResize = (): void => {
     viewportWidth.value = window.innerWidth

@@ -26,6 +26,8 @@ futures-util = "0.3.33"
 tauri-plugin-decorum = { git = "https://github.com/clearlysid/tauri-plugin-decorum", rev = "ea72a1f" }
 window-vibrancy = "0.8.1"
 fstdict_common = { path = "../fstdict_common" }
+tauri-plugin-store = "2.5.0"
+
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }

@@ -28,10 +28,10 @@
     "core:window:allow-is-maximized",
     "decorum:allow-show-snap-overlay",
     "os:default",
+    "clipboard-manager:allow-read-text",
     "opener:default",
     "store:default",
     "store:allow-load",
-    "store:allow-save",
-    "clipboard-manager:allow-read-text"
+    "store:allow-save"
   ]
 }

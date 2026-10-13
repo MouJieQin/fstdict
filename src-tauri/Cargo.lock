@@ -1866,6 +1866,7 @@ dependencies = [
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-decorum",
  "tauri-plugin-os",
+ "tauri-plugin-store",
  "tokio",
  "tokio-tungstenite",
  "urlencoding",

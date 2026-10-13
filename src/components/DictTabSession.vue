@@ -277,12 +277,7 @@ const handleSessionConfig = (message: any): void => {
         }
     }
 }
-const handleCgevent = (data: any): void => {
-    if (props.env !== ENV.SELECTION) return
-    if (data.type === 'kHandlerTextSelection') {
-        dictTabsStore.redirectWord = data.text_selected
-    }
-}
+
 const handleTauriNotification = async (data: any): Promise<void> => {
     if (props.env !== ENV.HELPER) return
     await invoke('trigger_notification', { message: data.message || '' })
@@ -348,9 +343,6 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
             break
         case 'add_dictionary':
             controller.addDictMsgs.push(message.data)
-            break
-        case 'cgevent':
-            handleCgevent(message.data)
             break
         case 'tauri_notification':
             await handleTauriNotification(message.data)
