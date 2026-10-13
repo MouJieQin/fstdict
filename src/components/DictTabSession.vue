@@ -95,7 +95,7 @@ const controller = reactive<TabController>({
     keyword: '',
     lastSearchKeyword: '',
     hasResultLastSearch: false,
-    redirectWord: '',
+    // redirectWord: '',
     lookupResults: {},
     noteContent: '',
     leftHistory: false,
@@ -273,7 +273,10 @@ const handleSessionConfig = (message: any): void => {
         console.log("controller.lastSearchKeyword:", controller.lastSearchKeyword)
         if (props.initialKeyword) {
             initialKeywordSent = true
-            controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
+            // controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
+            controller.keyword = props.initialKeyword
+            controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, false)
+            controller.webSocket?.sendKeywordOptionsSearch2(props.initialKeyword, controller.sessionConfig)
         } else if (controller.lastSearchKeyword) {
             controller.webSocket?.sendLookupKeyword2(controller.lastSearchKeyword, controller.sessionConfig, controller.leftHistory)
         }
@@ -282,7 +285,7 @@ const handleSessionConfig = (message: any): void => {
 const handleCgevent = (data: any): void => {
     if (props.env !== ENV.SELECTION) return
     if (data.type === 'kHandlerTextSelection') {
-        controller.redirectWord = data.text_selected
+        dictTabsStore.redirectWord = data.text_selected
     }
 }
 const handleTauriNotification = async (data: any): Promise<void> => {
@@ -309,7 +312,7 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
             expandWordOptions()
             break
         case 'lookup_keyword_request':
-            controller.redirectWord = message.data.keyword
+            dictTabsStore.redirectWord = message.data.keyword
             break
         case 'word_note':
             if (message.data.keyword === controller.lastSearchKeyword) {
@@ -383,21 +386,7 @@ watch(
     },
     { immediate: true }
 )
-// Fallback deep link: if the WebSocket reaches OPEN but the backend never
-// sent session_config with is_right_after_connection, send the tab's
-// initial keyword ourselves (once, after a short grace period).
-watch(
-    () => controller.webSocket?.status.value,
-    (status) => {
-        if (status !== 'open' || initialKeywordSent || !props.initialKeyword) return
-        setTimeout(() => {
-            if (!initialKeywordSent && props.initialKeyword) {
-                initialKeywordSent = true
-                controller.webSocket?.sendLookupKeywordRequest(props.initialKeyword)
-            }
-        }, 1200)
-    }
-)
+
 onMounted(() => {
     // Expose this tab's runtime state to the store (shared TitleBar reads it).
     dictTabsStore.registerController(props.tabId, controller)

@@ -20,11 +20,12 @@
         </div>
 
         <div @mousedown.stop class="search-wrapper">
-            <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :redirect-word="redirectWord"
-                :redirect-history-word="redirectHistoryWord" :word-options="wordOptions" :session-config="sessionConfig"
-                :search-history="searchHistory" @change:keyword="emit('change:keyword', $event)"
-                @change:input-focus="isInputFocused = $event" :show-popover-word-options="showPopoverWordOptions"
-                :focus-input-flag="focusInputFlag" :first-char="firstChar" :first-key-code="firstKeyCode" />
+            <WordOptionsAutoComplete :web-socket="webSocket" :env="env" :keyword-to-show="keywordToShow"
+                :redirect-word="redirectWord" :redirect-history-word="redirectHistoryWord" :word-options="wordOptions"
+                :session-config="sessionConfig" :search-history="searchHistory"
+                @change:keyword="emit('change:keyword', $event)" @change:input-focus="isInputFocused = $event"
+                :show-popover-word-options="showPopoverWordOptions" :focus-input-flag="focusInputFlag"
+                :first-char="firstChar" :first-key-code="firstKeyCode" />
         </div>
 
         <div data-tauri-drag-region v-if="lastSearchKeyword" id="titlebar-keyword-title" class="keyword-title">
@@ -171,6 +172,11 @@ const props = defineProps({
         required: true,
     },
     env: {
+        type: String,
+        required: true,
+        default: '',
+    },
+    keywordToShow: {
         type: String,
         required: true,
         default: '',

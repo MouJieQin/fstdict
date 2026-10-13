@@ -35,6 +35,7 @@
                     <el-header data-tauri-drag-region :height="`var(--header-height)`" class="fstdict-titlebar">
                         <TitleBar :web-socket="activeController?.webSocket ?? null"
                             :session-id="activeController?.sessionId ?? -1" :env="envFromRoute"
+                            :keyword-to-show="activeController?.keyword ?? ''"
                             :is-word-favorited="activeController?.isWordFavorited"
                             :session-config="activeController?.sessionConfig ?? defaultSessionConfig"
                             :dicts-info="activeController?.dictsInfo"
@@ -44,7 +45,7 @@
                             :last-search-keyword="activeController?.lastSearchKeyword ?? ''"
                             :has-result-last-search="activeController?.hasResultLastSearch"
                             :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"
-                            :redirect-word="activeController?.redirectWord" @change:keyword="handleTitleBarKeyword"
+                            :redirect-word="dictTabsStore.redirectWord" @change:keyword="handleTitleBarKeyword"
                             @redirect-session="handleRedirectSession"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
@@ -378,15 +379,13 @@ const setupTauriListeners = async (): Promise<void> => {
         })
         if (envFromRoute.value === ENV.SELECTION) {
             unlistenTextSelected = await listen(TAURI_EVENT.TEXT_SELECTED, (event) => {
-                const controller = dictTabsStore.activeController
-                if (controller) controller.redirectWord = event.payload as string
+                dictTabsStore.redirectWord = event.payload as string
             })
         }
 
         if (envFromRoute.value === ENV.HELPER || envFromRoute.value === ENV.MAIN) {
             unlistenOcrResult = await listen(TAURI_EVENT.OCR_RESULT, (event) => {
-                const controller = dictTabsStore.activeController
-                if (controller) controller.redirectWord = event.payload as string
+                dictTabsStore.redirectWord = event.payload as string
             })
         }
     } catch (error) {

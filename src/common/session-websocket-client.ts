@@ -163,6 +163,12 @@ export class SessionWebSocketService extends WebSocketService {
         })
     }
 
+    public sendKeywordOptionsSearch2(keyword: string, sessionConfig: SessionConfig): void {
+        const dictSettings = getDictSettingsForLookup(sessionConfig.dict_setting_option_name)
+        this.sendKeywordOptionsSearch(keyword, sessionConfig.default_search_method.method, dictSettings)
+    }
+
+
     public sendKeywordOptionsNote(keyword: string, note: string): void {
         this.sendTyped('word_option_note', { keyword, options: [note] })
     }

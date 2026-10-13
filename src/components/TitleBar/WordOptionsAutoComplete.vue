@@ -71,6 +71,7 @@ const props = defineProps<{
     webSocket: SessionWebSocketService | null
     env: string
     sessionConfig: SessionConfig
+    keywordToShow: string
     redirectWord: string
     redirectHistoryWord: string
     searchHistory: WordInfo[]
@@ -238,6 +239,11 @@ watch(optionsRef, () => {
         if (el?.$el) el.$el.scrollTop = 0
     })
 }, { deep: true })
+
+// Sync keyword when props change
+watch(() => props.keywordToShow, (newVal) => {
+    keyword.value = newVal
+})
 
 // Handle redirect word from parent
 watch(() => props.redirectWord, (newVal) => {

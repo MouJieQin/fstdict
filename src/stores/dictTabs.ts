@@ -46,7 +46,7 @@ export interface TabController {
     keyword: string
     lastSearchKeyword: string
     hasResultLastSearch: boolean
-    redirectWord: string
+    // redirectWord: string
 
     // --- Results ---
     lookupResults: Record<string, string[]>
@@ -119,6 +119,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
     state: () => ({
         tabs: [] as DictTabEntry[],
         activeTabId: '' as string,
+        redirectWord: '' as string,
         /** Session id used to re-open a fresh tab when the last one is closed. */
         initialSessionId: null as number | null,
     }),
