@@ -70,6 +70,8 @@ export interface TabController {
     wordOptions: string[]
 
     // --- Misc ---
+    triggerScrollToNextDict: boolean
+    triggerScrollToPreviousDict: boolean
     iframeKeydownEvent: unknown
     ankiProgress: Record<string, any>
     addDictMsgs: any[]

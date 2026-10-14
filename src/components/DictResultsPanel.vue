@@ -408,6 +408,22 @@ watch(
     }
 )
 
+watch(
+    () => props.controller.triggerScrollToNextDict,
+    () => {
+        scrollToNextDictionary()
+    }
+)
+
+watch(
+    () => props.controller.triggerScrollToPreviousDict,
+    () => {
+        scrollToPrevDictionary()
+    }
+)
+
+
+
 /** Expand a dictionary section and scroll it into view (locate menu/ball). */
 const scrollToDictionary = async (dictName: string): Promise<void> => {
     const element = document.getElementById(sectionId(dictName))
@@ -434,21 +450,102 @@ const scrollToDictionary = async (dictName: string): Promise<void> => {
     })
 }
 
+/** Jump to next dictionary section based on current scroll position */
 const scrollToNextDictionary = async (): Promise<void> => {
     const scrollbar = wordDetailScrollbarRef.value
     if (!scrollbar) return
     const scrollWrap = scrollbar.wrapRef
     if (!scrollWrap) return
 
-    for (const dictName of Object.keys(props.controller.lookupResults)) {
+    // 所有字典顺序（保持 lookupResults 顺序）
+    const dictNames = Object.keys(props.controller.lookupResults)
+    if (dictNames.length <= 1) return
+
+    // 容器视口信息
+    const wrapRect = scrollWrap.getBoundingClientRect()
+    const viewportTop = scrollWrap.scrollTop
+    const viewportBottom = viewportTop + scrollWrap.clientHeight
+
+    // 找到当前视口内【第一个】字典区块
+    let currentIndex = -1
+    for (let i = 0; i < dictNames.length; i++) {
+        const dictName = dictNames[i]
         const element = document.getElementById(sectionId(dictName))
-        if (!element) return
-        const elecRect = element.getBoundingClientRect()
-        if (scrollWrap.scrollTop >= scrollWrap.scrollHeight - scrollWrap.clientHeight) {
-            await scrollToDictionary(dictName)
+        if (!element) continue
+
+        const targetRect = element.getBoundingClientRect()
+        // 元素相对于滚动容器的 top
+        const eleTop = scrollWrap.scrollTop + (targetRect.top - wrapRect.top)
+        const eleBottom = eleTop + element.offsetHeight
+
+        // 判断区块和视口有重叠：判定为当前正在查看的字典
+        if (eleBottom > viewportTop && eleTop < viewportBottom) {
+            currentIndex = i
+            break
         }
     }
+
+    let nextIndex: number
+    if (currentIndex === -1) {
+        // 没有区块在视口内（滚动位置异常），默认跳到第0个
+        nextIndex = 0
+    } else if (currentIndex < dictNames.length - 1) {
+        // 存在下一项
+        nextIndex = currentIndex + 1
+    } else {
+        // 已经最后一项，可选：nextIndex = 0 循环；或者直接 return 不滚动
+        return
+    }
+
+    const nextDictName = dictNames[nextIndex]
+    await scrollToDictionary(nextDictName)
 }
+
+/** Jump to previous dictionary section */
+const scrollToPrevDictionary = async (): Promise<void> => {
+    const scrollbar = wordDetailScrollbarRef.value
+    if (!scrollbar) return
+    const scrollWrap = scrollbar.wrapRef
+    if (!scrollWrap) return
+
+    const dictNames = Object.keys(props.controller.lookupResults)
+    if (dictNames.length <= 1) return
+
+    const wrapRect = scrollWrap.getBoundingClientRect()
+    const viewportTop = scrollWrap.scrollTop
+    const viewportBottom = viewportTop + scrollWrap.clientHeight
+
+    let currentIndex = -1
+    for (let i = 0; i < dictNames.length; i++) {
+        const dictName = dictNames[i]
+        const element = document.getElementById(sectionId(dictName))
+        if (!element) continue
+
+        const targetRect = element.getBoundingClientRect()
+        const eleTop = scrollWrap.scrollTop + (targetRect.top - wrapRect.top)
+        const eleBottom = eleTop + element.offsetHeight
+
+        if (eleBottom > viewportTop && eleTop < viewportBottom) {
+            currentIndex = i
+            break
+        }
+    }
+
+    let prevIndex: number
+    if (currentIndex === -1) {
+        prevIndex = 0
+    } else if (currentIndex > 0) {
+        prevIndex = currentIndex - 1
+    } else {
+        // 第一项，不再往上翻；如需循环改成 prevIndex = dictNames.length -1
+        return
+    }
+
+    const prevDictName = dictNames[prevIndex]
+    await scrollToDictionary(prevDictName)
+}
+
+
 
 /** Jump to an anchor offset inside a dictionary iframe. */
 const handleLocationClick = (dictionaryName: string, offsetTop: number): void => {

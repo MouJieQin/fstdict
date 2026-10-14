@@ -459,6 +459,16 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     } else if (data.key === 'ArrowRight' && data.metaKey) {
         if (e) e.preventDefault()
         dictTabsStore.activateNextTab()
+    } else if (data.key === 'ArrowUp' && (data.shiftKey && (data.ctrlKey || data.metaKey))) {
+        if (e) e.preventDefault()
+        if (dictTabsStore.activeTab?.controller) {
+            dictTabsStore.activeTab.controller.triggerScrollToPreviousDict = !dictTabsStore.activeTab.controller.triggerScrollToPreviousDict
+        }
+    } else if (data.key === 'ArrowDown' && (data.shiftKey && (data.ctrlKey || data.metaKey))) {
+        if (e) e.preventDefault()
+        if (dictTabsStore.activeTab?.controller) {
+            dictTabsStore.activeTab.controller.triggerScrollToNextDict = !dictTabsStore.activeTab.controller.triggerScrollToNextDict
+        }
     }
     else if ((data.key === 'w' && data.metaKey)) {
         if (dictTabsStore.tabSize > 1) {

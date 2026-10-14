@@ -351,7 +351,6 @@ function setupMessageListener(): void {
 
         switch (e.data.type) {
             case IFRAME_MSG.ENTRY_CLICK:
-                // console.log(e.data)
                 handleEntryClick(e.data.entry, e.data.metaKey, e.data.ctrlKey)
                 break
             case IFRAME_MSG.SOUND_CLICK:

@@ -112,6 +112,8 @@ const controller = reactive<TabController>({
     folderWords: {},
     searchHistory: [],
     wordOptions: [],
+    triggerScrollToNextDict: false,
+    triggerScrollToPreviousDict: false,
     iframeKeydownEvent: null,
     ankiProgress: {},
     addDictMsgs: [],
@@ -282,7 +284,7 @@ const handleSessionConfig = (message: any): void => {
     setupOcrLangType()
     if (message.data.is_right_after_connection) {
         if (props.initialKeyword || props.initialKeywordToShow) {
-            controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, false)
+            controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, true)
             controller.keyword = props.initialKeywordToShow
             // use prefix distance search, otherwise it may overwhelm the option panel
             controller.webSocket?.sendKeywordOptionsWithPrefixDistance(props.initialKeywordToShow, controller.sessionConfig)
