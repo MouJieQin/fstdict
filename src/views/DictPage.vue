@@ -49,7 +49,7 @@
                             @redirect-session="handleRedirectSession"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
-                            :iframe-keydown-event="activeController?.iframeKeydownEvent"
+                            :iframe-keydown-event="dictTabsStore.iframeKeydownEvent"
                             :anki-progress="activeController?.ankiProgress"
                             :refresh-dics-settings-info-flag="activeController?.refreshDicsSettingsInfoFlag"
                             :show-popover-word-options="showPopoverWordOptions" :show-sidebar="showSidebar"
@@ -80,7 +80,8 @@
                             :initial-keyword-to-show="tab.initialKeywordToShow" :show-popover="showPopoverWordOptions"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             @create-session="handleCreateSession" @session-error="handleSessionError"
-                            @activate-session="handleActivateSession" @context-menu="handleIframeContextMenu" />
+                            @activate-session="handleActivateSession" @iframe-keydown="handleIframeKeydown"
+                            @context-menu="handleIframeContextMenu" />
                     </el-splitter-panel>
                     <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize">
                         <GlossaryOptions :active-menu-index="activeMenuIndex"
@@ -353,6 +354,11 @@ const handleIframeContextMenu = (payload: {
     y: number
 }): void => {
     showContextMenu(payload.x, payload.y, payload.selectedText)
+}
+
+/** Keydown event from the iframe. */
+const handleIframeKeydown = (evt: unknown): void => {
+    dictTabsStore.iframeKeydownEvent = evt
 }
 
 // --- Tauri event listeners (target the ACTIVE tab only) ---

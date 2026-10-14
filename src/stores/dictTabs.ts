@@ -124,6 +124,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
         redirectWord: '' as string,
         /** Session id used to re-open a fresh tab when the last one is closed. */
         initialSessionId: null as number | null,
+        iframeKeydownEvent: null as unknown,
     }),
 
     getters: {
@@ -257,7 +258,6 @@ export const useDictTabsStore = defineStore('dictTabs', {
             let nextIndex = index + 1
             if (nextIndex === this.tabs.length) nextIndex = 0
             this.reorderTabs(index, nextIndex)
-            this.saveTabs()
         },
 
         moveTheTabToPreviousPos(): void {
@@ -265,7 +265,6 @@ export const useDictTabsStore = defineStore('dictTabs', {
             let prevIndex = index - 1
             if (prevIndex < 0) prevIndex = this.tabs.length - 1
             this.reorderTabs(index, prevIndex)
-            this.saveTabs()
         },
 
         /**

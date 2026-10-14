@@ -36,7 +36,7 @@
                 <!-- Results panel (independent per tab) -->
                 <el-splitter-panel :min="400">
                     <DictResultsPanel :controller="controller" :env="env" :tab-id="props.tabId"
-                        @context-menu="emit('context-menu', $event)" />
+                        @iframe-keydown="emit('iframe-keydown', $event)" @context-menu="emit('context-menu', $event)" />
                 </el-splitter-panel>
             </el-splitter>
         </el-main>
@@ -81,6 +81,7 @@ const emit = defineEmits<{
     (e: 'toggle:config-panel'): void
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
+    (e: 'iframe-keydown', evt: unknown): void
     (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 // --- Stores ---
