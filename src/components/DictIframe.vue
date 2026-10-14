@@ -188,6 +188,13 @@ function injectKeydownHandler(doc: Document): void {
       if (isZoomKey && e.metaKey) {
         e.preventDefault(); 
       }
+
+      let selectedText = ''
+      if ( (e.key === 'Enter') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        selectedText = (window.getSelection()?.toString() || '').trim();
+      }
+
       window.parent.postMessage({
         type: 'KEYDOWN',
         key: e.key,
@@ -196,6 +203,7 @@ function injectKeydownHandler(doc: Document): void {
         shiftKey: e.shiftKey,
         altKey: e.altKey,
         metaKey: e.metaKey,
+        selectedText: selectedText,
         iframeId: '${iframeId.value}'
       }, '*');
     });

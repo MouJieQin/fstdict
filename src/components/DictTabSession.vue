@@ -36,7 +36,8 @@
                 <!-- Results panel (independent per tab) -->
                 <el-splitter-panel :min="400">
                     <DictResultsPanel :controller="controller" :env="env" :tab-id="props.tabId"
-                        @iframe-keydown="emit('iframe-keydown', $event)" @context-menu="emit('context-menu', $event)" />
+                        @iframe-keydown="emit('iframe-keydown', $event)" @entry-click="handleEntryClick"
+                        @context-menu="emit('context-menu', $event)" />
                 </el-splitter-panel>
             </el-splitter>
         </el-main>
@@ -96,7 +97,6 @@ const controller = reactive<TabController>({
     keyword: '',
     lastSearchKeyword: '',
     hasResultLastSearch: false,
-    // redirectWord: '',
     lookupResults: {},
     noteContent: '',
     leftHistory: false,
@@ -211,6 +211,15 @@ const setupOcrLangType = (): void => {
         controller.sessionConfig.ocr_lang_type = 'English'
     }
 }
+
+
+/** Handle entry click. */
+const handleEntryClick = (word: string): void => {
+    dictTabsStore.redirectWord = word
+}
+
+
+
 // --- WebSocket message handlers ---
 const handleDictInfo = (data: any): void => {
     controller.dictsInfo = data

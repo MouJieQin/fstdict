@@ -46,7 +46,7 @@
                             :has-result-last-search="activeController?.hasResultLastSearch"
                             :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"
                             :redirect-word="dictTabsStore.redirectWord" @change:keyword="handleTitleBarKeyword"
-                            @redirect-session="handleRedirectSession"
+                            @open-tab-with-keyword="openTabWithKeyword" @redirect-session="handleRedirectSession"
                             @toggle:main-sidebar="emit('toggle:main-sidebar', $event)"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             :iframe-keydown-event="dictTabsStore.iframeKeydownEvent"

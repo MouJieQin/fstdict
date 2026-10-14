@@ -270,6 +270,7 @@ const emit = defineEmits<{
     (e: 'toggle:main-sidebar', isCollapsed: boolean): void
     (e: 'toggle:config-panel'): void
     (e: 'change:keyword', keyword: string): void
+    (e: 'open-tab-with-keyword', keyword: string): void
     (e: 'redirect-session', sessionId: number): void
 }>()
 
@@ -430,7 +431,7 @@ watch(favoriteWordsDialogVisible, (visible) => {
 })
 
 // --- Keyboard shortcuts from iframe ---
-const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }, e: KeyboardEvent | null = null): Promise<void> => {
+const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean, selectedText: string }, e: KeyboardEvent | null = null): Promise<void> => {
     if (data.key === '/' && data.metaKey) {
         favoriteWordsDialogVisible.value = !favoriteWordsDialogVisible.value
     } else if (data.key === 'ArrowLeft' && data.altKey) {
@@ -470,6 +471,19 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     } else if ((data.key === 'd' && data.metaKey)) {
         if (e) e.preventDefault()
         dictTabsStore.clearTabs()
+    } else if ((data.key === 'Enter' && (data.shiftKey && (data.ctrlKey || data.metaKey)))) {
+        if (e) e.preventDefault()
+        const text = data.selectedText || (window.getSelection()?.toString() || '').trim();
+        if (text) {
+            emit('open-tab-with-keyword', text)
+        }
+    }
+    else if ((data.key === 'Enter' && (data.ctrlKey || data.metaKey))) {
+        if (e) e.preventDefault()
+        const text = data.selectedText || (window.getSelection()?.toString() || '').trim();
+        if (text) {
+            dictTabsStore.redirectWord = text
+        }
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {
@@ -529,6 +543,7 @@ const handleGlobalKeydown = async (e: KeyboardEvent): Promise<void> => {
         shiftKey: e.shiftKey,
         altKey: e.altKey,
         metaKey: e.metaKey,
+        selectedText: '',
     }, e)
 }
 
