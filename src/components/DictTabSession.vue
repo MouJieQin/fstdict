@@ -83,6 +83,7 @@ const emit = defineEmits<{
     (e: 'create-session', sessionId: number): void
     (e: 'session-error', tabId: string): void
     (e: 'iframe-keydown', evt: unknown): void
+    (e: 'open-tab-with-keyword', keyword: string): void
     (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
 // --- Stores ---
@@ -214,8 +215,12 @@ const setupOcrLangType = (): void => {
 
 
 /** Handle entry click. */
-const handleEntryClick = (word: string): void => {
-    dictTabsStore.redirectWord = word
+const handleEntryClick = (payload: { entryPath: string, metaKey: boolean, ctrlKey: boolean }): void => {
+    if (payload.metaKey || payload.ctrlKey) {
+        emit('open-tab-with-keyword', payload.entryPath)
+    } else {
+        dictTabsStore.redirectWord = payload.entryPath
+    }
 }
 
 

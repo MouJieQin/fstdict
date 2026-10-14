@@ -14,6 +14,7 @@ import {
 } from '@/common/constants'
 
 interface Props {
+    tabId: string
     dictionaryName: string
     index: number
     html: string
@@ -27,7 +28,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-    (e: 'entry-click', path: string): void
+    (e: 'entry-click', payload: { entryPath: string, metaKey: boolean, ctrlKey: boolean }): void
     (e: 'location-click', dictionaryName: string, offsetTop: number): void
     (e: 'keydown', event: unknown): void
     (
@@ -37,8 +38,8 @@ const emit = defineEmits<{
 }>()
 
 const iframeRef = ref<HTMLIFrameElement | null>(null)
-const iframeId = computed(() => `${props.dictionaryName}-${props.index}`)
-const tailElementId = computed(() => `${props.dictionaryName}-dict-tail`)
+const iframeId = computed(() => `${props.tabId}-${props.dictionaryName}-${props.index}`)
+const tailElementId = computed(() => `${props.tabId}-${props.dictionaryName}-dict-tail`)
 
 const baseUrl = computed(() => `${API_BASE_URL}/${encodeURIComponent(props.dictionaryName)}`)
 
@@ -142,13 +143,18 @@ function injectClickHandler(doc: Document): void {
       if (!a) return;
       const href = a.href || a.getAttribute('href');
 
+      const metaKey = e.metaKey;
+      const ctrlKey = e.ctrlKey;
+
       if (href.startsWith('${URL_SCHEME.ENTRY}')) {
         e.preventDefault();
         const raw = a.getAttribute('href') || a.href;
         window.parent.postMessage({
           type: '${IFRAME_MSG.ENTRY_CLICK}',
           iframeId: '${iframeId.value}',
-          entry: raw.replace('${URL_SCHEME.ENTRY}', '')
+          entry: raw.replace('${URL_SCHEME.ENTRY}', ''),
+          metaKey: metaKey,
+          ctrlKey: ctrlKey,
         }, '*');
       }
       else if (href.startsWith('${URL_SCHEME.SOUND}')) {
@@ -304,11 +310,11 @@ function setupMutationObserver(iframe: HTMLIFrameElement): void {
 }
 
 // ============== Message Handling ==============
-function handleEntryClick(entry: string): void {
+function handleEntryClick(entry: string, metaKey: boolean, ctrlKey: boolean): void {
     try {
-        emit('entry-click', decodeURIComponent(entry))
+        emit('entry-click', { entryPath: decodeURIComponent(entry), metaKey, ctrlKey })
     } catch {
-        emit('entry-click', entry)
+        emit('entry-click', { entryPath: entry, metaKey, ctrlKey })
     }
 }
 
@@ -345,7 +351,8 @@ function setupMessageListener(): void {
 
         switch (e.data.type) {
             case IFRAME_MSG.ENTRY_CLICK:
-                handleEntryClick(e.data.entry)
+                // console.log(e.data)
+                handleEntryClick(e.data.entry, e.data.metaKey, e.data.ctrlKey)
                 break
             case IFRAME_MSG.SOUND_CLICK:
                 handleSoundClick(e.data.sound)

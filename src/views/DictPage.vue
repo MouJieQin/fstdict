@@ -80,8 +80,8 @@
                             :initial-keyword-to-show="tab.initialKeywordToShow" :show-popover="showPopoverWordOptions"
                             @toggle:config-panel="activeController!.showConfigPanel = !activeController!.showConfigPanel"
                             @create-session="handleCreateSession" @session-error="handleSessionError"
-                            @activate-session="handleActivateSession" @iframe-keydown="handleIframeKeydown"
-                            @context-menu="handleIframeContextMenu" />
+                            @open-tab-with-keyword="openTabWithKeyword" @activate-session="handleActivateSession"
+                            @iframe-keydown="handleIframeKeydown" @context-menu="handleIframeContextMenu" />
                     </el-splitter-panel>
                     <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize">
                         <GlossaryOptions :active-menu-index="activeMenuIndex"

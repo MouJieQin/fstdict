@@ -137,7 +137,7 @@
 
                     <div v-for="(html, index) in htmlList" :key="index">
                         <div class="simple-divider"></div>
-                        <DictIframe :dictionary-name="dictName" :index="index" :html="html"
+                        <DictIframe :tab-id="tabId" :dictionary-name="dictName" :index="index" :html="html"
                             :css-urls="controller.dictsInfo[dictName]?.css || []"
                             :js-urls="controller.dictsInfo[dictName]?.js || []"
                             :base-path="controller.dictsInfo[dictName]?.data || ''"
@@ -221,7 +221,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-    (e: 'entry-click', entryPath: string): void
+    (e: 'entry-click', payload: { entryPath: string, metaKey: boolean, ctrlKey: boolean }): void
     (e: 'iframe-keydown', evt: unknown): void
     (e: 'context-menu', payload: { selectedText: string; x: number; y: number }): void
 }>()
@@ -432,6 +432,22 @@ const scrollToDictionary = async (dictName: string): Promise<void> => {
         top: targetScrollTop,
         behavior: 'instant',
     })
+}
+
+const scrollToNextDictionary = async (): Promise<void> => {
+    const scrollbar = wordDetailScrollbarRef.value
+    if (!scrollbar) return
+    const scrollWrap = scrollbar.wrapRef
+    if (!scrollWrap) return
+
+    for (const dictName of Object.keys(props.controller.lookupResults)) {
+        const element = document.getElementById(sectionId(dictName))
+        if (!element) return
+        const elecRect = element.getBoundingClientRect()
+        if (scrollWrap.scrollTop >= scrollWrap.scrollHeight - scrollWrap.clientHeight) {
+            await scrollToDictionary(dictName)
+        }
+    }
 }
 
 /** Jump to an anchor offset inside a dictionary iframe. */
