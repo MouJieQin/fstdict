@@ -140,7 +140,7 @@ import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
 
 // Composables & stores
-import { useFolderConfigStore, useSystemConfigStore } from '@/stores'
+import { useFolderConfigStore, useSystemConfigStore, useDictTabsStore } from '@/stores'
 import { useHistoryNavigation } from '@/composables/useHistoryNavigation'
 import { useSessionManagement } from '@/composables/useSessionManagement'
 import { useWindowPin } from '@/composables/useWindowPin'
@@ -276,6 +276,7 @@ const emit = defineEmits<{
 // --- Stores ---
 const folderConfigStore = useFolderConfigStore()
 const systemConfigStore = useSystemConfigStore()
+const dictTabsStore = useDictTabsStore()
 
 // --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
@@ -445,6 +446,30 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
             const text = await readText()
             props.webSocket?.sendLookupKeywordRequest(text)
         }
+    } else if (data.key === 'ArrowLeft' && data.shiftKey && data.metaKey) {
+        if (e) e.preventDefault()
+        dictTabsStore.moveTheTabToPreviousPos()
+    } else if (data.key === 'ArrowRight' && data.shiftKey && data.metaKey) {
+        if (e) e.preventDefault()
+        dictTabsStore.moveTheTabToNextPos()
+    } else if (data.key === 'ArrowLeft' && data.metaKey) {
+        if (e) e.preventDefault()
+        dictTabsStore.activatePreviousTab()
+    } else if (data.key === 'ArrowRight' && data.metaKey) {
+        if (e) e.preventDefault()
+        dictTabsStore.activateNextTab()
+    }
+    else if ((data.key === 'w' && data.metaKey)) {
+        if (dictTabsStore.tabSize > 1) {
+            if (e) e.preventDefault()
+            dictTabsStore.closeActiveTab()
+        }
+    } else if ((data.key === 'n' && data.metaKey)) {
+        if (e) e.preventDefault()
+        dictTabsStore.createTab(dictTabsStore.activeTab?.controller?.sessionId)
+    } else if ((data.key === 'd' && data.metaKey)) {
+        if (e) e.preventDefault()
+        dictTabsStore.clearTabs()
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {

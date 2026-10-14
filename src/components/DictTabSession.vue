@@ -266,7 +266,6 @@ const handleSessionConfig = (message: any): void => {
     setupDictSettings()
     setupOcrLangType()
     if (message.data.is_right_after_connection) {
-        console.log("controller.lastSearchKeyword:", controller.lastSearchKeyword)
         if (props.initialKeyword || props.initialKeywordToShow) {
             controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, false)
             controller.keyword = props.initialKeywordToShow

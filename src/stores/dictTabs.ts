@@ -145,6 +145,10 @@ export const useDictTabsStore = defineStore('dictTabs', {
             return [...state.tabs].sort((a, b) => a.order - b.order)
         },
 
+        tabSize(state): number {
+            return state.tabs.length
+        },
+
         /** Convert the store state to a serializable format. */
         toSerializableState(state): DictTabsState {
             return {
@@ -182,7 +186,7 @@ export const useDictTabsStore = defineStore('dictTabs', {
             }
             let activeTabId = ''
             for (const tab of windowTabs.tabs) {
-                const tabId = this.createTab(tab.sessionId, tab.title, tab.initialKeywordToShow, tab.initialKeyword, false)
+                const tabId = this.createTab(tab.sessionId, tab.title, tab.initialKeywordToShow || tab.title, tab.initialKeyword || tab.title, false)
                 if (tab.id === windowTabs.activeTabId) activeTabId = tabId
             }
             this.activeTabId = activeTabId
@@ -232,6 +236,38 @@ export const useDictTabsStore = defineStore('dictTabs', {
             this.saveTabs()
         },
 
+        activateNextTab(): void {
+            let nextIndex = this.tabs.findIndex((t) => t.id === this.activeTabId) + 1
+            if (nextIndex >= this.tabs.length) nextIndex = 0
+            const next = this.tabs[nextIndex]
+            if (next) this.activeTabId = next.id
+            this.saveTabs()
+        },
+
+        activatePreviousTab(): void {
+            let prevIndex = this.tabs.findIndex((t) => t.id === this.activeTabId) - 1
+            if (prevIndex < 0) prevIndex = this.tabs.length - 1
+            const prev = this.tabs[prevIndex]
+            if (prev) this.activeTabId = prev.id
+            this.saveTabs()
+        },
+
+        moveTheTabToNextPos(): void {
+            const index = this.tabs.findIndex((t) => t.id === this.activeTabId)
+            let nextIndex = index + 1
+            if (nextIndex === this.tabs.length) nextIndex = 0
+            this.reorderTabs(index, nextIndex)
+            this.saveTabs()
+        },
+
+        moveTheTabToPreviousPos(): void {
+            const index = this.tabs.findIndex((t) => t.id === this.activeTabId)
+            let prevIndex = index - 1
+            if (prevIndex < 0) prevIndex = this.tabs.length - 1
+            this.reorderTabs(index, prevIndex)
+            this.saveTabs()
+        },
+
         /**
          * Close a tab. Always keeps at least one tab alive; when the very last
          * tab is closed a fresh one is re-opened on the initial session id.
@@ -254,6 +290,22 @@ export const useDictTabsStore = defineStore('dictTabs', {
                 this.activeTabId = next.id
             }
             this.saveTabs()
+        },
+
+        closeActiveTab(): void {
+            this.closeTab(this.activeTabId)
+        },
+
+        clearTabs(): void {
+            let tabsToClose = []
+            for (const tab of this.tabs) {
+                if (tab.id !== this.activeTabId) {
+                    tabsToClose.push(tab.id)
+                }
+            }
+            for (const tabId of tabsToClose) {
+                this.closeTab(tabId)
+            }
         },
 
         /**
