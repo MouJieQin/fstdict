@@ -3,16 +3,23 @@
         <!-- Drag-and-drop area (Tauri only) -->
         <div class="drag-area" :class="{ active: dragOver }">
             <BsUpload size="35" />
-            <div>{{ $t('dictDialog.dragHint') }}</div>
             <div>
-                {{ $t('dictDialog.visitForum') }}
-                <el-link href="https://forum.freemdict.com" type="primary" target="_blank">
-                    FreeMdict Forum
-                </el-link>
-                {{ $t('dictDialog.orDownloadFrom') }}
-                <el-link href="https://downloads.freemdict.com" type="primary" target="_blank">
-                    downloads
-                </el-link>
+                <el-tag type="info">
+                    {{ $t('dictDialog.dragHint') }}
+                </el-tag>
+            </div>
+            <div>
+                <el-tag type="info">
+                    {{ $t('dictDialog.visitForum') }}
+                    <el-link href="https://forum.freemdict.com" type="primary" target="_blank">
+                        FreeMdict Forum
+                    </el-link>
+                    {{ $t('dictDialog.orDownloadFrom') }}
+                    <el-link href="https://downloads.freemdict.com" type="primary" target="_blank">
+                        downloads
+                    </el-link>
+                </el-tag>
+
             </div>
         </div>
 
