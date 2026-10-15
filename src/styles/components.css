@@ -492,6 +492,16 @@
     border-top: none;
 } */
 
+.custom-tabs-label span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.custom-tabs-label span {
+    flex-shrink: 0;
+}
+
 .el-tabs__nav {
     overflow-x: auto;
     border: none !important;

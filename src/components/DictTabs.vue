@@ -16,7 +16,16 @@
 -->
 <template>
     <el-tabs v-model="activeId" type="card" editable class="dict-tabs" ref="tabRef" @edit="handleTabsEdit">
-        <el-tab-pane v-for="tab in store.tabs" :key="tab.id" :name="tab.id" :label="ellipsisLabel(tab.title)" />
+        <el-tab-pane v-for="tab in store.tabs" :key="tab.id" :name="tab.id" :label="ellipsisLabel(tab.title)">
+            <template #label>
+                <span class="custom-tabs-label">
+                    <el-icon>
+                        <Calendar />
+                    </el-icon>
+                    <span>{{ ellipsisLabel(tab.title) }}</span>
+                </span>
+            </template>
+        </el-tab-pane>
     </el-tabs>
 </template>
 
@@ -26,6 +35,7 @@ import Sortable from 'sortablejs'
 import { useGetDerivedNamespace } from 'element-plus'
 import type { TabsInstance, TabPaneName } from 'element-plus'
 import { useDictTabsStore } from '@/stores/dictTabs'
+import { Calendar } from '@element-plus/icons-vue'
 
 const store = useDictTabsStore()
 
@@ -125,6 +135,12 @@ onBeforeUnmount(() => {
 <style scoped>
 /* The panes are pure labels; the content is rendered by DictResultsPanel,
    so hide el-tabs' content wrapper entirely. */
+
+.custom-tabs-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
 
 :deep(.dict-tabs .el-tabs__content) {
     display: none;

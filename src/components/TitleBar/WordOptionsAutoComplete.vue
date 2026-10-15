@@ -8,6 +8,11 @@
                 <SearchMethodSelect :search-method="sessionConfig.default_search_method?.method || 'prefix_search'"
                     @update-search-method="handleSearchMethodChange" />
             </template>
+            <template #suffix>
+                <el-icon style="margin-left:1rem;">
+                    <Search />
+                </el-icon>
+            </template>
         </el-input>
 
         <el-popover v-else trigger="contextmenu" placement="bottom-start" :visible="isDropdownVisible"
@@ -65,6 +70,7 @@ import { useAutocomplete } from '@/composables/useAutocomplete'
 import type { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfo } from '@/common/type-interface'
 import { useI18n } from 'vue-i18n'
+import { Search } from '@element-plus/icons-vue'
 
 
 const props = defineProps<{

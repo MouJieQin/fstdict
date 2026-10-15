@@ -154,8 +154,8 @@
     },
     "dictDialog": {
         "dragHint": "Drag .fstdx, .fstdd, .mdx, or .mdd files here",
-        "visitForum": "Visit the FreeMdict Forum",
-        "orDownloadFrom": "or download directly from downloads",
+        "visitForum": "Visit the ",
+        "orDownloadFrom": "or download directly from ",
         "showInFolder": "Show in Folder",
         "deleteDict": "Delete",
         "addingDict": "Adding Dictionary"

@@ -98,7 +98,7 @@ pub fn show_context_menu(
             &MenuItem::with_id(
                 &app,
                 ID_LOOKUP_SELECTION,
-                format!("在 New Tab 中查询 \"{preview}\""),
+                format!("Open New Tab to Look up \"{preview}\""),
                 true,
                 None::<&str>,
             )
@@ -110,7 +110,7 @@ pub fn show_context_menu(
     }
 
     menu.append(
-        &MenuItem::with_id(&app, ID_NEW_TAB, "创建 New Tab", true, None::<&str>)
+        &MenuItem::with_id(&app, ID_NEW_TAB, "Open New Tab", true, None::<&str>)
             .map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
@@ -118,7 +118,7 @@ pub fn show_context_menu(
     if has_selection {
         menu.append(&PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
-        menu.append(&PredefinedMenuItem::copy(&app, Some("复制")).map_err(|e| e.to_string())?)
+        menu.append(&PredefinedMenuItem::copy(&app, Some("Copy")).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
     }
 
