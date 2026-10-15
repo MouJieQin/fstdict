@@ -18,7 +18,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { Store } from '@tauri-apps/plugin-store'
+import { Store, getStore } from '@tauri-apps/plugin-store'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { isTauri } from '@tauri-apps/api/core'
 import type {
@@ -173,17 +173,23 @@ export const useDictTabsStore = defineStore('dictTabs', {
         async saveTabs(): Promise<void> {
             if (!isTauri()) return
             const windowLabel = getCurrentWindow().label
-            const store = await Store.load(`windows/dict-tabs.json`)
-            await store.set(`${windowLabel}`, this.toSerializableState)
+            const store = await getStore(`windows/dict-tabs.json`)
+            await store?.set(`${windowLabel}`, this.toSerializableState)
         },
 
-        async loadTabs(): Promise<void> {
+        /**
+         * Restore the tabs persisted for THIS window label (see saveTabs).
+         * @param fallbackSessionId session to bind the first tab to when
+         *        nothing was persisted - used by the native context menu's
+         *        "Open New Window in the Session" deep links. Defaults to 1.
+         */
+        async loadTabs(fallbackSessionId: number | null = null): Promise<void> {
             if (!isTauri()) return
             const windowLabel = getCurrentWindow().label
             const store = await Store.load(`windows/dict-tabs.json`)
             const windowTabs = await store.get(`${windowLabel}`) as DictTabsState
             if (!windowTabs) {
-                this.initialSessionId = 1
+                this.initialSessionId = fallbackSessionId ?? 1
                 this.createTab(this.initialSessionId)
                 return
             }

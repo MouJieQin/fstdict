@@ -7,6 +7,9 @@ use fstdict_common::window::state::{create_debounced_saver, WindowState};
 use log::{info, warn};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_decorum::WebviewWindowExt;
+#[cfg(target_os = "windows")]
+use window_vibrancy::apply_blur;
+#[cfg(target_os = "macos")]
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
 
 /// Delay before arming the state tracker after window creation (milliseconds).

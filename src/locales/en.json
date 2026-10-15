@@ -200,5 +200,17 @@
         "screenshotPermission": "Screenshot Permission",
         "screenshotPurpose": "用于截屏取词",
         "grantPermission": "Grant Permission"
+    },
+    "contextMenu": {
+        "openNewTab": "Open New Tab",
+        "openNewTabLookup": "Open New Tab to Look Up \"{preview}\"",
+        "openNewTabInSession": "Open New Tab in the Session",
+        "openNewTabInSessionLookup": "Open New Tab in the Session to Look Up \"{preview}\"",
+        "openNewWindow": "Open New Window",
+        "openNewWindowLookup": "Open New Window to Look Up \"{preview}\"",
+        "openNewWindowInSession": "Open New Window in the Session",
+        "openNewWindowInSessionLookup": "Open New Window in the Session to Look Up \"{preview}\"",
+        "copy": "Copy",
+        "moveTabToNewWindow": "Move Tab to New Window"
     }
 }

@@ -1848,6 +1848,7 @@ dependencies = [
  "tauri-plugin-window-state",
  "tokio",
  "tokio-tungstenite",
+ "urlencoding",
  "window-vibrancy",
 ]
 

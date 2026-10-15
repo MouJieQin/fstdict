@@ -91,6 +91,8 @@ export const TAURI_CMD = {
     SHOW_UPDATER_WINDOW: 'show_updater_window',
     SET_UPDATER_WINDOW_SIZE: 'set_updater_window_size',
     SHOW_CONTEXT_MENU: 'show_context_menu',
+    /** Open a brand-new main dictionary window (optional session/keyword deep link). */
+    OPEN_NEW_WINDOW: 'open_new_window',
 } as const
 
 export const MAIN_MENU_INDEX = {
@@ -106,8 +108,25 @@ export const MAIN_MENU_INDEX = {
 export const TAURI_EVENT = {
     TEXT_SELECTED: 'cgevent-select',
     OCR_RESULT: 'cgevent-ocr',
-    /** Rust -> webview: a native context-menu item was clicked ("new-tab" | "lookup-selection"). */
+    /**
+     * Rust -> webview: a native context-menu item was clicked.
+     * Action strings (session submenu items carry the session id):
+     *   "new-tab" | "lookup-selection"
+     *   "new-tab-session:<id>" | "new-tab-session-lookup:<id>"
+     *   "new-window" | "new-window-lookup"
+     *   "new-window-session:<id>" | "new-window-session-lookup:<id>"
+     *   "move-tab-to-new-window"
+     */
     CTX_MENU_ACTION: 'ctx-menu-action',
+
+    /**
+     * Rust -> webview: this main window is being closed BY THE USER while
+     * other main windows are still alive. The DictPage clears its tabs so
+     * the final saveTabs() persists an empty list and the window is not
+     * restored on the next launch. The LAST main window is never signaled
+     * (it keeps its tabs and re-opens on the next launch).
+     */
+    MAIN_WINDOW_CLOSING: 'main-window-closing',
 } as const
 
 // --- WebSocket message types ---

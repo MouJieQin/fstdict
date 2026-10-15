@@ -1,16 +1,9 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-
-use fstdict_common::window::state::{create_debounced_saver, WindowState};
-
-use log::{info, warn};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_decorum::WebviewWindowExt;
+#[cfg(target_os = "windows")]
+use window_vibrancy::apply_blur;
+#[cfg(target_os = "macos")]
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
-
-/// Delay before arming the state tracker after window creation (milliseconds).
-const TRACKER_ARM_DELAY_MS: u64 = 500;
 
 pub fn show_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<(), tauri::Error> {
     // Fast path: panel already exists
@@ -29,14 +22,12 @@ pub fn show_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<
 
 /// Creates the setting window with saved state restoration.
 fn create_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<(), tauri::Error> {
-    let app_handle = app.clone();
-    let config_file = format!("{}-window-state.json", label);
-    let state = WindowState::load(&app_handle, config_file.as_str());
+    // Window position / size are persisted by the window-state plugin.
     let main_url = WebviewUrl::App(format!("#/{}", label).into());
 
     let mut builder = WebviewWindowBuilder::new(app, label, main_url)
         .title(title)
-        .inner_size(state.width, state.height)
+        .inner_size(900.0, 640.0)
         .min_inner_size(400.0, 300.0)
         .transparent(true)
         .accept_first_mouse(true);
@@ -50,24 +41,7 @@ fn create_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<()
             .title_bar_style(tauri::TitleBarStyle::Overlay);
     }
 
-    // Restore saved position if still within visible screen bounds
-    if let (Some(x), Some(y)) = (state.x, state.y) {
-        if WindowState::is_position_visible(&app_handle, x, y, state.width, state.height) {
-            builder = builder.position(x, y);
-            info!("Restoring main window position to ({}, {})", x, y);
-        } else {
-            builder = builder.center();
-            warn!(
-                "Saved main window position ({}, {}) is off-screen. Centering instead.",
-                x, y
-            );
-        }
-    } else {
-        builder = builder.center();
-        info!("No saved setting window position. Centering window.");
-    }
-
-    let main_win = builder.build()?;
+    let main_win = builder.center().build()?;
     #[cfg(any(target_os = "windows", target_os = "linux"))]
     {
         main_win.create_overlay_titlebar()?;
@@ -91,35 +65,6 @@ fn create_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<()
         )
         .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
     }
-
-    if state.maximized {
-        let _ = main_win.maximize();
-    }
-
-    // Suppress state saves during initial window layout
-    let is_ready = Arc::new(AtomicBool::new(false));
-    let task_counter = Arc::new(Mutex::new(0u64));
-    let config_name: Arc<str> = Arc::from(config_file);
-    let save_trigger = create_debounced_saver(
-        main_win.clone(),
-        app_handle.clone(),
-        Arc::clone(&is_ready),
-        Arc::clone(&task_counter),
-        Arc::clone(&config_name),
-    );
-
-    // Attach window event listeners
-    main_win.on_window_event(move |event| match event {
-        WindowEvent::Moved(_) | WindowEvent::Resized(_) => save_trigger(),
-        _ => {}
-    });
-
-    // Arm the state tracker after layout has settled
-    let ready_flag = Arc::clone(&is_ready);
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(TRACKER_ARM_DELAY_MS)).await;
-        ready_flag.store(true, Ordering::Relaxed);
-    });
 
     Ok(())
 }

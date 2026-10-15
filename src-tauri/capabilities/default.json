@@ -3,7 +3,7 @@
   "identifier": "main",
   "description": "Capability for the main window",
   "windows": [
-    "main",
+    "main*",
     "setting",
     "manage"
   ],

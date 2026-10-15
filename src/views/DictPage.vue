@@ -105,6 +105,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { i18n } from '@/i18n'
 import type { WordInfoWithFavoriteAt, WordInfoWithNoteUpdateAt } from '@/common/type-interface'
 
 // Components
@@ -321,6 +322,89 @@ const openTabWithKeyword = (text: string): void => {
     // dictTabsStore.activateTab(tabId)
 }
 
+/** Display name of a backend session (falls back to "Session <id>"). */
+const sessionNameOf = (id: number): string =>
+    dictTabsStore.activeController?.sessionsNameId.find((s) => s.id === id)?.name
+    ?? `Session ${id}`
+
+/** Open a brand-new main window, optionally bound to a session / keyword. */
+const openNewWindow = (sessionId?: number, keyword?: string): void => {
+    invoke(TAURI_CMD.OPEN_NEW_WINDOW, {
+        sessionId: sessionId ?? null,
+        keyword: keyword ?? '',
+    }).catch((err) => console.error('[DictPage] open_new_window failed:', err))
+}
+
+/**
+ * "Move Tab to New Window": spawn a new main window bound to the ACTIVE
+ * tab's session (deep-linked with the current lookup keyword), then close
+ * the tab in THIS window. Tab persistence flows automatically: the new
+ * window seeds its first tab from the URL deep link (nothing persisted for
+ * its fresh label yet), the closed tab is saved away by the store.
+ */
+const moveActiveTabToNewWindow = (): void => {
+    const tab = dictTabsStore.activeTab
+    if (tab?.sessionId == null) {
+        console.warn('[DictPage] No active tab session to move.')
+        return
+    }
+    const keyword = tab.controller?.lastSearchKeyword ?? tab.initialKeyword ?? ''
+    openNewWindow(tab.sessionId, keyword)
+    dictTabsStore.closeTab(tab.id)
+}
+
+/**
+ * Dispatch a native context-menu action. Plain items map to strings;
+ * session-submenu items carry their session id as a suffix, e.g.
+ * "new-tab-session:3". Tab creation goes through the dictTabs store
+ * (which persists the tab list per window), new-window actions ask Rust
+ * to spawn another main window (which persists its own tabs by label).
+ */
+const handleContextMenuAction = (action: string): void => {
+    if (action === 'new-tab') {
+        requestNewSession()
+        return
+    }
+    if (action === 'lookup-selection') {
+        openTabWithKeyword(lastContextMenuSelection.value)
+        return
+    }
+    if (action.startsWith('new-tab-session-lookup:')) {
+        const id = Number(action.slice('new-tab-session-lookup:'.length))
+        if (Number.isFinite(id)) {
+            const sel = lastContextMenuSelection.value
+            dictTabsStore.createTab(id, sessionNameOf(id), sel, sel)
+        }
+        return
+    }
+    if (action.startsWith('new-tab-session:')) {
+        const id = Number(action.slice('new-tab-session:'.length))
+        if (Number.isFinite(id)) dictTabsStore.createTab(id, sessionNameOf(id))
+        return
+    }
+    if (action === 'move-tab-to-new-window') {
+        moveActiveTabToNewWindow()
+        return
+    }
+    if (action === 'new-window') {
+        openNewWindow()
+        return
+    }
+    if (action === 'new-window-lookup') {
+        openNewWindow(undefined, lastContextMenuSelection.value)
+        return
+    }
+    if (action.startsWith('new-window-session-lookup:')) {
+        const id = Number(action.slice('new-window-session-lookup:'.length))
+        if (Number.isFinite(id)) openNewWindow(id, lastContextMenuSelection.value)
+        return
+    }
+    if (action.startsWith('new-window-session:')) {
+        const id = Number(action.slice('new-window-session:'.length))
+        if (Number.isFinite(id)) openNewWindow(id)
+    }
+}
+
 /**
  * Ask Rust to pop up the NATIVE context menu at (x, y) CSS-pixel coords.
  * The selected text decides which items the menu shows (Rust builds it).
@@ -329,10 +413,17 @@ const showContextMenu = (x: number, y: number, selectedText: string): void => {
     if (!isTauri()) return
     lastContextMenuSelection.value = selectedText
     const dpr = window.devicePixelRatio || 1
+    // The active locale + session list let Rust build the native menu with
+    // the SAME i18n strings and per-session submenus (see context_menu.rs).
     invoke(TAURI_CMD.SHOW_CONTEXT_MENU, {
         x: x * dpr,
         y: y * dpr,
         selectedText,
+        locale: i18n.global.locale.value as string,
+        sessions: dictTabsStore.activeController?.sessionsNameId ?? [],
+        // Lets Rust decide whether to show "Move Tab to New Window"
+        // (it is hidden when the window only has a single tab).
+        tabCount: dictTabsStore.tabSize,
     }).catch((err) => console.error('[DictPage] show_context_menu failed:', err))
 }
 
@@ -377,14 +468,18 @@ const setupTauriListeners = async (): Promise<void> => {
     unlistenCtxMenu = null
     try {
         // Context-menu actions apply in every window that hosts a DictPage.
-        unlistenCtxMenu = await listen(TAURI_EVENT.CTX_MENU_ACTION, (event) => {
-            const action = event.payload as string
-            if (action === 'new-tab') {
-                requestNewSession()
-            } else if (action === 'lookup-selection') {
-                openTabWithKeyword(lastContextMenuSelection.value)
-            }
+        // IMPORTANT: use getCurrentWindow().listen() (NOT the global listen)
+        // for the context-menu action channel. The global `listen` defaults
+        // to target { kind: 'Any' } and receives events addressed to ANY
+        // window, so an emit_to() from Rust would still be delivered to
+        // every main window (each one would then run handleContextMenuAction
+        // and duplicate "Open New Window" on every launch). Window-scoped
+        // listen + Rust's emit_to are the two halves of the fix.
+        unlistenCtxMenu = await getCurrentWindow().listen(TAURI_EVENT.CTX_MENU_ACTION, (event) => {
+            console.log('ctx_menu_action:', event.payload, "in window ", getCurrentWindow().label)
+            handleContextMenuAction(event.payload as string)
         })
+
         if (envFromRoute.value === ENV.SELECTION) {
             unlistenTextSelected = await listen(TAURI_EVENT.TEXT_SELECTED, (event) => {
                 dictTabsStore.redirectWord = event.payload as string
@@ -485,7 +580,14 @@ const initDictPage = async (): Promise<void> => {
 
 onMounted(async () => {
     window.addEventListener('resize', handleResize)
-    await dictTabsStore.loadTabs()
+    // Deep link from the native context menu ("Open New Window in the
+    // Session"): seed the first tab with the requested session (used only
+    // when nothing was persisted for this window label), then make sure a
+    // tab bound to it is active so initDictPage's keyword deep link lands
+    // on the right tab.
+    const sessionFromQuery = Number(route.query.session as string) || null
+    await dictTabsStore.loadTabs(sessionFromQuery)
+    if (sessionFromQuery != null) dictTabsStore.activateSessionTab(sessionFromQuery)
     // Right-click anywhere in the main document -> native context menu.
     // document.addEventListener('contextmenu', onDocumentContextMenu)
     await initDictPage()

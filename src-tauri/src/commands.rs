@@ -1,3 +1,4 @@
+use crate::window::main_window::{next_main_window_label, open_main_window};
 use crate::window::manage;
 #[cfg(target_os = "macos")]
 use crate::window::permission_window;
@@ -9,6 +10,36 @@ use fstdict_common::theme::set_app_theme;
 
 #[cfg(target_os = "macos")]
 use crate::app_state::HelperProcess;
+
+// ── Multi-window: "Open New Window" from the native context menu ──
+
+/// Tauri command: open a brand-new MAIN dictionary window.
+///
+/// `session_id` / `keyword` are optional deep links; when present they are
+/// appended to the window URL (`#/?env=main&session=..&keyword=..`) and the
+/// new window's DictPage uses them to seed its first tab (see DictPage's
+/// onMounted: loadTabs(fallbackSessionId) + activateSessionTab + the
+/// existing keyword deep link).
+///
+/// The window gets a unique label (`main-2`, `main-3`, ...) so tab
+/// persistence - the dictTabs store keys `windows/dict-tabs.json` entries
+/// by `getCurrentWindow().label` - stays independent per window. The label
+/// pattern `main*` is whitelisted in capabilities/default.json. Position /
+/// size are persisted by the self-written WindowState saver
+/// (main_window.rs) so geometry can be restored selectively at startup.
+#[tauri::command]
+pub fn open_new_window(
+    app: AppHandle,
+    session_id: Option<i64>,
+    keyword: Option<String>,
+) -> Result<(), String> {
+    let label = next_main_window_label(&app);
+    // Runtime-created window: DEFAULT geometry (centered), never the leftover
+    // position of an older window that reused this label. Startup windows
+    // restore their saved geometry (see restore_persisted_main_windows).
+    open_main_window(&app, &label, session_id, keyword, false)?;
+    Ok(())
+}
 
 #[tauri::command]
 pub fn set_theme(app_handle: AppHandle, theme: &str) {

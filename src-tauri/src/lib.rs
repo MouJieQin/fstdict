@@ -25,7 +25,7 @@ use shortcuts::global::register_global_shortcuts;
 use sidecar::common::terminate_child_process;
 use sidecar::python::start_python_sidecar;
 use websocket::client::start_ws_client;
-use window::main_window::setup_main_window;
+use window::main_window::{restore_persisted_main_windows, setup_main_window, APP_EXITING};
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 use window::setup::setup_float_panels;
 
@@ -73,7 +73,6 @@ pub async fn run() {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
@@ -94,6 +93,7 @@ pub async fn run() {
             commands::set_updater_window_size,
             commands::show_setting_window,
             commands::show_manage_window,
+            commands::open_new_window,
             context_menu::show_context_menu,
             #[cfg(target_os = "macos")]
             commands::check_screen_recording,
@@ -149,6 +149,12 @@ pub async fn run() {
 
             // Create and configure main window
             setup_main_window(app)?;
+
+            // Re-open every persisted "main-N" window whose tabs survived
+            // (windows closed manually were cleared, so they are skipped).
+            if let Err(e) = restore_persisted_main_windows(app.handle()) {
+                error!("Failed to restore persisted main windows: {}", e);
+            }
 
             // Set up global event listener
             globalevent::listener::init(&app.handle());
@@ -206,8 +212,12 @@ pub async fn run() {
     // Application event loop with graceful shutdown
     app.run(|app_handle, event| {
         match event {
-            // Handle both normal close and forced termination (Cmd+Q on macOS)
+            // Handle both normal close and forced termination (Cmd+Q on macOS).
+            // APP_EXITING makes every window's Destroyed event treat the
+            // close as part of app shutdown: persisted tabs are KEPT so the
+            // windows re-open on the next launch (see main_window.rs).
             RunEvent::ExitRequested { .. } | RunEvent::Exit => {
+                APP_EXITING.store(true, std::sync::atomic::Ordering::Relaxed);
                 // Terminate macOS helper processes
                 #[cfg(target_os = "macos")]
                 {
