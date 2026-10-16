@@ -42,10 +42,8 @@
             </el-splitter>
         </el-main>
         <el-aside :width="controller.showConfigPanel ? '100%' : '0px'" class="session-config-aside">
-            <div style="height: 100vh; overflow: auto;">
-                <SessionSetting :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
-                    @toggle:config-panel="emit('toggle:config-panel')" />
-            </div>
+            <SessionSetting v-if="props.sessionId" :web-socket="controller.webSocket" :session-id="props.sessionId"
+                :session-config="controller.sessionConfig" @toggle:config-panel="emit('toggle:config-panel')" />
         </el-aside>
     </el-container>
 </template>

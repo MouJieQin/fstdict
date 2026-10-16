@@ -2,9 +2,11 @@
 // Application-wide constants
 // ============================================================
 
-// --- WebSocket ---
+// --- URL constants ---
 export const WS_BASE_URL = 'ws://127.0.0.1:5959/ws/dictionary/session/'
 export const API_BASE_URL = 'http://127.0.0.1:5959/api/dictionaries'
+export const UPLOAD_SESSION_AVATAR_URL = 'http://127.0.0.1:5959/api/upload/session_avatar'
+export const AVATAR_BASE_URL = 'http://127.0.0.1:5959/api/avatar'
 
 // --- Reconnection ---
 export const WS_RECONNECT_BASE_DELAY = 500

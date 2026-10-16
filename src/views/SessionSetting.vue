@@ -8,13 +8,15 @@
             <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="auto" class="config-form">
                 <div class="config-class">
                     <p class="config-class-title">Avatar</p>
-                    <!-- <el-avatar v-if="localSystemConfig.appearance.user_avatar_url" :src="userAvatarUrl" fit="cover"
-                        size="large" @click="showUserPreview = true" style="cursor: pointer; margin-bottom: 20px;" />
-                    <el-image-viewer v-if="showUserPreview" :url-list="[userAvatarUrl]" show-progress :initial-index="0"
-                        @close="showUserPreview = false" /> -->
+                    <div style="text-align: center;">
+                        <el-avatar v-if="localSessionConfig.avatar" :src="AvatarUrl" fit="cover" size="large"
+                            @click="showAvatarPreview = true" style="cursor: pointer; margin-bottom: 20px;" />
+                        <el-image-viewer v-if="showAvatarPreview" :url-list="[AvatarUrl]" show-progress
+                            :initial-index="0" @close="showAvatarPreview = false" />
+                    </div>
                     <div>
-                        <el-upload class="avatar-uploader" drag action="http://localhost:4999/api/upload/user_avatar"
-                            :show-file-list="false">
+                        <el-upload class="avatar-uploader" drag :action="UPLOAD_SESSION_AVATAR_URL"
+                            :show-file-list="false" :data="{ 'session_id': props.sessionId }">
                             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
                             <div class="el-upload__text">
                                 Drop file here or <em>click to upload</em>
@@ -29,7 +31,7 @@
                 </div>
 
                 <div class="config-class">
-                    <!-- <p class="config-class-title">{{ $t('settings.appearance') }}</p> -->
+                    <p class="config-class-title">{{ $t('settings.appearance') }}</p>
                     <el-form-item :label="$t('sessionSettings.name')">
                         <el-text truncated class="word-text">
                             {{ localSessionConfig.name }}
@@ -69,13 +71,11 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch, computed, onBeforeMount, Text } from 'vue'
-
 import type { PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-
-
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 
+import { UPLOAD_SESSION_AVATAR_URL, AVATAR_BASE_URL } from '@/common/constants'
 // icon
 import { Expand, UploadFilled } from '@element-plus/icons-vue'
 
@@ -83,7 +83,7 @@ import { Expand, UploadFilled } from '@element-plus/icons-vue'
 
 // Stores & utilities
 import { useFolderConfigStore, useSystemConfigStore, useDictConfigStore } from '@/stores'
-import { safeDeepClone } from '@/common/utility'
+import { safeDeepClone, getSessionAvatarUrl } from '@/common/utility'
 
 // Types & constants
 import type {
@@ -103,15 +103,22 @@ const { t } = useI18n()
 const folderConfigStore = useFolderConfigStore()
 const systemConfigStore = useSystemConfigStore()
 
-// ─── Local State ─────────────────────────────────────────────────
+// ─── Local Config ─────────────────────────────────────────────────
 const localFolderConfig = ref<FolderConfig | null>(null)
 const localSessionConfig = ref<SessionConfig>({} as SessionConfig)
 const localSystemConfig = ref<any>(null)
+
+// ─── Local State ────────────────────────────────────────────────────
+const showAvatarPreview = ref(false)
 
 // ─── Props & Emits ────────────────────────────────────────────────
 const props = defineProps({
     webSocket: {
         type: [Object, null] as PropType<SessionWebSocketService | null>,
+        required: true,
+    },
+    sessionId: {
+        type: Number,
         required: true,
     },
     sessionConfig: {
@@ -121,6 +128,11 @@ const props = defineProps({
 })
 
 // ─── Computed ────────────────────────────────────────────────────
+const AvatarUrl = computed(() => {
+    return getSessionAvatarUrl(props.sessionId, props.sessionConfig)
+})
+
+
 const dictSetOptions = computed(() => {
     return useDictConfigStore().dictConfig?.dict_set_options || {}
 })
@@ -187,13 +199,13 @@ function persistSessionConfig(): void {
 /* 重点：拖拽上传盒子 el-upload-dragger */
 :deep(.el-upload-dragger) {
     background-color: transparent !important;
-    border: 1px dashed var(--el-border-color);
+    border: 2px dashed var(--glass-border-color);
 }
 
 /* 拖拽悬浮 dragover 状态，也要清空背景（否则拖文件上去会出现一块浅色底色） */
 :deep(.el-upload-dragger.is-dragover) {
     background-color: transparent !important;
-    border: 1px dashed var(--el-color-primary);
+    border: 2px dashed var(--el-color-primary);
 }
 
 /* picture-card 卡片模式 */

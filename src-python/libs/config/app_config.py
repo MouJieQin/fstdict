@@ -35,6 +35,7 @@ class Utils(UtilBase):
     FSTDICT_SUPPORT_PATH = str(app_paths.APP_SUPPORT_PATH)
     FSTDICT_STORAGE_PATH = str(app_paths.STORAGE_PATH)
     USER_CONFIG_DIR = str(app_paths.CONFIG_DIR)
+    AVATARS_PATH = str(app_paths.AVATARS_DIR)
     CONFIG_FILE = str(app_paths.CONFIG_FILE)
     DICT_CONFIG_FILE = str(app_paths.DICT_CONFIG_FILE)
     ANKI_CONFIG_FILE = str(app_paths.ANKI_CONFIG_FILE)

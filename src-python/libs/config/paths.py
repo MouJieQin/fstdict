@@ -20,6 +20,7 @@ APP_CACHE_PATH = Path(platformdirs.user_cache_dir(APP_NAME, APP_AUTHOR))
 # Application storage
 STORAGE_PATH = APP_SUPPORT_PATH / "Storage"
 CONFIG_DIR = STORAGE_PATH / "config"
+AVATARS_DIR = STORAGE_PATH / "avatars"
 DATA_DIR = STORAGE_PATH / "data"
 DICTIONARIES_DIR = STORAGE_PATH / "dictionaries"
 

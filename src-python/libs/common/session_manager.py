@@ -2,6 +2,7 @@
 WebSocket session management: broadcasting and targeted messaging.
 """
 import json
+import asyncio
 from libs.log_config import logger
 from libs.config.app_config import Utils
 
@@ -111,6 +112,23 @@ class SessionManager:
             },
         }
         await SessionManager.send_to_connection(session_id, connection_id, json.dumps(msg))
+
+    @staticmethod
+    async def update_session_avatar(session_id: int, filename: str) -> None:
+        config = Utils.db.get_session_config(session_id)
+        if config is None:
+            return
+
+        config["avatar"] = filename
+        await asyncio.to_thread(Utils.db.update_session_config, session_id, config)
+        msg = {
+            "type": "session_config",
+            "data": {
+                "config": config,
+                "is_right_after_connection": False,
+            },
+        }
+        await SessionManager.broadcast_session(session_id, json.dumps(msg))
 
     @staticmethod
     async def send_search_history(session_id: int, connection_id: int) -> None:

@@ -2,6 +2,7 @@ import type { DictSettingInfo, SessionConfig } from '@/common/type-interface'
 import { useDictConfigStore } from '@/stores/dictConfig'
 import { useRoute } from 'vue-router'
 import { toRaw } from 'vue'
+import { AVATAR_BASE_URL } from '@/common/constants'
 
 /**
  * Returns the env from route parameters.
@@ -20,6 +21,12 @@ export function safeDeepClone<T>(value: T): T {
         return JSON.parse(JSON.stringify(value))
     }
 }
+
+export function getSessionAvatarUrl(sessionId: number, sessionConfig: SessionConfig): string {
+    return sessionConfig.avatar ? `${AVATAR_BASE_URL}/${sessionId}/${sessionConfig.avatar}` : ''
+}
+
+
 
 /**
  * Returns an ordered list of enabled dictionary names for lookup.
@@ -44,7 +51,8 @@ export function getDefaultSessionConfig(sessionName: string): SessionConfig {
         default_folder: { id: null },
         dict_setting_option_name: 'default',
         default_search_method: { method: 'prefix_search' },
-        ocr_lang_type: 'English'
+        ocr_lang_type: 'English',
+        avatar: null,
     }
 }
 

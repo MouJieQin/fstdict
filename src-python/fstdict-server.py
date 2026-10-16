@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse
 from libs.log_config import logger
 from libs.config.paths import BASE_DIR
 from libs.api.download_router import router as download_router
+from libs.api.avatar_router import router as avatar_router
 from libs.api.connection_router import router as connection_router
 from libs.api.command_router import router as command_router
 from libs.api.ws_router import router as ws_router
@@ -46,6 +47,7 @@ app.add_middleware(
 
 # Register route modules
 app.include_router(download_router)
+app.include_router(avatar_router)
 app.include_router(connection_router)
 app.include_router(command_router)
 app.include_router(ws_router)

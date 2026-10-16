@@ -59,6 +59,7 @@ export interface SessionConfig {
     default_folder: SessionDefaultFolder
     default_search_method: SessionDefaultSearchMethod
     ocr_lang_type: string
+    avatar: string | null
 }
 
 // --- Folder configuration ---
