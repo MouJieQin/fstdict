@@ -573,8 +573,9 @@ const initDictPage = async (): Promise<void> => {
         tab.initialKeywordToShow = keyword
         tab.initialKeyword = keyword
     }
-
-    await setupTauriListeners()
+    if (isTauri()) {
+        await setupTauriListeners()
+    }
     showPopoverWordOptions.value = window.innerWidth < 700
 }
 

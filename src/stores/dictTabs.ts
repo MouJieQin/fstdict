@@ -184,13 +184,19 @@ export const useDictTabsStore = defineStore('dictTabs', {
          *        "Open New Window in the Session" deep links. Defaults to 1.
          */
         async loadTabs(fallbackSessionId: number | null = null): Promise<void> {
-            if (!isTauri()) return
+            const initTab = () => {
+                this.initialSessionId = fallbackSessionId ?? 1
+                this.createTab(this.initialSessionId)
+            }
+            if (!isTauri()) {
+                initTab()
+                return
+            }
             const windowLabel = getCurrentWindow().label
             const store = await Store.load(`windows/dict-tabs.json`)
             const windowTabs = await store.get(`${windowLabel}`) as DictTabsState
             if (!windowTabs) {
-                this.initialSessionId = fallbackSessionId ?? 1
-                this.createTab(this.initialSessionId)
+                initTab()
                 return
             }
             let activeTabId = ''

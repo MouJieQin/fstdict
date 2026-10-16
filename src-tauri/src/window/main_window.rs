@@ -39,6 +39,7 @@ fn style_dict_window<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
     builder = builder
         .inner_size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         .min_inner_size(400.0, 300.0)
+        .disable_drag_drop_handler()
         .accept_first_mouse(true);
 
     #[cfg(target_os = "macos")]

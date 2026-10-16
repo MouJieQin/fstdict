@@ -142,6 +142,10 @@ onBeforeUnmount(() => {
     gap: 5px;
 }
 
+:deep(.dict-tabs) {
+    overflow: hidden;
+}
+
 :deep(.dict-tabs .el-tabs__content) {
     display: none;
 }

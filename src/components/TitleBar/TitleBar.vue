@@ -50,7 +50,7 @@
             <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button" size="small"
                 :disabled="!lastSearchKeyword" />
 
-            <el-button :icon="Setting" text id="titlebar-setting-button" @click="emit('toggle:config-panel')"
+            <el-button :icon="Setting" text id="titlebar-setting-button" @click="handleToggleConfigPanel"
                 class="floating-window-titlebar-button" size="small" />
 
             <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
@@ -382,6 +382,10 @@ const toggleFavorite = (): void => {
     )
 }
 
+const handleToggleConfigPanel = (): void => {
+    emit('toggle:config-panel')
+}
+
 const hideWindow = (): void => {
     getCurrentWindow().hide()
 }
@@ -494,6 +498,9 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
         if (text) {
             dictTabsStore.redirectWord = text
         }
+    }
+    else if (data.key === 's' && (data.ctrlKey || data.metaKey)) {
+        handleToggleConfigPanel()
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {

@@ -150,7 +150,8 @@
     transition:
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         visibility 0.3s;
-    overflow: hidden;
+    height: 100vh;
+    overflow: auto;
     white-space: nowrap;
     /* background-color: bisque; */
 }
@@ -917,8 +918,11 @@
 }
 
 .setting-container {
+    /* height: 100vh; */
+    height: calc(100vh - var(--header-height));
     /* margin-top: 0px !important; */
     /* padding-top: 0px !important; */
+    overflow-y: auto;
 }
 
 .setting-footer-button-group {
