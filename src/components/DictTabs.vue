@@ -19,9 +19,9 @@
         <el-tab-pane v-for="tab in store.tabs" :key="tab.id" :name="tab.id" :label="ellipsisLabel(tab.title)">
             <template #label>
                 <span class="custom-tabs-label">
-                    <el-icon>
-                        <Calendar />
-                    </el-icon>
+                    <el-avatar v-if="tab.controller?.sessionConfig?.avatar"
+                        :src="getSessionAvatarUrl(tab.sessionId as number, tab.controller?.sessionConfig?.avatar)"
+                        fit="cover" :size="15" />
                     <span>{{ ellipsisLabel(tab.title) }}</span>
                 </span>
             </template>
@@ -35,7 +35,7 @@ import Sortable from 'sortablejs'
 import { useGetDerivedNamespace } from 'element-plus'
 import type { TabsInstance, TabPaneName } from 'element-plus'
 import { useDictTabsStore } from '@/stores/dictTabs'
-import { Calendar } from '@element-plus/icons-vue'
+import { getSessionAvatarUrl } from '@/common/utility'
 
 const store = useDictTabsStore()
 

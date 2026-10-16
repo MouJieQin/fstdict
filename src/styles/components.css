@@ -919,10 +919,9 @@
 
 .setting-container {
     /* height: 100vh; */
-    height: calc(100vh - var(--header-height));
+    height: calc(100vh - var(--header-height) - 30px);
     /* margin-top: 0px !important; */
     /* padding-top: 0px !important; */
-    overflow-y: auto;
 }
 
 .setting-footer-button-group {

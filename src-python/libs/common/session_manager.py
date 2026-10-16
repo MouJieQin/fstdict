@@ -88,7 +88,7 @@ class SessionManager:
         session_list = []
         for session in sessions:
             name = session["config"].get("name", str(session["id"]))
-            session_list.append({"id": session["id"], "name": name})
+            session_list.append({"id": session["id"], "name": name, "avatar": session["config"].get("avatar", None)})
 
         msg = {"type": "sessions_name_id", "data": {"sessions_name_id": session_list}}
         await SessionManager.broadcast_all(json.dumps(msg))

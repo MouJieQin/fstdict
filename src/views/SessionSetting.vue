@@ -9,9 +9,9 @@
                 <div class="config-class">
                     <p class="config-class-title">Avatar</p>
                     <div style="text-align: center;">
-                        <el-avatar v-if="localSessionConfig.avatar" :src="AvatarUrl" fit="cover" size="large"
+                        <el-avatar v-if="localSessionConfig.avatar" :src="avatarUrl" fit="cover" size="large"
                             @click="showAvatarPreview = true" style="cursor: pointer; margin-bottom: 20px;" />
-                        <el-image-viewer v-if="showAvatarPreview" :url-list="[AvatarUrl]" show-progress
+                        <el-image-viewer v-if="showAvatarPreview" :url-list="[avatarUrl]" show-progress
                             :initial-index="0" @close="showAvatarPreview = false" />
                     </div>
                     <div>
@@ -75,7 +75,7 @@ import type { PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 
-import { UPLOAD_SESSION_AVATAR_URL, AVATAR_BASE_URL } from '@/common/constants'
+import { UPLOAD_SESSION_AVATAR_URL } from '@/common/constants'
 // icon
 import { Expand, UploadFilled } from '@element-plus/icons-vue'
 
@@ -83,7 +83,7 @@ import { Expand, UploadFilled } from '@element-plus/icons-vue'
 
 // Stores & utilities
 import { useFolderConfigStore, useSystemConfigStore, useDictConfigStore } from '@/stores'
-import { safeDeepClone, getSessionAvatarUrl } from '@/common/utility'
+import { safeDeepClone, getSessionAvatarUrlByConfig } from '@/common/utility'
 
 // Types & constants
 import type {
@@ -128,8 +128,8 @@ const props = defineProps({
 })
 
 // ─── Computed ────────────────────────────────────────────────────
-const AvatarUrl = computed(() => {
-    return getSessionAvatarUrl(props.sessionId, props.sessionConfig)
+const avatarUrl = computed(() => {
+    return getSessionAvatarUrlByConfig(props.sessionId, props.sessionConfig)
 })
 
 

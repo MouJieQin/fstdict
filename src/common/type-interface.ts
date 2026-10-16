@@ -51,6 +51,7 @@ export interface SessionDefaultSearchMethod {
 export interface SessionNameId {
     id: number
     name: string
+    avatar: string | null
 }
 
 export interface SessionConfig {

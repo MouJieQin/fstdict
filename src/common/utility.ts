@@ -22,8 +22,14 @@ export function safeDeepClone<T>(value: T): T {
     }
 }
 
-export function getSessionAvatarUrl(sessionId: number, sessionConfig: SessionConfig): string {
-    return sessionConfig.avatar ? `${AVATAR_BASE_URL}/${sessionId}/${sessionConfig.avatar}` : ''
+export function getSessionAvatarUrl(sessionId: number, avatar: string | null): string {
+    return avatar ? `${AVATAR_BASE_URL}/${sessionId}/${avatar}` : ''
+}
+
+
+
+export function getSessionAvatarUrlByConfig(sessionId: number, sessionConfig: SessionConfig): string {
+    return getSessionAvatarUrl(sessionId, sessionConfig.avatar)
 }
 
 

@@ -55,46 +55,56 @@
 
             <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
                 class="floating-window-titlebar-button" size="small" />
+        </el-button-group>
 
-            <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
-                class="floating-window-titlebar-button" @command="handleSessionCommand" popper-class="vibrant-dropdown">
-                <el-button :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
-                <template #dropdown>
-                    <el-dropdown-menu class="vibrant-dropdown">
-                        <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
-                            :class="{ 'is-active': session.id === sessionId }"
-                            :command="{ cmd: 'switch', id: session.id }">
-                            <el-icon v-if="session.id === sessionId" style="color: var(--el-color-primary)" size="20">
+        <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
+            class="floating-window-titlebar-button" @command="handleSessionCommand" popper-class="vibrant-dropdown">
+            <el-avatar v-if="sessionConfig.avatar" :src="sessionAvatarUrl" fit="cover" :size="20"
+                style="margin-left: 5px;" />
+            <el-button v-else :icon="PiUserSwitch" text size="small" style="font-size: 15px" />
+            <template #dropdown>
+                <el-dropdown-menu class="vibrant-dropdown">
+                    <el-dropdown-item v-for="session in sessionsNameId" :key="session.id"
+                        :class="{ 'is-active': session.id === sessionId }" :command="{ cmd: 'switch', id: session.id }">
+                        <div v-if="session.id === sessionId" style="display: flex; align-items: center; gap: 5px;">
+                            <el-avatar v-if="session.avatar" :src="getSessionAvatarUrl(session.id, session.avatar)"
+                                fit="cover" :size="15" />
+                            <el-icon v-else style="color: var(--el-color-primary)" size="15">
                                 <BiUserCheck />
                             </el-icon>
-                            <el-icon v-else>
+                            <div>{{ session.name }}</div>
+                        </div>
+                        <div v-else style="display: flex; align-items: center; gap: 5px;">
+                            <el-avatar v-if="session.avatar" :src="getSessionAvatarUrl(session.id, session.avatar)"
+                                fit="cover" :size="15" />
+                            <el-icon v-else size="15">
                                 <BiUser />
                             </el-icon>
-                            <span>{{ session.name }}</span>
-                        </el-dropdown-item>
-                        <!-- Session dropdown menu -->
-                        <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
-                            <el-icon>
-                                <BiUserPlus style="color: var(--el-color-primary)" />
-                            </el-icon>
-                            <span>{{ $t('session.newSession') }}</span>
-                        </el-dropdown-item>
-                        <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
-                            <el-icon>
-                                <LiaUserEditSolid style="color: var(--el-color-success)" />
-                            </el-icon>
-                            <span>{{ $t('session.renameSession') }}</span>
-                        </el-dropdown-item>
-                        <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
-                            <el-icon>
-                                <BiUserMinus style="color: var(--el-color-danger)" />
-                            </el-icon>
-                            <span>{{ $t('session.removeSession') }}</span>
-                        </el-dropdown-item>
-                    </el-dropdown-menu>
-                </template>
-            </el-dropdown>
-        </el-button-group>
+                            <div>{{ session.name }}</div>
+                        </div>
+                    </el-dropdown-item>
+                    <!-- Session dropdown menu -->
+                    <el-dropdown-item divided :command="{ cmd: 'create', id: -1 }">
+                        <el-icon>
+                            <BiUserPlus style="color: var(--el-color-primary)" />
+                        </el-icon>
+                        <span>{{ $t('session.newSession') }}</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item :command="{ cmd: 'rename', id: -1 }">
+                        <el-icon>
+                            <LiaUserEditSolid style="color: var(--el-color-success)" />
+                        </el-icon>
+                        <span>{{ $t('session.renameSession') }}</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item :command="{ cmd: 'remove', id: -1 }">
+                        <el-icon>
+                            <BiUserMinus style="color: var(--el-color-danger)" />
+                        </el-icon>
+                        <span>{{ $t('session.removeSession') }}</span>
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </template>
+        </el-dropdown>
     </div>
     <!-- </div> -->
 
@@ -155,6 +165,8 @@ import type {
     SessionNameId,
 } from '@/common/type-interface'
 import { ENV } from '@/common/constants'
+
+import { getSessionAvatarUrl, getSessionAvatarUrlByConfig } from '@/common/utility'
 
 // Tauri
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -339,6 +351,11 @@ watch(() => props.sessionsNameId, (val) => {
 const { showPinButton, isPinned, togglePin } = useWindowPin({
     systemConfig: systemConfigRef,
     webSocket: wsRef,
+})
+
+// --- Avatar ---
+const sessionAvatarUrl = computed(() => {
+    return getSessionAvatarUrlByConfig(props.sessionId, props.sessionConfig)
 })
 
 // --- Favorite logic ---
