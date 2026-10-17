@@ -164,14 +164,15 @@ import type {
     DictInfo,
     SessionNameId,
 } from '@/common/type-interface'
-import { ENV } from '@/common/constants'
+import { ENV, TAURI_CMD } from '@/common/constants'
 
 import { getSessionAvatarUrl, getSessionAvatarUrlByConfig } from '@/common/utility'
 
 // Tauri
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { readText } from '@tauri-apps/plugin-clipboard-manager'
-import { isTauri } from '@tauri-apps/api/core'
+import { isTauri, invoke } from '@tauri-apps/api/core'
+
 
 // Props & emits
 const props = defineProps({
@@ -518,6 +519,9 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     }
     else if (data.key === 's' && (data.ctrlKey || data.metaKey)) {
         handleToggleConfigPanel()
+    }
+    else if (data.key === ',' && (data.ctrlKey || data.metaKey)) {
+        await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {

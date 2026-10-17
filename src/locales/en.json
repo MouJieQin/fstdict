@@ -64,6 +64,10 @@
     },
     "sessionSettings": {
         "title": "Session Settings",
+        "avatar": "Avatar",
+        "avatarTip": "jpg/png files with a size less than 10MB",
+        "dropFileHereOrClickToUpload": "Drop file here or click to upload",
+        "general": "General",
         "name": "Session Name",
         "dictGroup": "Dictionary Group",
         "defaultFolder": "Folder",

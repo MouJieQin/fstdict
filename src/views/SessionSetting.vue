@@ -7,7 +7,7 @@
             <p class="system-config-title">{{ $t('sessionSettings.title') }}</p>
             <el-form v-if="localSystemConfig" :model="localSystemConfig" label-width="auto" class="config-form">
                 <div class="config-class">
-                    <p class="config-class-title">Avatar</p>
+                    <p class="config-class-title">{{ $t('sessionSettings.avatar') }}</p>
                     <div style="text-align: center;">
                         <el-avatar v-if="localSessionConfig.avatar" :src="avatarUrl" fit="cover" size="large"
                             @click="showAvatarPreview = true" style="cursor: pointer; margin-bottom: 20px;" />
@@ -19,11 +19,11 @@
                             :show-file-list="false" :data="{ 'session_id': props.sessionId }">
                             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
                             <div class="el-upload__text">
-                                Drop file here or <em>click to upload</em>
+                                <em>{{ $t('sessionSettings.dropFileHereOrClickToUpload') }}</em>
                             </div>
                             <template #tip>
                                 <div class="el-upload__tip">
-                                    jpg/png files with a size less than 10MB
+                                    {{ $t('sessionSettings.avatarTip') }}
                                 </div>
                             </template>
                         </el-upload>
@@ -31,7 +31,7 @@
                 </div>
 
                 <div class="config-class">
-                    <p class="config-class-title">{{ $t('settings.appearance') }}</p>
+                    <p class="config-class-title">{{ $t('sessionSettings.general') }}</p>
                     <el-form-item :label="$t('sessionSettings.name')">
                         <el-text truncated class="word-text">
                             {{ localSessionConfig.name }}
