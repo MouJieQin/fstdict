@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 use fstdict_common::{context_menu, logger::init_logging};
 use log::{debug, error, info};
-use tauri::{Manager, RunEvent};
+use tauri::{Emitter, Manager, RunEvent};
 use tokio::sync::mpsc;
 
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
@@ -59,6 +59,12 @@ pub fn cleanup_all_sidecars() {
     }
 }
 
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    args: Vec<String>,
+    cwd: String,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
     // Register OS signal handler for graceful termination on Ctrl+C
@@ -72,6 +78,11 @@ pub async fn run() {
     .expect("Failed to register termination signal handler");
 
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            println!("{}, {argv:?}, {cwd}", app.package_info().name);
+            app.emit("single-instance", Payload { args: argv, cwd })
+                .unwrap();
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
