@@ -223,17 +223,17 @@ pub fn next_main_window_label(app: &AppHandle) -> String {
 /// still has persisted tabs. Windows closed manually had their tabs removed
 /// (see attach_close_cleanup), so they are naturally skipped here. These
 /// windows restore their saved geometry (startup path -> restore_state=true).
-pub fn restore_persisted_main_windows(app: &AppHandle) -> Result<(), tauri::Error> {
+pub fn restore_persisted_main_windows(app: &mut App) -> Result<(), tauri::Error> {
     let path = app.path().app_data_dir()?.join("windows/dict-tabs.json");
     if !path.exists() {
-        return Ok(());
+        return setup_main_window(app);
     }
     let Ok(content) = std::fs::read_to_string(&path) else {
-        return Ok(());
+        return setup_main_window(app);
     };
     let Ok(map) = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content)
     else {
-        return Ok(());
+        return setup_main_window(app);
     };
 
     let mut restored = 0usize;
@@ -253,13 +253,16 @@ pub fn restore_persisted_main_windows(app: &AppHandle) -> Result<(), tauri::Erro
             continue;
         }
         info!("Restoring persisted main window \"{label}\"");
-        if let Err(e) = open_main_window(app, &label, None, None, true) {
+        if let Err(e) = open_main_window(app.handle(), &label, None, None, true) {
             log::error!("Failed to restore window \"{label}\": {e}");
             continue;
         }
         restored += 1;
     }
     info!("Restored {restored} persisted main window(s)");
+    if restored == 0 {
+        return setup_main_window(app);
+    }
     Ok(())
 }
 

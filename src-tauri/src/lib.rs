@@ -25,7 +25,7 @@ use shortcuts::global::register_global_shortcuts;
 use sidecar::common::terminate_child_process;
 use sidecar::python::start_python_sidecar;
 use websocket::client::start_ws_client;
-use window::main_window::{restore_persisted_main_windows, setup_main_window, APP_EXITING};
+use window::main_window::{restore_persisted_main_windows, APP_EXITING};
 #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
 use window::setup::setup_float_panels;
 
@@ -159,11 +159,11 @@ pub async fn run() {
             let app_handle = app.handle().clone();
 
             // Create and configure main window
-            setup_main_window(app)?;
+            // setup_main_window(app)?;
 
             // Re-open every persisted "main-N" window whose tabs survived
             // (windows closed manually were cleared, so they are skipped).
-            if let Err(e) = restore_persisted_main_windows(app.handle()) {
+            if let Err(e) = restore_persisted_main_windows(app) {
                 error!("Failed to restore persisted main windows: {}", e);
             }
 
