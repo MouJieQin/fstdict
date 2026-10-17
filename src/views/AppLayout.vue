@@ -64,8 +64,8 @@
                                         <div v-for="folder in folderConfigStore.folderConfig?.folders.folder_info"
                                             :key="folder.id">
                                             <el-menu-item
-                                                :index="`${MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX}${folder.id}`"
-                                                @click="handleItemClick(`${MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX}${folder.id}`)">
+                                                :index="`${MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX}${folder.id}`"
+                                                @click="handleItemClick(`${MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX}${folder.id}`)">
                                                 <template #title>
                                                     <span>{{ folder.name }}</span>
                                                 </template>
@@ -203,8 +203,8 @@ const handleItemClick = async (index: string): Promise<void> => {
     if (index === MAIN_MENU_INDEX.NOTES) {
         webSocket.value?.sendNoteWordsRequest()
     }
-    if (index.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
-        viewingFolderId.value = Number(index.replace(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX, ''))
+    if (index.startsWith(MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX)) {
+        viewingFolderId.value = Number(index.replace(MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX, ''))
         webSocket.value?.sendFavoriteWordsRequest(viewingFolderId.value)
     }
     activeTabIndex.value = index

@@ -65,7 +65,7 @@ import { useDictTabsStore } from '@/stores/dictTabs'
 import type { TabController } from '@/stores/dictTabs'
 import { getDefaultSessionConfig } from '@/common/utility'
 // Constants & i18n
-import { ENV, TAURI_CMD } from '@/common/constants'
+import { ENV } from '@/common/constants'
 import { setAppLocale } from '@/i18n'
 const props = defineProps<{
     tabId: string
@@ -118,6 +118,7 @@ const controller = reactive<TabController>({
     ankiProgress: {},
     addDictMsgs: [],
 })
+
 // --- Splitter sizing (local UI state of this tab) ---
 const wordOptionsSize = ref<number | string>(0)
 const splitterRef = ref<any>(null)
@@ -283,6 +284,10 @@ const handleSessionConfig = (message: any): void => {
     setupDictSettings()
     setupOcrLangType()
     if (message.data.is_right_after_connection) {
+        const folder_id = controller.sessionConfig.default_folder.id
+        if (folder_id) {
+            controller.webSocket?.sendFavoriteWordsRequest(folder_id)
+        }
         if (props.initialKeyword || props.initialKeywordToShow) {
             controller.webSocket?.sendLookupKeyword2(props.initialKeyword, controller.sessionConfig, true)
             controller.keyword = props.initialKeywordToShow

@@ -231,7 +231,7 @@ const expandGlossaryPanel = async (): Promise<void> => {
 watch(
     () => props.activeMenuIndex,
     (newIndex) => {
-        if (newIndex === MAIN_MENU_INDEX.HISTORY || newIndex === MAIN_MENU_INDEX.NOTES || newIndex.startsWith(MAIN_MENU_INDEX.FLOSSARY_FOLDERS_PREFIX)) {
+        if (newIndex === MAIN_MENU_INDEX.HISTORY || newIndex === MAIN_MENU_INDEX.NOTES || newIndex.startsWith(MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX)) {
             expandGlossaryPanel()
         }
         else if (newIndex === MAIN_MENU_INDEX.DICTIONARY) {

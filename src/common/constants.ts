@@ -103,7 +103,7 @@ export const MAIN_MENU_INDEX = {
     HISTORY: 'history',
     NOTES: 'notes',
     GLOSSARY: 'glossary',
-    FLOSSARY_FOLDERS_PREFIX: 'GlossaryFolders-',
+    GLOSSARY_FOLDERS_PREFIX: 'GlossaryFolders-',
 } as const
 
 // --- Tauri event names ---
