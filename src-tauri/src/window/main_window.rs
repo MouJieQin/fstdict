@@ -224,20 +224,15 @@ pub fn next_main_window_label(app: &AppHandle) -> String {
 /// (see attach_close_cleanup), so they are naturally skipped here. These
 /// windows restore their saved geometry (startup path -> restore_state=true).
 pub fn restore_persisted_main_windows(app: &mut App) -> Result<(), tauri::Error> {
-    let path = app.path().app_data_dir()?.join("windows/dict-tabs.json");
-    if !path.exists() {
-        return setup_main_window(app);
-    }
-    let Ok(content) = std::fs::read_to_string(&path) else {
-        return setup_main_window(app);
-    };
-    let Ok(map) = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content)
-    else {
+    let Ok(store) = app.store("windows/dict-tabs.json") else {
+        warn!(
+            "restore_persisted_main_windows: failed to open tab store: \"windows/dict-tabs.json\""
+        );
         return setup_main_window(app);
     };
 
     let mut restored = 0usize;
-    for (label, state) in map {
+    for (label, state) in store.entries() {
         if !label.starts_with("main") || label == "main" {
             continue;
         }
