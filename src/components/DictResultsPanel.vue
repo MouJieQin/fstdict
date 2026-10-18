@@ -604,6 +604,7 @@ const handleLocationClick = (dictionaryName: string, offsetTop: number): void =>
     display: flex;
     flex-direction: column;
     min-height: 0;
+    padding-right: 2px;
 }
 
 /* Override the global 100vh scrollbar so it fills the panel instead. */

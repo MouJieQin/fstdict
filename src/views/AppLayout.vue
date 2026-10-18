@@ -76,8 +76,8 @@
                             </el-scrollbar>
                         </el-main>
                         <el-footer :height="`var(--header-height)`" class="footer">
-                            <el-button text @click="handleSettingClick">
-                                <el-icon>
+                            <el-button text @click="handleSettingClick" size="small">
+                                <el-icon size="large">
                                     <Setting />
                                 </el-icon>
                             </el-button>
