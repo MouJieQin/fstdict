@@ -182,7 +182,7 @@
                 </el-scrollbar>
             </div>
         </el-splitter-panel>
-        <el-splitter-panel size="200px" min="50px" collapsible>
+        <el-splitter-panel size="200px" min="180px" max="80%" collapsible>
             <SessionGlossary :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
                 :keyword="controller.keyword" :folder-name="folder_name" :favorite-words="folder_words"
                 :search-history="controller.searchHistory" />

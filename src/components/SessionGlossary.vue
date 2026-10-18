@@ -5,7 +5,7 @@
                 :session-config="sessionConfig" :keyword="keyword" :folder-name="folderName"
                 :favorite-words="favoriteWords" :search-history="searchHistory" />
         </el-splitter-panel>
-        <el-splitter-panel :min="50">
+        <el-splitter-panel min="20%" max="80%">
             <GlossaryOptions :active-menu-index="MAIN_MENU_INDEX.GLOSSARY_FOLDERS_PREFIX" :web-socket="webSocket"
                 :session-config="sessionConfig" :keyword="keyword" :folder-name="folderName"
                 :favorite-words="favoriteWords" :search-history="searchHistory" />

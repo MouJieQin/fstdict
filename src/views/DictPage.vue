@@ -83,7 +83,8 @@
                             @open-tab-with-keyword="openTabWithKeyword" @activate-session="handleActivateSession"
                             @iframe-keydown="handleIframeKeydown" @context-menu="handleIframeContextMenu" />
                     </el-splitter-panel>
-                    <el-splitter-panel max="80%" :size="glossaryPanelSize" collapsible @update:size="handlePanelResize">
+                    <el-splitter-panel max="80%" :min="minGlossaryPanel" :size="glossaryPanelSize"
+                        @update:size="handlePanelResize">
                         <GlossaryOptions :active-menu-index="activeMenuIndex"
                             :web-socket="activeController?.webSocket ?? null"
                             :session-config="activeController?.sessionConfig"
@@ -190,7 +191,7 @@ const showPopoverWordOptions = ref(false)
 // Splitter sizing (local UI state of this tab).
 const showGlossaryPanel = ref(false)
 const glossaryPanelSize = ref<number | string>(0)
-const minGlossaryPanel = ref<number | string>(0)
+const minGlossaryPanel = ref<number | string>(180)
 const splitterRef = ref<any>(null)
 
 const handlePanelResize = async (size: number): Promise<void> => {

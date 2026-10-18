@@ -189,6 +189,7 @@
     justify-content: space-between;
     height: var(--glossary-panel-header-height);
     padding: 0 1rem;
+    gap: 10px;
 }
 
 .glossary-panel-header .gloassary-title {
@@ -231,7 +232,7 @@
  * splitter is dragged.
  */
 .session-glossary {
-    height: calc(100vh - var(--header-height)) !important;
+    height: calc(100vh - var(--header-height) - var(--tab-height)) !important;
 }
 
 .session-glossary .el-splitter-panel {
