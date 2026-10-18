@@ -36,7 +36,7 @@
   component instance instead would silently break the active underline.
 -->
 <template>
-    <el-splitter>
+    <el-splitter @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
         <el-splitter-panel>
             <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
                 <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
@@ -374,6 +374,14 @@ const measureOverflow = (): void => {
 
 const measureOverflowDebounce = debounce(measureOverflow, 50)
 
+const onSplitterResizeStart = (): void => {
+    document.body.classList.add('panel-resizing')
+}
+
+const onSplitterResizeEnd = (): void => {
+    document.body.classList.remove('panel-resizing')
+}
+
 onMounted(() => {
     const wrap = anchorBarRef.value
     if (wrap && typeof ResizeObserver !== 'undefined') {
@@ -389,6 +397,7 @@ onBeforeUnmount(() => {
     resizeObserver = null
     cancelAnimationFrame(measureRaf)
     containerTries = 0
+    document.body.classList.remove('panel-resizing')
 })
 
 // A fresh lookup re-renders the anchor links -> re-measure + re-ensure.

@@ -181,7 +181,7 @@ const collapseWordOptions = (): void => {
  * for the whole drag (restored on `resize-end`).
  */
 const onSplitterResizeStart = (): void => {
-    document.body.classList.add('dict-resizing')
+    document.body.classList.add('panel-resizing')
 }
 /**
  * Restore selection after the drag. As a safety net, if the panel ended up
@@ -189,7 +189,7 @@ const onSplitterResizeStart = (): void => {
  * drag by folding the panel away entirely.
  */
 const onSplitterResizeEnd = (): void => {
-    document.body.classList.remove('dict-resizing')
+    document.body.classList.remove('panel-resizing')
     const panelEl = wordOptionsPanelEl()
     if (!panelEl) return
     const widthPx = panelEl.getBoundingClientRect().width
@@ -390,7 +390,7 @@ onMounted(async () => {
     dictTabsStore.registerController(props.tabId, controller)
 })
 onBeforeUnmount(async () => {
-    document.body.classList.remove('dict-resizing')
+    document.body.classList.remove('panel-resizing')
     controller.webSocket?.close()
     dictTabsStore.unregisterController(props.tabId)
 })
@@ -403,21 +403,6 @@ onBeforeUnmount(async () => {
  */
 :deep(.el-splitter-panel.panel-animating) {
     transition: flex-basis 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
-}
-
-/*
- * While the splitter bar is dragged, block page-text selection across the
- * whole document (the webview otherwise selects a big region under the
- * pointer). iframe documents are unaffected (separate documents).
- */
-:global(body.dict-resizing) {
-    user-select: none !important;
-    -webkit-user-select: none !important;
-}
-
-:global(body.dict-resizing *) {
-    user-select: none !important;
-    -webkit-user-select: none !important;
 }
 
 /*

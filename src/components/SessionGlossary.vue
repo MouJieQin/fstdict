@@ -1,5 +1,5 @@
 <template>
-    <el-splitter layout="vertical" class="session-glossary">
+    <el-splitter layout="vertical" class="session-glossary" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
         <el-splitter-panel>
             <GlossaryOptions :active-menu-index="MAIN_MENU_INDEX.HISTORY" :web-socket="webSocket"
                 :session-config="sessionConfig" :keyword="keyword" :folder-name="folderName"
@@ -15,6 +15,7 @@
 
 <script lang="ts" setup>
 import type { PropType } from 'vue'
+import { onBeforeUnmount } from 'vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfo, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import { MAIN_MENU_INDEX } from '@/common/constants'
@@ -49,5 +50,17 @@ const props = defineProps({
         required: false,
         default: () => [],
     },
+})
+
+const onSplitterResizeStart = (): void => {
+    document.body.classList.add('panel-resizing')
+}
+
+const onSplitterResizeEnd = (): void => {
+    document.body.classList.remove('panel-resizing')
+}
+
+onBeforeUnmount(async () => {
+    document.body.classList.remove('panel-resizing')
 })
 </script>

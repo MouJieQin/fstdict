@@ -19,6 +19,21 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * While the splitter bar is dragged, block page-text selection across the
+ * whole document (the webview otherwise selects a big region under the
+ * pointer). iframe documents are unaffected (separate documents).
+ */
+body.panel-resizing {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+body.panel-resizing * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
 /* Anki mode: hide scrollbars for clean card rendering */
 body.anki-mode {
     overflow: hidden;
