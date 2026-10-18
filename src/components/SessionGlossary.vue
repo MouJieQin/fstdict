@@ -14,7 +14,6 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick } from 'vue'
 import type { PropType } from 'vue'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfo, WordInfoWithFavoriteAt } from '@/common/type-interface'

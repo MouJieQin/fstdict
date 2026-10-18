@@ -220,9 +220,58 @@
         1rem;
 }
 
+/*
+ * SessionGlossary sits inside an el-splitter-panel whose height is assigned
+ * by flex-basis (no explicit `height`), so `height: 100%` / `calc(100%)`
+ * chains are undefined and collapse. Fill the panel with absolute
+ * positioning (it has a rendered size even without an explicit height) and
+ * let the list area flex to whatever space is left after the header and the
+ * search bar. The virtual list's px height is measured at runtime by a
+ * ResizeObserver (see GlossaryOptions.vue) and stays live while the
+ * splitter is dragged.
+ */
+.session-glossary {
+    height: calc(100vh - var(--header-height)) !important;
+}
+
+.session-glossary .el-splitter-panel {
+    position: relative;
+    min-height: 0;
+}
+
+.session-glossary .glossary-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 .session-glossary .glossary-options {
-    height: 500px;
-    /* background-color: red; */
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    padding: 3px 5px 0 1rem;
+}
+
+/* Search bar (visible while the search icon is toggled on) */
+.glossary-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 1rem 4px;
+}
+
+.glossary-search-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.glossary-search-method-btn {
+    color: var(--el-text-color-secondary);
+    flex-shrink: 0;
+    gap: 2px;
 }
 
 /* ============= Dictionary Layout ============= */

@@ -36,10 +36,53 @@
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
+
+                <!-- Search: click the icon to reveal an input; the input
+                     filters the list with the selected search method. -->
+                <el-icon class="clickable-icon" @click="searchVisible = !searchVisible">
+                    <Search v-if="!searchVisible" />
+                    <Close v-else />
+                </el-icon>
             </div>
         </div>
+
+        <div class="glossary-search-bar" v-if="searchVisible">
+            <el-input v-model="search.query" size="small" clearable autocomplete="off" autocorrect="off"
+                autocapitalize="off" spellcheck="false" :placeholder="t('glossaryOptions.searchPlaceholder')"
+                class="glossary-search-input">
+                <template #prefix>
+                    <el-icon>
+                        <Search />
+                    </el-icon>
+                </template>
+            </el-input>
+            <el-dropdown trigger="click" placement="bottom-end" @command="handleSearchMethodCommand"
+                popper-class="vibrant-dropdown">
+                <el-button size="small" text class="glossary-search-method-btn">
+                    <span>{{ searchMethodLabel }}</span>
+                    <el-icon>
+                        <ArrowDown />
+                    </el-icon>
+                </el-button>
+                <template #dropdown>
+                    <el-dropdown-menu class="vibrant-dropdown">
+                        <el-dropdown-item v-for="m in searchMethodOptions" :key="m.value"
+                            :class="{ 'is-active': m.value === search.method }" :command="{ method: m.value }">
+                            <el-icon v-if="m.value === search.method" style="color: var(--el-color-primary)">
+                                <Check />
+                            </el-icon>
+                            <el-icon v-else style="visibility: hidden;">
+                                <Check />
+                            </el-icon>
+                            <span>{{ m.label }}</span>
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+        </div>
+
         <div class="glossary-options">
-            <UseVirtualList ref="listRef" :list="displayList" :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }"
+            <UseVirtualList :list="search.filteredWords" :options="{ itemHeight: ITEM_HEIGHT, overscan: 20 }"
                 height="calc(100%)" class="list-container">
                 <template #default="{ data, index }">
                     <div class="clickable-row" :class="{ 'is-selected': selectedWord === data }"
@@ -56,18 +99,23 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import type { PropType } from 'vue'
 import { UseVirtualList } from '@vueuse/components'
 
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type { SessionConfig, WordInfo, WordInfoWithNoteUpdateAt, WordInfoWithFavoriteAt } from '@/common/type-interface'
 import { getDictSettingsForLookup } from '@/common/utility'
+import {
+    GLOSSARY_SEARCH_METHOD,
+    useGlossarySearch,
+    type GlossarySearchMethod,
+} from '@/common/useGlossarySearch'
 
 import { MAIN_MENU_INDEX } from '@/common/constants'
 
 import { BsSortDown, BsSortUpAlt } from 'vue-icons-plus/bs'
-import { Sort, Check } from '@element-plus/icons-vue'
+import { Sort, Check, Search, Close, ArrowDown } from '@element-plus/icons-vue'
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -204,6 +252,34 @@ const favoriteWords = computed(() => {
         return sortDescending.value ? props.favoriteWords.sort((a, b) => Date.parse(b.last_searched ?? '') - Date.parse(a.last_searched ?? '')) : props.favoriteWords.sort((a, b) => Date.parse(a.last_searched ?? '') - Date.parse(b.last_searched ?? ''))
     }
 })
+
+// --- Search (Fuzzy / Contains / Regex) ---
+// Bound to the sorted displayList; fuzzy mode re-ranks by relevance while
+// contains/regex keep the source sort order.
+const search = reactive(useGlossarySearch(displayList))
+
+const searchVisible = ref(false)
+
+const searchMethodOptions = computed(() => [
+    { value: GLOSSARY_SEARCH_METHOD.FUZZY, label: t('glossaryOptions.fuzzy') },
+    { value: GLOSSARY_SEARCH_METHOD.CONTAINS, label: t('glossaryOptions.contains') },
+    { value: GLOSSARY_SEARCH_METHOD.REGEX, label: t('glossaryOptions.regex') },
+])
+
+const searchMethodLabel = computed(
+    () => searchMethodOptions.value.find((m) => m.value === search.method)?.label ?? ''
+)
+
+const handleSearchMethodCommand = (command: { method: GlossarySearchMethod }): void => {
+    search.method = command.method
+}
+
+// --- Virtual list height follows the container (el-splitter is resizable) ---
+// `height: 100%` / `calc(100%)` cannot work here: the panel's computed
+// height comes from flex-basis, not an explicit `height`, so percentage
+// resolution against it is undefined and the list collapses. Instead we
+// measure the wrapper with a ResizeObserver and feed real px to
+// UseVirtualList, which also keeps the list live while the splitter drags.
 
 // --- Actions ---
 const handleWordClick = (word: string): void => {

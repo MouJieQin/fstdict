@@ -80,7 +80,11 @@
         "searchCount": "Search Count",
         "alphabetical": "Alphabetical",
         "updateTime": "Update Time",
-        "addTime": "Add Time"
+        "addTime": "Add Time",
+        "searchPlaceholder": "Search words...",
+        "fuzzy": "Fuzzy",
+        "contains": "Contains",
+        "regex": "Regex"
     },
     "manage": {
         "title": "Manage",
