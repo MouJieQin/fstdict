@@ -525,7 +525,7 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     }
     else if (data.key === 'g' && (data.ctrlKey || data.metaKey)) {
         if (activeController.value) {
-            activeController.value.showSessionGlossaryPanel = !activeController.value.showSessionGlossaryPanel
+            activeController.value.triggerSessionGlossaryPanel = !activeController.value.triggerSessionGlossaryPanel
         }
     }
     else if (data.key === ',' && (data.ctrlKey || data.metaKey)) {

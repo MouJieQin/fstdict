@@ -36,7 +36,8 @@
   component instance instead would silently break the active underline.
 -->
 <template>
-    <el-splitter ref="splitterRef" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
+    <el-splitter ref="splitterRef" @collapse="onSplitterCollapse" @resize-start="onSplitterResizeStart"
+        @resize-end="onSplitterResizeEnd">
         <el-splitter-panel>
             <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
                 <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
@@ -380,7 +381,7 @@ const measureOverflowDebounce = debounce(measureOverflow, 50)
 const expandWidth = getComputedStyle(document.documentElement)
     .getPropertyValue('--word-options-panel-width')
     .trim() || '300px'
-const { panelMin, panelSize, handlePanelResize, collapsePanel, expandPanel, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
+const { panelMin, panelSize, handlePanelResize,triggerPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
 
 onMounted(() => {
     const wrap = anchorBarRef.value
@@ -457,13 +458,9 @@ watch(
 )
 
 watch(
-    () => props.controller.showSessionGlossaryPanel,
+    () => props.controller.triggerSessionGlossaryPanel,
     () => {
-        if (props.controller.showSessionGlossaryPanel) {
-            expandPanel(180)
-        } else {
-            collapsePanel()
-        }
+        triggerPanel()
     }
 )
 

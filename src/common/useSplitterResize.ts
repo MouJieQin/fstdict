@@ -46,6 +46,13 @@ export function useSplitterResize(options: UseSplitterResizeOptions) {
             await nextTick()
         }
     }
+    const triggerPanel = (): void => {
+        if (Number(panelSize.value) <= 5) {
+            expandPanel()
+        } else {
+            collapsePanel()
+        }
+    }
     /**
      * Smoothly fold the word-options panel to exactly 0px.
      * `min="100"` would clamp a `size: 0` prop back to 100 (the panel's prop
@@ -62,6 +69,13 @@ export function useSplitterResize(options: UseSplitterResizeOptions) {
         withPanelAnimation()
         panelSize.value = 0
     }
+
+
+    const onSplitterCollapse = (index: number, type: 'start' | 'end', sizes: number[]): void => {
+        withPanelAnimation()
+        // console.log("onSplitterCollapse", index, type, sizes)
+    }
+
     /**
      * While the splitter bar is being dragged, the webview happily selects a
      * large page region under the pointer. Block text selection document-wide
@@ -91,6 +105,8 @@ export function useSplitterResize(options: UseSplitterResizeOptions) {
         handlePanelResize,
         expandPanel,
         collapsePanel,
+        triggerPanel,
+        onSplitterCollapse,
         onSplitterResizeStart,
         onSplitterResizeEnd,
     }

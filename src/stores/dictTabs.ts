@@ -68,9 +68,9 @@ export interface TabController {
     folderWords: FolderWords
     searchHistory: WordInfo[]
     wordOptions: string[]
-    showSessionGlossaryPanel: boolean
 
     // --- Misc ---
+    triggerSessionGlossaryPanel: boolean
     triggerScrollToNextDict: boolean
     triggerScrollToPreviousDict: boolean
     iframeKeydownEvent: unknown

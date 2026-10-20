@@ -23,7 +23,8 @@
 <template>
     <el-container class="tab-session">
         <el-main style="padding: 0">
-            <el-splitter ref="splitterRef" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
+            <el-splitter ref="splitterRef" @collapse="onSplitterCollapse" @resize-start="onSplitterResizeStart"
+                @resize-end="onSplitterResizeEnd">
                 <!-- Word options panel (independent per tab) -->
                 <el-splitter-panel v-if="!showPopover" :min="panelMin" :size="panelSize"
                     @update:size="handlePanelResize" collapsible>
@@ -114,7 +115,7 @@ const controller = reactive<TabController>({
     folderWords: {},
     searchHistory: [],
     wordOptions: [],
-    showSessionGlossaryPanel: true,
+    triggerSessionGlossaryPanel: true,
     triggerScrollToNextDict: false,
     triggerScrollToPreviousDict: false,
     iframeKeydownEvent: null,
@@ -128,7 +129,7 @@ const expandWidth = getComputedStyle(document.documentElement)
     .getPropertyValue('--word-options-panel-width')
     .trim() || '300px'
 
-const { panelMin, panelSize, handlePanelResize, expandPanel, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
+const { panelMin, panelSize, handlePanelResize, expandPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
 
 const expandWordOptions = async (): Promise<void> => {
     if (props.showPopover) return // options live in the TitleBar popover in narrow mode
