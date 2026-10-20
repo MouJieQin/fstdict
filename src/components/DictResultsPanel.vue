@@ -41,8 +41,8 @@
         <el-splitter-panel>
             <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
                 <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
-                <div ref="anchorBarRef" class="anchor-bar">
-                    <el-anchor v-if="showAnchorBar" :container="anchorContainer" :offset="0" :bound="0" :duration="200"
+                <div v-if="showAnchorBar" ref="anchorBarRef" class="anchor-bar">
+                    <el-anchor :container="anchorContainer" :offset="0" :bound="0" :duration="200"
                         direction="horizontal" select-scroll-top class="anchor-dict">
                         <el-anchor-link v-for="(_, dictName) in controller.lookupResults"
                             :key="`${controller.lookupSeq}--${dictName}`" :href="sectionHref(dictName)"
@@ -381,7 +381,7 @@ const measureOverflowDebounce = debounce(measureOverflow, 50)
 const expandWidth = getComputedStyle(document.documentElement)
     .getPropertyValue('--word-options-panel-width')
     .trim() || '300px'
-const { panelMin, panelSize, handlePanelResize,triggerPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
+const { panelMin, panelSize, handlePanelResize, triggerPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
 
 onMounted(() => {
     const wrap = anchorBarRef.value

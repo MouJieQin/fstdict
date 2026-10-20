@@ -183,7 +183,7 @@ const defaultSessionConfig = getDefaultSessionConfig('default')
 const envFromRoute = ref('')
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
-const tabHeight = ref(0)
+const tabHeight = computed(() => tabsCount.value > 1 ? TAB_HEIGHT : 0)
 
 const viewportWidth = ref(window.innerWidth)
 const showPopoverWordOptions = ref(false)
@@ -514,9 +514,6 @@ watch(
 )
 
 
-watch(() => tabsCount.value, (newVal) => {
-    tabHeight.value = newVal > 1 ? TAB_HEIGHT : 0
-})
 
 watch(() => dictTabsStore.redirectWord,
     (newVal) => {
