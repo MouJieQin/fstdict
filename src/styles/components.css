@@ -1114,6 +1114,15 @@
         --header-padding-left: 80px !important;
     }
 
+    .floating-window-titlebar-button-container .el-button {
+        height: 20px;
+        width: 20px;
+    }
+
+    .floating-window-titlebar-button {
+        margin-left: 4px !important;
+    }
+
     .sticky-collapse {
         --el-collapse-header-height: 1.5rem !important;
     }
