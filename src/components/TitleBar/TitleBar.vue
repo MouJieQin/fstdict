@@ -34,27 +34,27 @@
             </el-text>
         </div>
 
-        <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop>
-            <el-button :icon="ArrowLeftBold" text @click="goBack" class="floating-window-titlebar-button" size="small"
+        <el-button-group class="floating-window-titlebar-button-container" @mousedown.stop size="small">
+            <el-button :icon="ArrowLeftBold" text @click="goBack" class="floating-window-titlebar-button"
                 :disabled="!canGoBack" id="titlebar-history-back-button" />
             <el-button :icon="ArrowRightBold" text @click="goForward" class="floating-window-titlebar-button"
-                size="small" :disabled="!canGoForward" id="titlebar-history-forward-button" />
+                :disabled="!canGoForward" id="titlebar-history-forward-button" />
 
             <el-tooltip v-if="showFavoriteTooltip" :content="$t('titleBar.setDefaultFolderFirst')" placement="bottom"
                 effect="customized">
-                <el-button :icon="Star" text class="floating-window-titlebar-button" size="small" disabled />
+                <el-button :icon="Star" text class="floating-window-titlebar-button" disabled />
             </el-tooltip>
             <el-button v-else :icon="isWordFavorited ? StarFilled : Star" text @click="toggleFavorite"
-                class="floating-window-titlebar-button" size="small" :disabled="!canFavorite" />
+                class="floating-window-titlebar-button" :disabled="!canFavorite" />
 
-            <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button" size="small"
+            <el-button :icon="Edit" text @click="openNoteDialog" class="floating-window-titlebar-button"
                 :disabled="!lastSearchKeyword" />
 
             <el-button :icon="Setting" text id="titlebar-setting-button" @click="handleToggleConfigPanel"
-                class="floating-window-titlebar-button" size="small" />
+                class="floating-window-titlebar-button" />
 
             <el-button v-if="showPinButton()" :icon="isPinned ? BsPinAngleFill : BsPin" text @click="togglePin"
-                class="floating-window-titlebar-button" size="small" />
+                class="floating-window-titlebar-button" />
         </el-button-group>
 
         <el-dropdown id="titlebar-sessions-button" trigger="click" placement="bottom-end"
@@ -292,6 +292,9 @@ const folderConfigStore = useFolderConfigStore()
 const systemConfigStore = useSystemConfigStore()
 const dictTabsStore = useDictTabsStore()
 
+/** Runtime state of the ACTIVE tab (drives the shared TitleBar). */
+const activeController = computed(() => dictTabsStore.activeController)
+
 // --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
 const favoriteWordsDialogVisible = ref(false)
@@ -475,10 +478,10 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     } else if (data.key === 'ArrowRight' && data.shiftKey && data.metaKey) {
         if (e) e.preventDefault()
         dictTabsStore.moveTheTabToNextPos()
-    } else if (data.key === 'ArrowLeft' && data.metaKey) {
+    } else if (data.key === 'ArrowLeft' && (data.ctrlKey || data.metaKey)) {
         if (e) e.preventDefault()
         dictTabsStore.activatePreviousTab()
-    } else if (data.key === 'ArrowRight' && data.metaKey) {
+    } else if (data.key === 'ArrowRight' && (data.ctrlKey || data.metaKey)) {
         if (e) e.preventDefault()
         dictTabsStore.activateNextTab()
     } else if (data.key === 'ArrowUp' && (data.shiftKey && (data.ctrlKey || data.metaKey))) {
@@ -492,15 +495,15 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
             dictTabsStore.activeTab.controller.triggerScrollToNextDict = !dictTabsStore.activeTab.controller.triggerScrollToNextDict
         }
     }
-    else if ((data.key === 'w' && data.metaKey)) {
+    else if ((data.key === 'w' && (data.ctrlKey || data.metaKey))) {
         if (dictTabsStore.tabSize > 1) {
             if (e) e.preventDefault()
             dictTabsStore.closeActiveTab()
         }
-    } else if ((data.key === 'n' && data.metaKey)) {
+    } else if ((data.key === 'n' && (data.ctrlKey || data.metaKey))) {
         if (e) e.preventDefault()
         dictTabsStore.createTab(dictTabsStore.activeTab?.controller?.sessionId)
-    } else if ((data.key === 'd' && data.metaKey)) {
+    } else if ((data.key === 'd' && (data.ctrlKey || data.metaKey))) {
         if (e) e.preventDefault()
         dictTabsStore.clearTabs()
     } else if ((data.key === 'Enter' && (data.shiftKey && (data.ctrlKey || data.metaKey)))) {
@@ -520,8 +523,15 @@ const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boo
     else if (data.key === 's' && (data.ctrlKey || data.metaKey)) {
         handleToggleConfigPanel()
     }
+    else if (data.key === 'g' && (data.ctrlKey || data.metaKey)) {
+        if (activeController.value) {
+            activeController.value.showSessionGlossaryPanel = !activeController.value.showSessionGlossaryPanel
+        }
+    }
     else if (data.key === ',' && (data.ctrlKey || data.metaKey)) {
-        await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
+        if (isTauri()) {
+            await invoke(TAURI_CMD.SHOW_SETTING_WINDOW)
+        }
     }
     // Handle forwarded zoom shortcuts safely
     else if ((data.key === '=' || data.key === '+') && data.metaKey) {

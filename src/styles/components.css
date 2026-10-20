@@ -571,6 +571,15 @@
     display: inline-block;
 }
 
+/*
+ * Smooth programmatic expand / collapse. The class is added only for the
+ * brief moment of a programmatic resize, so manual bar dragging stays
+ * 1:1 with the pointer (flex-basis is re-set on every pointer move).
+ */
+.el-splitter-panel.panel-animating {
+    transition: flex-basis 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
+}
+
 /* ============= Vibrant input ============= */
 .el-input__wrapper {
     /* background: var(--glass-bg) !important; */

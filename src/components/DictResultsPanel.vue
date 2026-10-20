@@ -36,7 +36,7 @@
   component instance instead would silently break the active underline.
 -->
 <template>
-    <el-splitter @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
+    <el-splitter ref="splitterRef" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
         <el-splitter-panel>
             <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
                 <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
@@ -182,7 +182,7 @@
                 </el-scrollbar>
             </div>
         </el-splitter-panel>
-        <el-splitter-panel size="200px" min="180px" max="80%" collapsible>
+        <el-splitter-panel :size="panelSize" :min="panelMin" collapsible @update:size="handlePanelResize">
             <SessionGlossary :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
                 :keyword="controller.keyword" :folder-name="folder_name" :favorite-words="folder_words"
                 :search-history="controller.searchHistory" />
@@ -202,8 +202,8 @@ import DictIframe from '@/components/DictIframe.vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { CaretRight, CaretBottom, MoreFilled, DArrowRight } from '@element-plus/icons-vue'
 import SessionGlossary from '@/components/SessionGlossary.vue'
+import { useSplitterResize } from '@/common/useSplitterResize'
 import debounce from 'lodash/debounce'
-
 
 const props = defineProps({
     /** Runtime state of the tab this panel belongs to. */
@@ -242,6 +242,9 @@ const emit = defineEmits<{
 
 const systemConfigStore = useSystemConfigStore()
 const folderConfigStore = useFolderConfigStore()
+
+// --- Splitter sizing (local UI state of this tab) ---
+const splitterRef = ref<any>(null)
 
 // Markdown renderer (local: only this panel renders notes).
 const md = new MarkdownIt({
@@ -374,13 +377,10 @@ const measureOverflow = (): void => {
 
 const measureOverflowDebounce = debounce(measureOverflow, 50)
 
-const onSplitterResizeStart = (): void => {
-    document.body.classList.add('panel-resizing')
-}
-
-const onSplitterResizeEnd = (): void => {
-    document.body.classList.remove('panel-resizing')
-}
+const expandWidth = getComputedStyle(document.documentElement)
+    .getPropertyValue('--word-options-panel-width')
+    .trim() || '300px'
+const { panelMin, panelSize, handlePanelResize, collapsePanel, expandPanel, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
 
 onMounted(() => {
     const wrap = anchorBarRef.value
@@ -453,6 +453,17 @@ watch(
     () => props.controller.triggerScrollToPreviousDict,
     () => {
         scrollToPrevDictionary()
+    }
+)
+
+watch(
+    () => props.controller.showSessionGlossaryPanel,
+    () => {
+        if (props.controller.showSessionGlossaryPanel) {
+            expandPanel(180)
+        } else {
+            collapsePanel()
+        }
     }
 )
 

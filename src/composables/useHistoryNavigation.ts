@@ -1,6 +1,6 @@
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import type { Ref } from 'vue'
-import type { WordInfo} from '@/common/type-interface'
+import type { WordInfo } from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getDictSettingsForLookup } from '@/common/utility'
 import type { SessionConfig } from '@/common/type-interface'
@@ -36,8 +36,8 @@ export function useHistoryNavigation(options: UseHistoryNavigationOptions) {
         }
     }
 
-    const canGoBack = () => historyIndex.value < searchHistory.value.length - 1
-    const canGoForward = () => historyIndex.value > 0 && historyIndex.value !== -1
+    const canGoBack = computed(() => historyIndex.value < searchHistory.value.length - 1)
+    const canGoForward = computed(() => historyIndex.value > 0 && historyIndex.value !== -1)
 
     watch(leftHistory, (newVal) => {
         if (newVal) {

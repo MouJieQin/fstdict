@@ -25,7 +25,7 @@
         <el-main style="padding: 0">
             <el-splitter ref="splitterRef" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
                 <!-- Word options panel (independent per tab) -->
-                <el-splitter-panel v-if="!showPopover" :min="wordOptionsMin" :size="wordOptionsSize"
+                <el-splitter-panel v-if="!showPopover" :min="panelMin" :size="panelSize"
                     @update:size="handlePanelResize" collapsible>
                     <div class="word-options">
                         <WordOptions :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
@@ -64,6 +64,8 @@ import {
 import { useDictTabsStore } from '@/stores/dictTabs'
 import type { TabController } from '@/stores/dictTabs'
 import { getDefaultSessionConfig } from '@/common/utility'
+import { useSplitterResize } from '@/common/useSplitterResize'
+
 // Constants & i18n
 import { ENV } from '@/common/constants'
 import { setAppLocale } from '@/i18n'
@@ -112,6 +114,7 @@ const controller = reactive<TabController>({
     folderWords: {},
     searchHistory: [],
     wordOptions: [],
+    showSessionGlossaryPanel: true,
     triggerScrollToNextDict: false,
     triggerScrollToPreviousDict: false,
     iframeKeydownEvent: null,
@@ -120,83 +123,18 @@ const controller = reactive<TabController>({
 })
 
 // --- Splitter sizing (local UI state of this tab) ---
-const wordOptionsSize = ref<number | string>(0)
 const splitterRef = ref<any>(null)
-/** Minimum width of the word-options panel (kept 100px while dragging). */
-const wordOptionsMin = ref(100)
-/** Duration of a programmatic resize animation, in ms (matches the CSS). */
-const ANIMATION_MS = 240
-/**
- * If the user drags the word-options panel narrower than this many pixels,
- * the drag is finished and the panel folds away automatically. Tune freely.
- */
-const RESIZE_COLLAPSE_THRESHOLD_PX = 101
-/** The rendered `.el-splitter-panel` element of the word-options panel. */
-const wordOptionsPanelEl = (): HTMLElement | null =>
-    splitterRef.value?.$el?.querySelector('.el-splitter-panel') ?? null
-/**
- * Temporarily enable a CSS transition on the panel so programmatic resizes
- * (expand / collapse) ease smoothly. The class is removed shortly after, so
- * manual bar dragging stays 1:1 with the pointer (no rubber-band lag).
- */
-const withPanelAnimation = (): void => {
-    const panelEl = wordOptionsPanelEl()
-    if (!panelEl) return
-    panelEl.classList.add('panel-animating')
-    window.setTimeout(() => panelEl.classList.remove('panel-animating'), ANIMATION_MS + 80)
-}
-const handlePanelResize = (size: number | string): void => {
-    wordOptionsSize.value = size
-}
+const expandWidth = getComputedStyle(document.documentElement)
+    .getPropertyValue('--word-options-panel-width')
+    .trim() || '300px'
+
+const { panelMin, panelSize, handlePanelResize, expandPanel, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
+
 const expandWordOptions = async (): Promise<void> => {
     if (props.showPopover) return // options live in the TitleBar popover in narrow mode
-    if (Number(wordOptionsSize.value) <= 5) {
-        const panelWidth = getComputedStyle(document.documentElement)
-            .getPropertyValue('--word-options-panel-width')
-            .trim() || '300px'
-        withPanelAnimation()
-        wordOptionsSize.value = panelWidth
-        await nextTick()
-    }
+    await expandPanel()
 }
-/**
- * Smoothly fold the word-options panel to exactly 0px.
- * `min="100"` would clamp a `size: 0` prop back to 100 (the panel's prop
- * watcher clamps on every external size change), so we temporarily drop the
- * min for one tick and restore it after the animation finishes.
- */
-const collapseWordOptions = (): void => {
-    if (wordOptionsMin.value !== 0) {
-        wordOptionsMin.value = 0
-        window.setTimeout(() => {
-            wordOptionsMin.value = 100
-        }, ANIMATION_MS + 120)
-    }
-    withPanelAnimation()
-    wordOptionsSize.value = 0
-}
-/**
- * While the splitter bar is being dragged, the webview happily selects a
- * large page region under the pointer. Block text selection document-wide
- * for the whole drag (restored on `resize-end`).
- */
-const onSplitterResizeStart = (): void => {
-    document.body.classList.add('panel-resizing')
-}
-/**
- * Restore selection after the drag. As a safety net, if the panel ended up
- * narrower than the threshold (user dragged it (almost) shut), stop the
- * drag by folding the panel away entirely.
- */
-const onSplitterResizeEnd = (): void => {
-    document.body.classList.remove('panel-resizing')
-    const panelEl = wordOptionsPanelEl()
-    if (!panelEl) return
-    const widthPx = panelEl.getBoundingClientRect().width
-    if (widthPx > 0 && widthPx < RESIZE_COLLAPSE_THRESHOLD_PX) {
-        collapseWordOptions()
-    }
-}
+
 // --- Dictionary setup ---
 const setupDictSettings = (): void => {
     const optionName = controller.sessionConfig.dict_setting_option_name
@@ -396,15 +334,6 @@ onBeforeUnmount(async () => {
 })
 </script>
 <style scoped>
-/*
- * Smooth programmatic expand / collapse. The class is added only for the
- * brief moment of a programmatic resize, so manual bar dragging stays
- * 1:1 with the pointer (flex-basis is re-set on every pointer move).
- */
-:deep(.el-splitter-panel.panel-animating) {
-    transition: flex-basis 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
-}
-
 /*
  * Constrain the tab shell and clip the splitter panels: the ONLY scroll
  * containers must be the inner el-scrollbar wrap and the word-options
