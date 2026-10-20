@@ -19,7 +19,7 @@
                 <el-dropdown trigger="click" placement="bottom-end" @command="handleSortCommand"
                     popper-class="vibrant-dropdown">
                     <el-icon class="clickable-icon">
-                        <Sort />
+                        <ArrowDown />
                     </el-icon>
                     <template #dropdown>
                         <el-dropdown-menu class="vibrant-dropdown">
@@ -58,12 +58,12 @@
             </el-input>
             <el-dropdown trigger="click" placement="bottom-end" @command="handleSearchMethodCommand"
                 popper-class="vibrant-dropdown">
-                <el-button size="small" text class="glossary-search-method-btn">
-                    <span>{{ searchMethodLabel }}</span>
-                    <el-icon>
-                        <ArrowDown />
-                    </el-icon>
-                </el-button>
+                <!-- <el-button size="small" text class="glossary-search-method-btn"> -->
+                <!-- <span>{{ searchMethodLabel }}</span> -->
+                <el-icon class="clickable-icon">
+                    <ArrowDown />
+                </el-icon>
+                <!-- </el-button> -->
                 <template #dropdown>
                     <el-dropdown-menu class="vibrant-dropdown">
                         <el-dropdown-item v-for="m in searchMethodOptions" :key="m.value"
@@ -115,7 +115,7 @@ import {
 import { MAIN_MENU_INDEX } from '@/common/constants'
 
 import { BsSortDown, BsSortUpAlt } from 'vue-icons-plus/bs'
-import { Sort, Check, Search, Close, ArrowDown } from '@element-plus/icons-vue'
+import { Check, Search, Close, ArrowDown } from '@element-plus/icons-vue'
 
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
