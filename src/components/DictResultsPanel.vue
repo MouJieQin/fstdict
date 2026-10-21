@@ -41,7 +41,7 @@
         <el-splitter-panel>
             <div class="dict-results-panel" :style="{ '--dict-anchor-height': `${dictAnchorHeight}px` }">
                 <!-- Bar mode: horizontal anchor bar + inline overflow "more" button -->
-                <div v-if="showAnchorBar" ref="anchorBarRef" class="anchor-bar">
+                <div v-show="showAnchorBar" ref="anchorBarRef" class="anchor-bar">
                     <el-anchor :container="anchorContainer" :offset="0" :bound="0" :duration="200"
                         direction="horizontal" select-scroll-top class="anchor-dict">
                         <el-anchor-link v-for="(_, dictName) in controller.lookupResults"
@@ -186,7 +186,7 @@
         <el-splitter-panel :size="panelSize" :min="panelMin" collapsible @update:size="handlePanelResize">
             <SessionGlossary :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
                 :keyword="controller.keyword" :folder-name="folder_name" :favorite-words="folder_words"
-                :search-history="controller.searchHistory" />
+                :search-history="controller.sessionHistory" />
         </el-splitter-panel>
     </el-splitter>
 

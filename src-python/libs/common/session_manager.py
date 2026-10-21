@@ -94,6 +94,15 @@ class SessionManager:
         await SessionManager.broadcast_all(json.dumps(msg))
 
     @staticmethod
+    async def broadcast_all_search_history() -> None:
+        global_history = Utils.db.get_search_history(100, None)
+        for session_id in list(Utils.session_websockets.keys()):
+            session_history = Utils.db.get_search_history(100, session_id)
+            print(session_id, session_history)
+            msg = {"type": "search_history", "data": {"session_history": session_history, "global_history": global_history}}
+            await SessionManager.broadcast_session(session_id, json.dumps(msg))
+
+    @staticmethod
     async def send_session_config(
         session_id: int, connection_id: int, is_new_connection: bool = False
     ) -> None:
@@ -132,8 +141,10 @@ class SessionManager:
 
     @staticmethod
     async def send_search_history(session_id: int, connection_id: int) -> None:
-        history = Utils.db.get_search_history()
-        msg = {"type": "search_history", "data": {"words": history}}
+        session_history = Utils.db.get_search_history(100, session_id)
+        global_history = Utils.db.get_search_history(100, None)
+        msg = {"type": "search_history", "data": {"session_history": session_history, "global_history": global_history
+                                                  }}
         await SessionManager.send_to_connection(session_id, connection_id, json.dumps(msg))
 
     @staticmethod

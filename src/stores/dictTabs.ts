@@ -67,6 +67,7 @@ export interface TabController {
     // --- History / options ---
     folderWords: FolderWords
     searchHistory: WordInfo[]
+    sessionHistory: WordInfo[]
     wordOptions: string[]
 
     // --- Misc ---

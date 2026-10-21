@@ -308,7 +308,7 @@ watch(
     { deep: true }
 )
 
-watch(() => props.webSocket, () => {
-    props.webSocket?.sendSearchHistoryRequest()
-})
+// watch(() => props.webSocket, () => {
+//     props.webSocket?.sendSearchHistoryRequest()
+// })
 </script>

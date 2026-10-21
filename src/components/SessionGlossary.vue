@@ -1,5 +1,6 @@
 <template>
-    <el-splitter layout="vertical" class="session-glossary" @resize-start="onSplitterResizeStart" @resize-end="onSplitterResizeEnd">
+    <el-splitter layout="vertical" class="session-glossary" @resize-start="onSplitterResizeStart"
+        @resize-end="onSplitterResizeEnd">
         <el-splitter-panel>
             <GlossaryOptions :active-menu-index="MAIN_MENU_INDEX.HISTORY" :web-socket="webSocket"
                 :session-config="sessionConfig" :keyword="keyword" :folder-name="folderName"

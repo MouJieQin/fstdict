@@ -114,6 +114,7 @@ const controller = reactive<TabController>({
     refreshDicsSettingsInfoFlag: false,
     folderWords: {},
     searchHistory: [],
+    sessionHistory: [],
     wordOptions: [],
     triggerSessionGlossaryPanel: true,
     triggerScrollToNextDict: false,
@@ -286,7 +287,8 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
             controller.folderWords[message.data.folder_id] = message.data.words
             break
         case 'search_history':
-            controller.searchHistory = message.data.words
+            controller.searchHistory = message.data.global_history
+            controller.sessionHistory = message.data.session_history
             expandWordOptions()
             break
         case 'folder_config':

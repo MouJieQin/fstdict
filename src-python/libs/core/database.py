@@ -1,7 +1,9 @@
 """
 SQLite database layer for user data: sessions, favorites, history, notes.
+
 All methods are synchronous (SQLite) and should be called via asyncio.to_thread().
 """
+
 import sqlite3
 import json
 from typing import Optional, List, Dict, Any
@@ -16,6 +18,7 @@ class FstDictDatabase:
         self.conn.row_factory = sqlite3.Row
         self._enable_foreign_keys()
         self._create_tables()
+        self._migrate_schema()   # <-- NEW: runs AFTER create_tables
         self._create_indexes()
 
     def _enable_foreign_keys(self) -> None:
@@ -25,6 +28,44 @@ class FstDictDatabase:
             cursor = self.conn.execute("PRAGMA foreign_keys")
             if cursor.fetchone()[0] != 1:
                 raise RuntimeError("Failed to enable foreign key constraints")
+
+    # ------------------------------------------------------------------
+    # Schema migration
+    # ------------------------------------------------------------------
+    def _migrate_schema(self) -> None:
+        """
+        Idempotent schema migrations.
+
+        CREATE TABLE IF NOT EXISTS never touches an existing table, so any
+        column added to a table definition only takes effect for FRESH
+        databases. For databases created before the column existed we
+        ALTER here.
+
+        Strategy for word_search_history.session_id:
+          - existing rows keep the column NULL = "global history" (not
+            bound to any session). They stay visible through the original
+            get_search_history() and through the new per-session queries
+            when include_global=True (the default), so no history
+            disappears after the migration.
+          - new rows written with add_search_history(word, session_id)
+            carry their real session id.
+        """
+        with self.conn:
+            cols = {
+                row["name"]
+                for row in self.conn.execute("PRAGMA table_info(word_search_history)")
+            }
+            if "session_id" not in cols:
+                logger.info("Migrating word_search_history: adding session_id column")
+                self.conn.execute(
+                    "ALTER TABLE word_search_history ADD COLUMN session_id INTEGER"
+                )
+                # NULL is a valid value for the new column on all existing rows.
+                self.conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_word_search_history_session_id "
+                    "ON word_search_history(session_id)"
+                )
+            logger.debug("Schema check passed: word_search_history.session_id present")
 
     def _create_tables(self) -> None:
         """Create all database tables if they do not exist."""
@@ -73,10 +114,18 @@ class FstDictDatabase:
             """)
 
             # Search history table
+            # session_id semantics:
+            #   NULL  -> global history (legacy rows / calls that did not
+            #            specify a session)
+            #   <id>  -> history originated from that session
+            # Deliberately NOT a FOREIGN KEY to sessions(id): session ids
+            # are logical ids owned by the frontend and may legitimately be
+            # created/removed out of band; a hard FK would drop history.
             c.execute("""
                 CREATE TABLE IF NOT EXISTS word_search_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     word_id INTEGER NOT NULL,
+                    session_id INTEGER,
                     searched_at TIMESTAMP DEFAULT (datetime('now','localtime')),
                     FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
                 )
@@ -175,17 +224,56 @@ class FstDictDatabase:
             else:
                 raise ValueError("Failed to insert word into database")
 
-    def add_search_history(self, word: str) -> None:
-        """Record a search query in history."""
+    # --- Search history ---
+
+    def add_search_history(self, word: str, session_id: Optional[int] = None) -> None:
+        """
+        Record a search query in history.
+
+        Backward compatible: session_id defaults to None, which stores a
+        NULL -> the row belongs to the GLOBAL history. Existing callers
+        (add_search_history(word)) keep working unchanged.
+        """
         word_id = self.get_or_create_word(word)
         with self.conn:
             self.conn.execute(
-                "INSERT INTO word_search_history (word_id) VALUES (?)", (word_id,)
+                "INSERT INTO word_search_history (word_id, session_id) VALUES (?, ?)",
+                (word_id, session_id),
             )
             self.conn.execute(
                 "UPDATE words SET query_count = query_count + 1 WHERE id = ?",
-                (word_id,)
+                (word_id,),
             )
+
+    def get_search_history(self, limit: int = 100, session_id: int | None = None) -> list[dict]:
+        """
+        History filtered to ONE session.
+        session_id : the session whose history is requested.
+
+        Original interface, unchanged: returns the full history across ALL
+        sessions (global + every session). Kept for backward compatibility.
+        """
+        where = ""
+        if session_id is None:
+            args: tuple = (limit,)
+        else:
+            where = "WHERE h.session_id = ?"
+            args: tuple = (session_id, limit)
+
+        cursor = self.conn.execute(f"""
+            SELECT DISTINCT
+                w.word,
+                w.created_at,
+                w.query_count,
+                MAX(h.searched_at) AS last_searched
+            FROM word_search_history h
+            JOIN words w ON h.word_id = w.id
+            {where}
+            GROUP BY w.id
+            ORDER BY last_searched DESC
+            LIMIT ?
+        """, args)
+        return [dict(row) for row in cursor.fetchall()]
 
     # --- Folder operations ---
 
@@ -311,23 +399,6 @@ class FstDictDatabase:
         if folder_id is None:
             return []
         return self.get_folder_words(folder_id)
-
-    # --- Search history ---
-
-    def get_search_history(self, limit: int = 100) -> List[Dict]:
-        cursor = self.conn.execute("""
-                SELECT DISTINCT
-                    w.word,
-                    w.created_at,
-                    w.query_count,
-                    MAX(h.searched_at) AS last_searched
-                FROM word_search_history h
-                JOIN words w ON h.word_id = w.id
-                GROUP BY w.id
-                ORDER BY last_searched DESC
-                LIMIT ?
-            """, (limit,))
-        return [dict(row) for row in cursor.fetchall()]
 
     # --- Word notes ---
 

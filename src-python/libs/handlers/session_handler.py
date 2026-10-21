@@ -148,7 +148,8 @@ class SessionMessageHandler:
         note = await asyncio.to_thread(Utils.db.get_word_note, keyword)
 
         if left_history and (results or note):
-            await asyncio.to_thread(Utils.db.add_search_history, keyword)
+            await asyncio.to_thread(Utils.db.add_search_history, keyword, session_id)
+            await SessionManager.broadcast_all_search_history()
 
         response = {
             "type": "lookup_keyword",
