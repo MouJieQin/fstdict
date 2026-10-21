@@ -185,7 +185,7 @@
         </el-splitter-panel>
         <el-splitter-panel :size="panelSize" :min="panelMin" collapsible @update:size="handlePanelResize">
             <SessionGlossary :web-socket="controller.webSocket" :session-config="controller.sessionConfig"
-                :keyword="controller.keyword" :folder-name="folder_name" :favorite-words="folder_words"
+                :keyword="controller.lastSearchKeyword" :folder-name="folder_name" :favorite-words="folder_words"
                 :search-history="controller.sessionHistory" />
         </el-splitter-panel>
     </el-splitter>

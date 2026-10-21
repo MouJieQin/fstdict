@@ -41,7 +41,7 @@
                             :dicts-info="activeController?.dictsInfo"
                             :sessions-name-id="activeController?.sessionsNameId"
                             :folder-words="activeController?.folderWords" :left-history="activeController?.leftHistory"
-                            :search-history="activeController?.searchHistory"
+                            :search-history="activeController?.sessionHistory"
                             :last-search-keyword="activeController?.lastSearchKeyword ?? ''"
                             :has-result-last-search="activeController?.hasResultLastSearch"
                             :note-content="activeController?.noteContent" :word-options="activeController?.wordOptions"

@@ -4,6 +4,11 @@ import type { WordInfo } from '@/common/type-interface'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import { getDictSettingsForLookup } from '@/common/utility'
 import type { SessionConfig } from '@/common/type-interface'
+import { useDictTabsStore } from '@/stores'
+const dictTabsStore = useDictTabsStore()
+
+/** Runtime state of the ACTIVE tab (drives the shared TitleBar). */
+const activeController = computed(() => dictTabsStore.activeController)
 
 interface UseHistoryNavigationOptions {
     webSocket: Ref<SessionWebSocketService | null>
@@ -16,34 +21,36 @@ interface UseHistoryNavigationOptions {
 export function useHistoryNavigation(options: UseHistoryNavigationOptions) {
     const { webSocket, sessionConfig, searchHistory, leftHistory, hasResultLastSearch } = options
 
-    const historyIndex = ref(-1)
+    // const historyIndex = ref(-1)
     const isHistoryTriggered = ref(false)
     const redirectHistoryWord = ref('')
 
     const handleHistoryBack = () => {
-        if (historyIndex.value < searchHistory.value.length - 1) {
-            historyIndex.value += 1
+        if (activeController.value && activeController.value.historyIndex < searchHistory.value.length - 1) {
+            activeController.value.historyIndex += 1
             isHistoryTriggered.value = true
             webSocket.value?.sendSearchHistoryRequest()
         }
     }
 
     const handleHistoryForward = () => {
-        if (historyIndex.value > 0) {
-            historyIndex.value -= 1
+        if (activeController.value && activeController.value.historyIndex > 0) {
+            activeController.value.historyIndex -= 1
             isHistoryTriggered.value = true
             webSocket.value?.sendSearchHistoryRequest()
         }
     }
 
-    const canGoBack = computed(() => historyIndex.value < searchHistory.value.length - 1)
-    const canGoForward = computed(() => historyIndex.value > 0 && historyIndex.value !== -1)
+    const canGoBack = computed(() => activeController.value && activeController.value.historyIndex < searchHistory.value.length - 1)
+    const canGoForward = computed(() => activeController.value && activeController.value.historyIndex > 0 && activeController.value.historyIndex !== -1)
 
     watch(leftHistory, (newVal) => {
         if (newVal) {
             isHistoryTriggered.value = false
             setTimeout(() => {
-                historyIndex.value = hasResultLastSearch.value ? 0 : -1
+                if (activeController.value) {
+                    activeController.value.historyIndex = hasResultLastSearch.value ? 0 : -1
+                }
             }, 100)
         }
     })
@@ -51,7 +58,7 @@ export function useHistoryNavigation(options: UseHistoryNavigationOptions) {
     watch(searchHistory, () => {
         if (isHistoryTriggered.value) {
             isHistoryTriggered.value = false
-            const word = searchHistory.value[historyIndex.value]?.word
+            const word = activeController.value && searchHistory.value[activeController.value.historyIndex]?.word
             if (word) {
                 redirectHistoryWord.value = word
                 webSocket.value?.sendLookupKeyword(
@@ -65,7 +72,6 @@ export function useHistoryNavigation(options: UseHistoryNavigationOptions) {
     })
 
     return {
-        historyIndex,
         redirectHistoryWord,
         handleHistoryBack,
         handleHistoryForward,

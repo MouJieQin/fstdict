@@ -115,6 +115,7 @@ const controller = reactive<TabController>({
     folderWords: {},
     searchHistory: [],
     sessionHistory: [],
+    historyIndex: -1,
     wordOptions: [],
     triggerSessionGlossaryPanel: true,
     triggerScrollToNextDict: false,
