@@ -65,7 +65,7 @@ export interface TabController {
     refreshDicsSettingsInfoFlag: boolean
 
     // --- History / options ---
-    folderWords: FolderWords
+    // folderWords: FolderWords
     searchHistory: WordInfo[]
     sessionHistory: WordInfo[]
     historyIndex: number

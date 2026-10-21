@@ -61,6 +61,7 @@ import {
     useFolderConfigStore,
     useDictConfigStore,
     useSystemConfigStore,
+    useFolderWordsStore,
 } from '@/stores'
 import { useDictTabsStore } from '@/stores/dictTabs'
 import type { TabController } from '@/stores/dictTabs'
@@ -92,6 +93,7 @@ const emit = defineEmits<{
 // --- Stores ---
 const systemConfigStore = useSystemConfigStore()
 const dictConfigStore = useDictConfigStore()
+const folderWordsStore = useFolderWordsStore()
 const folderConfigStore = useFolderConfigStore()
 const dictTabsStore = useDictTabsStore()
 // --- Single source of truth for this tab's runtime state ---
@@ -112,7 +114,7 @@ const controller = reactive<TabController>({
     sessionDictsSettingInfo: [],
     sessionsNameId: [],
     refreshDicsSettingsInfoFlag: false,
-    folderWords: {},
+    // folderWords: {},
     searchHistory: [],
     sessionHistory: [],
     historyIndex: -1,
@@ -210,14 +212,8 @@ const handleLookupKeyword = (data: any): void => {
     dictTabsStore.setTabTitle(props.tabId, word)
 }
 const handleToggleFavor = (data: any): void => {
-    controller.isWordFavorited = data.is_word_favorited
-    if (!data.is_word_favorited) {
-        const folderId = data.folder_id
-        if (controller.folderWords[folderId]) {
-            controller.folderWords[folderId] = controller.folderWords[folderId].filter(
-                (item: any) => item.word !== data.keyword
-            )
-        }
+    if (controller.lastSearchKeyword === data.keyword) {
+        controller.isWordFavorited = data.is_word_favorited
     }
 }
 const handleSessionConfig = (message: any): void => {
@@ -285,7 +281,7 @@ const handleWebSocketMessage = async (message: any): Promise<void> => {
             handleToggleFavor(message.data)
             break
         case 'favorite_words':
-            controller.folderWords[message.data.folder_id] = message.data.words
+            folderWordsStore.setFolderWords(message.data.folder_id, message.data.words)
             break
         case 'search_history':
             controller.searchHistory = message.data.global_history

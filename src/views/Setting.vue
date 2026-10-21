@@ -83,7 +83,7 @@ const menuRef = ref<MenuInstance>()
 
 // --- WebSocket setup ---
 const setupWebSocket = (): void => {
-    webSocket.value = useSessionWebSocket(0)
+    webSocket.value = useSessionWebSocket(-2)
 
     if (webSocket.value) {
         webSocket.value.setMessageHandler(handleWebSocketMessage as any)

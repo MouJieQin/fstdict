@@ -355,6 +355,8 @@ class SessionMessageHandler:
         else:
             await asyncio.to_thread(Utils.db.unfavorite_word, keyword, folder_id)
 
+        await SessionManager.send_favorite_words(folder_id)
+
         response = {
             "type": "toggle_favor",
             "data": {
@@ -363,9 +365,7 @@ class SessionMessageHandler:
                 "is_word_favorited": is_favorited,
             },
         }
-        await SessionManager.send_to_connection(
-            session_id, connection_id, json.dumps(response)
-        )
+        await SessionManager.broadcast_session(session_id, json.dumps(response))
 
     @staticmethod
     async def _handle_save_note(

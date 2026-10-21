@@ -125,7 +125,7 @@ const viewingFolderWords = computed(() =>
 
 // --- WebSocket setup ---
 const setupWebSocket = (): void => {
-    webSocket.value = useSessionWebSocket(0)
+    webSocket.value = useSessionWebSocket(-1)
 
     if (webSocket.value) {
         webSocket.value.setMessageHandler(handleWebSocketMessage as any)

@@ -150,7 +150,7 @@ import { Setting, Edit, Delete, ArrowLeftBold, ArrowRightBold, CircleCloseFilled
 import WordOptionsAutoComplete from '@/components/TitleBar/WordOptionsAutoComplete.vue'
 
 // Composables & stores
-import { useFolderConfigStore, useSystemConfigStore, useDictTabsStore } from '@/stores'
+import { useFolderConfigStore, useSystemConfigStore, useDictTabsStore, useFolderWordsStore } from '@/stores'
 import { useHistoryNavigation } from '@/composables/useHistoryNavigation'
 import { useSessionManagement } from '@/composables/useSessionManagement'
 import { useWindowPin } from '@/composables/useWindowPin'
@@ -159,7 +159,6 @@ import { useWindowPin } from '@/composables/useWindowPin'
 import { SessionWebSocketService } from '@/common/session-websocket-client'
 import type {
     WordInfo,
-    FolderWords,
     SessionConfig,
     DictInfo,
     SessionNameId,
@@ -206,11 +205,6 @@ const props = defineProps({
     },
     dictsInfo: {
         type: Object as PropType<Record<string, DictInfo>>,
-        required: true,
-        default: () => ({}),
-    },
-    folderWords: {
-        type: Object as PropType<FolderWords>,
         required: true,
         default: () => ({}),
     },
@@ -291,13 +285,14 @@ const emit = defineEmits<{
 const folderConfigStore = useFolderConfigStore()
 const systemConfigStore = useSystemConfigStore()
 const dictTabsStore = useDictTabsStore()
+const folderWordsStore = useFolderWordsStore()
+
 
 /** Runtime state of the ACTIVE tab (drives the shared TitleBar). */
 const activeController = computed(() => dictTabsStore.activeController)
 
 // --- Dialog visibility state ---
 const noteDialogVisible = ref(false)
-const favoriteWordsDialogVisible = ref(false)
 const noteKeyword = ref('')
 const noteContent = ref(props.noteContent)
 
@@ -389,7 +384,7 @@ const defaultFolderName = computed(() => {
 
 const favoriteWords = computed(() => {
     const folderId = props.sessionConfig.default_folder.id ?? 0
-    return props.folderWords[folderId] || []
+    return folderWordsStore.folderWords[folderId] || []
 })
 
 const showCloseButton = computed(() =>
@@ -447,18 +442,9 @@ watch(noteDialogVisible, (visible) => {
     props.webSocket?.sendNoteIsEditing(visible)
 })
 
-// --- Favorite words dialog ---
-watch(favoriteWordsDialogVisible, (visible) => {
-    if (visible) {
-        const folderId = props.sessionConfig.default_folder.id ?? 0
-        props.webSocket?.sendFavoriteWordsRequest(folderId)
-    }
-})
-
 // --- Keyboard shortcuts from iframe ---
 const handleKeydownData = async (data: { key: string; code: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean, selectedText: string }, e: KeyboardEvent | null = null): Promise<void> => {
     if (data.key === '/' && data.metaKey) {
-        favoriteWordsDialogVisible.value = !favoriteWordsDialogVisible.value
     } else if (data.key === 'ArrowLeft' && data.altKey) {
         goBack()
     } else if (data.key === 'ArrowRight' && data.altKey) {

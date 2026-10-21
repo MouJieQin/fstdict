@@ -108,7 +108,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { isTauri, invoke } from '@tauri-apps/api/core'
-import type { DictsInfo, FolderWords, WordInfoWithNoteUpdateAt } from '@/common/type-interface'
+import type { DictsInfo, WordInfoWithNoteUpdateAt } from '@/common/type-interface'
 
 import { ENV, TAURI_EVENT, MAIN_MENU_INDEX, TAURI_CMD } from '@/common/constants'
 
@@ -119,6 +119,7 @@ import {
     useDictConfigStore,
     useSystemConfigStore,
     useDictTabsStore,
+    useFolderWordsStore,
 } from '@/stores'
 
 // Icons
@@ -138,7 +139,7 @@ const systemConfigStore = useSystemConfigStore()
 const dictConfigStore = useDictConfigStore()
 const folderConfigStore = useFolderConfigStore()
 const dictTabsStore = useDictTabsStore()
-
+const folderWordsStore = useFolderWordsStore()
 
 
 // --- Router & route ---
@@ -151,10 +152,8 @@ const showSidebar = ref(false)
 const isMainSidebarCollapsed = ref(false)
 const menuRef = ref<MenuInstance>()
 const activeTabIndex = ref('dictionary')
-const folderWords = ref<FolderWords>({})
 const noteWords = ref<WordInfoWithNoteUpdateAt[]>([])
 const viewingFolderId = ref<number>(0)
-
 
 const headerPaddingRight = ref(0)
 const headerPaddingLeft = ref(0)
@@ -162,7 +161,7 @@ const headerPaddingLeft = ref(0)
 
 // --- Computed properties ---
 const viewingFolderWords = computed(() =>
-    folderWords.value[viewingFolderId.value] || []
+    folderWordsStore.folderWords[viewingFolderId.value] || []
 )
 
 const folderName = computed(() => {
@@ -243,7 +242,7 @@ const setupWebSocket = (): void => {
 const handleWebSocketMessage = async (message: any): Promise<void> => {
     switch (message.type) {
         case 'favorite_words':
-            folderWords.value[message.data.folder_id] = message.data.words
+            folderWordsStore.setFolderWords(message.data.folder_id, message.data.words)
             break
         case 'note_words':
             noteWords.value = message.data.words

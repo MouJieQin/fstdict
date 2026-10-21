@@ -198,7 +198,7 @@ import type { PropType } from 'vue'
 import MarkdownIt from 'markdown-it'
 import type { ScrollbarInstance } from 'element-plus'
 import type { TabController } from '@/stores/dictTabs'
-import { useSystemConfigStore, useFolderConfigStore } from '@/stores'
+import { useSystemConfigStore, useFolderConfigStore, useFolderWordsStore } from '@/stores'
 import DictIframe from '@/components/DictIframe.vue'
 import { BiSolidBookBookmark } from 'vue-icons-plus/bi'
 import { CaretRight, CaretBottom, MoreFilled, DArrowRight } from '@element-plus/icons-vue'
@@ -243,6 +243,7 @@ const emit = defineEmits<{
 
 const systemConfigStore = useSystemConfigStore()
 const folderConfigStore = useFolderConfigStore()
+const folderWordsStore = useFolderWordsStore()
 
 // --- Splitter sizing (local UI state of this tab) ---
 const splitterRef = ref<any>(null)
@@ -260,7 +261,7 @@ const folder_name = computed(() => {
     return folderConfigStore.folderConfig?.folders.folder_info.find((f) => f.id === folder_id.value)?.name
 })
 const folder_words = computed(() => {
-    return folder_id.value ? props.controller.folderWords[folder_id.value] : undefined
+    return folder_id.value ? folderWordsStore.folderWords[folder_id.value] : undefined
 })
 
 const dictAnchorHeight = computed(() => showAnchorBar.value ? 25 : 0)

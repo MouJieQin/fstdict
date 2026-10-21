@@ -98,7 +98,6 @@ class SessionManager:
         global_history = Utils.db.get_search_history(100, None)
         for session_id in list(Utils.session_websockets.keys()):
             session_history = Utils.db.get_search_history(100, session_id)
-            print(session_id, session_history)
             msg = {"type": "search_history", "data": {"session_history": session_history, "global_history": global_history}}
             await SessionManager.broadcast_session(session_id, json.dumps(msg))
 
@@ -146,6 +145,21 @@ class SessionManager:
         msg = {"type": "search_history", "data": {"session_history": session_history, "global_history": global_history
                                                   }}
         await SessionManager.send_to_connection(session_id, connection_id, json.dumps(msg))
+
+    @staticmethod
+    async def send_favorite_words(folder_id: int):
+        """Request list of favorited words in a folder."""
+
+        words = []
+        if await asyncio.to_thread(Utils.db.folder_exists, folder_id):
+            words = await asyncio.to_thread(Utils.db.get_folder_words, folder_id)
+
+        response = {
+            "type": "favorite_words",
+            "data": {"folder_id": folder_id, "words": words}
+        }
+        await SessionManager.broadcast_session(0, json.dumps(response))
+        await SessionManager.broadcast_session(-1, json.dumps(response))
 
     @staticmethod
     async def send_note_words(session_id: int, connection_id: int) -> None:
