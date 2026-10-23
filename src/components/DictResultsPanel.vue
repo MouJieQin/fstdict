@@ -205,6 +205,7 @@ import { CaretRight, CaretBottom, MoreFilled, DArrowRight } from '@element-plus/
 import SessionGlossary from '@/components/SessionGlossary.vue'
 import { useSplitterResize } from '@/common/useSplitterResize'
 import debounce from 'lodash/debounce'
+import { ENV } from '@/common/constants'
 
 const props = defineProps({
     /** Runtime state of the tab this panel belongs to. */
@@ -382,7 +383,7 @@ const measureOverflowDebounce = debounce(measureOverflow, 50)
 const expandWidth = getComputedStyle(document.documentElement)
     .getPropertyValue('--word-options-panel-width')
     .trim() || '300px'
-const { panelMin, panelSize, handlePanelResize, triggerPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
+const { panelMin, panelSize, handlePanelResize, collapsePanel, triggerPanel, onSplitterCollapse, onSplitterResizeStart, onSplitterResizeEnd } = useSplitterResize({ splitterRef, expandWidth })
 
 onMounted(() => {
     const wrap = anchorBarRef.value
@@ -401,6 +402,15 @@ onBeforeUnmount(() => {
     containerTries = 0
     document.body.classList.remove('panel-resizing')
 })
+
+watch(
+    () => props.env,
+    (env) => {
+        if (env === ENV.HELPER || env === ENV.SELECTION) {
+            collapsePanel()
+        }
+    }
+)
 
 // A fresh lookup re-renders the anchor links -> re-measure + re-ensure.
 watch(
