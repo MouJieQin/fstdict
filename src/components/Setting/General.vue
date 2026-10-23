@@ -9,6 +9,7 @@
                         {{ $t('settings.checkUpdate') }}
                     </el-button>
                 </el-form-item>
+
                 <el-form-item :label="$t('settings.theme')">
                     <el-radio-group v-model="appTheme">
                         <el-radio-button value="light">
@@ -36,6 +37,13 @@
                             </div>
                         </el-radio-button>
                     </el-radio-group>
+                </el-form-item>
+
+                <el-form-item v-if="type() === 'macos'" :label="$t('settings.vibrancy')">
+                    <el-select v-model="vibrancyMaterial" filterable style="max-width: 240px"
+                        @change="persistVibrancySetting">
+                        <el-option v-for="(val, name) in vibrancyMaterials" :key="name" :label="name" :value="val" />
+                    </el-select>
                 </el-form-item>
 
                 <el-form-item :label="$t('settings.language')">
@@ -71,7 +79,7 @@
 import { reactive, ref, watch, computed, onBeforeMount, Text } from 'vue'
 import type { PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-
+import { type } from '@tauri-apps/plugin-os';
 // Icons
 import {
     Sunny,
@@ -100,7 +108,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
-
+const vibrancyMaterial = ref<number>(7)
 // ─── Stores ──────────────────────────────────────────────────────
 const systemConfigStore = useSystemConfigStore()
 
@@ -128,11 +136,31 @@ const appLanguage = computed({
     },
 })
 
+const vibrancyMaterials = computed(() => {
+    return localSystemConfig.value?.appearance?.vibrancy?.macos?.material || {}
+})
+
 
 // ─── Persistence Helpers ────────────────────────────────────────
 function persistSystemConfig(): void {
     props.webSocket?.sendUpdateSystemConfig(localSystemConfig.value)
 }
+
+async function persistVibrancySetting(): Promise<void> {
+    console.log('vibrancyMaterial.value', vibrancyMaterial.value)
+    try {
+        await invoke(TAURI_CMD.SET_VIBRANCY_MATERIAL, {
+            material: vibrancyMaterial.value,
+            state: 1,
+        })
+    } catch (error) {
+        console.error('Failed to set vibrancy material:', error)
+    } finally {
+        // props.webSocket?.sendUpdateSystemConfig(localSystemConfig.value)
+    }
+}
+
+
 
 // ─── Show Updater Window ──────────────────────────────────────────────
 async function openUpdater(): Promise<void> {

@@ -1,9 +1,12 @@
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use anyhow::anyhow;
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_decorum::WebviewWindowExt;
 #[cfg(target_os = "windows")]
 use window_vibrancy::apply_blur;
 #[cfg(target_os = "macos")]
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+use window_vibrancy::{
+    apply_vibrancy, clear_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+};
 
 pub fn show_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<(), tauri::Error> {
     // Fast path: panel already exists
@@ -17,6 +20,25 @@ pub fn show_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<
     let _ = app.run_on_main_thread(move || {
         let _ = create_vibrant_window(&app_clone, &label_clone, &title_clone);
     });
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub fn restyle_vibrant_window(
+    win: &WebviewWindow,
+    material: u64,
+    state: u64,
+) -> Result<(), tauri::Error> {
+    let _ = clear_vibrancy(&win);
+
+    win.make_transparent()?;
+
+    let mat = material_from_u64(material)?;
+    let st = state_from_u64(state)?;
+
+    let _ = apply_vibrancy(&win, mat, Some(st), None)
+        .map_err(|e| format!("!apply_vibrancy failed: {e}"));
+
     Ok(())
 }
 
@@ -67,4 +89,37 @@ fn create_vibrant_window(app: &AppHandle, label: &str, title: &str) -> Result<()
     }
 
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn material_from_u64(v: u64) -> Result<NSVisualEffectMaterial, tauri::Error> {
+    let mat = match v {
+        3 => NSVisualEffectMaterial::Titlebar,
+        4 => NSVisualEffectMaterial::Selection,
+        5 => NSVisualEffectMaterial::Menu,
+        6 => NSVisualEffectMaterial::Popover,
+        7 => NSVisualEffectMaterial::Sidebar,
+        10 => NSVisualEffectMaterial::HeaderView,
+        11 => NSVisualEffectMaterial::Sheet,
+        12 => NSVisualEffectMaterial::WindowBackground,
+        13 => NSVisualEffectMaterial::HudWindow,
+        15 => NSVisualEffectMaterial::FullScreenUI,
+        17 => NSVisualEffectMaterial::Tooltip,
+        18 => NSVisualEffectMaterial::ContentBackground,
+        21 => NSVisualEffectMaterial::UnderWindowBackground,
+        22 => NSVisualEffectMaterial::UnderPageBackground,
+        _ => NSVisualEffectMaterial::Sidebar,
+    };
+    Ok(mat)
+}
+
+#[cfg(target_os = "macos")]
+fn state_from_u64(v: u64) -> Result<NSVisualEffectState, tauri::Error> {
+    let st = match v {
+        0 => NSVisualEffectState::FollowsWindowActiveState,
+        1 => NSVisualEffectState::Active,
+        2 => NSVisualEffectState::Inactive,
+        _ => NSVisualEffectState::FollowsWindowActiveState,
+    };
+    Ok(st)
 }

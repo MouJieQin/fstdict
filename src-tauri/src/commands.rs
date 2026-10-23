@@ -4,6 +4,7 @@ use crate::window::manage;
 use crate::window::permission_window;
 use crate::window::setting;
 use crate::window::updater_window;
+use crate::window::vibrant_window;
 use tauri::{AppHandle, Manager};
 
 use fstdict_common::theme::set_app_theme;
@@ -138,6 +139,16 @@ mod macos_impl {
         let _ = std::process::Command::new("open")
             .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
             .spawn();
+    }
+
+    #[tauri::command]
+    pub fn set_vibrancy_material(app_handle: AppHandle, material: u64, state: u64) {
+        log::info!("set_vibrancy_material: {}, {}", material, state);
+        let wins = app_handle.webview_windows();
+        for win in wins {
+            log::info!("win: {}, {}", win.0, win.1.label());
+            let _ = vibrant_window::restyle_vibrant_window(&win.1, material, state);
+        }
     }
 }
 

@@ -24,7 +24,7 @@ export function isWindowsSync(): boolean {
  */
 export async function initPlatformDetection(): Promise<void> {
   try {
-    const os = await osType()
+    const os = osType()
     cachedIsWindows = os === 'windows'
   } catch {
     // Fallback to userAgent already active

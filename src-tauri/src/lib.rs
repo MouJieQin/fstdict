@@ -118,6 +118,8 @@ pub async fn run() {
             commands::show_permission_window,
             #[cfg(target_os = "macos")]
             commands::launch_helper,
+            #[cfg(target_os = "macos")]
+            commands::set_vibrancy_material,
             #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]
             commands::set_selection_window_pinned,
             #[cfg(any(feature = "dev-non-macos", not(target_os = "macos")))]

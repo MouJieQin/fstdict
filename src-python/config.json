@@ -1,7 +1,27 @@
 {
     "appearance": {
         "theme": "auto",
-        "language": "en"
+        "language": "en",
+        "vibrancy": {
+            "macos": {
+                "material": {
+                    "titlebar": 3,
+                    "selection": 4,
+                    "menu": 5,
+                    "popover": 6,
+                    "sidebar": 7,
+                    "header view": 10,
+                    "sheet": 11,
+                    "window background": 12,
+                    "hud window": 13,
+                    "full screen ui": 15,
+                    "tooltip": 17,
+                    "content background": 18,
+                    "under window background": 21,
+                    "under page background": 22
+                }
+            }
+        }
     },
     "ocr": {
         "session": {
